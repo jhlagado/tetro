@@ -172,7 +172,7 @@ Piece data lives in `data.asm`. Each rotation is a 4×4 bitmap stored as four by
 
 `LOAD_CURRENT_ROTATION_STATE` reads all three and writes them into the live RAM fields. Adding a new piece means adding data, not changing code.
 
-The RNG is an 8-bit shift-register generator (`RNG_NEXT8`) that advances `RNG_SEED` on each call. `RNG_NEXT_PIECE` masks the result to three bits, discards 7, and retries. The output is uniform over indices 0–6 — the seven piece types — at the cost of discarding one in eight values. The selected piece sits in `NEXT_PIECE_INDEX` until the next spawn moves it to `CURRENT_PIECE_INDEX`. The LCD reads `NEXT_PIECE_INDEX` through `PIECE_NAME_TABLE` to show the preview letter.
+The RNG is an 8-bit shift-register generator (`RNG_NEXT8`) that advances `RNG_SEED` on each call. `RNG_NEXT_PIECE` folds higher bits into the low bits, masks the mixed byte to three bits, discards 7, and retries. The output is uniform over indices 0–6 — the seven piece types — while avoiding the long `I` runs produced by taking the raw low three LFSR bits directly. The selected piece sits in `NEXT_PIECE_INDEX` until the next spawn moves it to `CURRENT_PIECE_INDEX`. The LCD reads `NEXT_PIECE_INDEX` through `PIECE_NAME_TABLE` to show the preview letter.
 
 ---
 

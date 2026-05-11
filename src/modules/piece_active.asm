@@ -160,9 +160,14 @@ SELECT_NEXT_PIECE:
 ;   A = next piece index 0..6
 ;   RNG_SEED advanced
 ; Clobbers:
-;   A
+;   A, B
 RNG_NEXT_PIECE:
         CALL    RNG_NEXT8
+        LD      B,A
+        SRL     A
+        SRL     A
+        SRL     A
+        XOR     B                       ; fold high bits into sticky low bits
         AND     0x07
         CP      PIECE_COUNT
         JR      NC,RNG_NEXT_PIECE
