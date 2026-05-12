@@ -24,8 +24,7 @@ Port assignments and shared gameplay tuning constants live in [src/shared/inc/co
 | `>` | `0x11` | Move right |
 | `GO` | `0x12` | Soft drop |
 | `AD` | `0x13` | Rotate counter-clockwise |
-| `3` | `0x03` | Rotate clockwise, alternate key |
-| `2` | `0x02` | Rotate counter-clockwise, alternate key |
+| `C` | `0x0C` | Rotate clockwise |
 | `0` | `0x00` | Pause or resume |
 | any key | | Start from splash, or restart after the game-over gate opens |
 

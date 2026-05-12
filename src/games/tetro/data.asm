@@ -99,7 +99,7 @@ LCD_TEXT_SPLASH_MOVE:
         DB      "< > MOVE",0
 
 LCD_TEXT_SPLASH_ROTATE:
-        DB      "AD/3 ROTATE",0
+        DB      "AD/C ROTATE",0
 
 LCD_TEXT_SPLASH_DROP:
         DB      "GO DROP 0 PAUSE",0

@@ -18,8 +18,7 @@
 ;   right (0x11) = move right
 ;   GO     (0x12) = soft drop
 ;   AD     (0x13) = counter-clockwise rotate
-;   3      (0x03) = clockwise rotate
-;   2      (0x02) = counter-clockwise rotate
+;   C      (0x0C) = clockwise rotate
 ;   0      (0x00) = pause
 ;
 ; Design:

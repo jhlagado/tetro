@@ -27,9 +27,7 @@ POLL_INPUT_AND_UPDATE:
         LD      A,E
         CP      K_ROTATE_CCW
         JR      Z,CLEAR_INPUT_REPEAT_STATE
-        CP      K_ROTATE_ALT
-        JR      Z,CLEAR_INPUT_REPEAT_STATE
-        CP      K_ROTATE_CCW_ALT
+        CP      K_ROTATE_CW
         JR      Z,CLEAR_INPUT_REPEAT_STATE
         JR      HANDLE_DIRECTION_KEY
 
@@ -45,10 +43,8 @@ KEY_NEW_PRESS:
         JP      Z,HANDLE_KEY_DROP
         CP      K_ROTATE_CCW
         JP      Z,HANDLE_ROTATE_CCW_PRESS
-        CP      K_ROTATE_ALT
+        CP      K_ROTATE_CW
         JP      Z,HANDLE_ROTATE_PRESS
-        CP      K_ROTATE_CCW_ALT
-        JP      Z,HANDLE_ROTATE_CCW_PRESS
         ; fall through
 
 HANDLE_DIRECTION_KEY:

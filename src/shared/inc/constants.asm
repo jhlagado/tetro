@@ -19,8 +19,7 @@ K_LEFT:         EQU     0x10
 K_RIGHT:        EQU     0x11
 K_ROTATE:       EQU     0x12
 K_ROTATE_CCW:   EQU     0x13
-K_ROTATE_ALT:   EQU     0x03
-K_ROTATE_CCW_ALT: EQU   0x02
+K_ROTATE_CW:    EQU     0x0C
 K_DROP:         EQU     0x00
 K_PAUSE:        EQU     0x00
 NO_KEY:         EQU     0xFF
