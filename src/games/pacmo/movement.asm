@@ -3,8 +3,14 @@
 ; Direction mapping for this first scrolling experiment:
 ;   K_LEFT  (0x10) = left
 ;   K_RIGHT (0x11) = right
-;   key 2   (0x02) = up
+;   ADD     (0x13) = up
+;   GO      (0x12) = down
+;   key 8   (0x08) = up
 ;   key 0   (0x00) = down
+;   key 5   (0x05) = right
+;
+; Raw keypad codes are normalized into PACMO_DIR_* intents before movement
+; dispatch. Later game logic should consume directions, not physical keys.
 ;
 ; POLL_INPUT_AND_UPDATE
 ; Input:
@@ -18,16 +24,8 @@ POLL_INPUT_AND_UPDATE:
         RST     0x10
         JR      NZ,CLEAR_INPUT_REPEAT_STATE
 
-        LD      E,A
-        LD      A,E
-        CP      K_LEFT
-        JR      Z,HANDLE_DIRECTION_KEY
-        CP      K_RIGHT
-        JR      Z,HANDLE_DIRECTION_KEY
-        CP      K_ROTATE_CCW_ALT
-        JR      Z,HANDLE_DIRECTION_KEY
-        CP      K_DROP
-        JR      Z,HANDLE_DIRECTION_KEY
+        CALL    NORMALIZE_INPUT_TO_DIRECTION
+        JR      C,HANDLE_DIRECTION_KEY
         JR      CLEAR_INPUT_REPEAT_STATE
 
 HANDLE_DIRECTION_KEY:
@@ -50,14 +48,56 @@ HELD_SAME_KEY:
         LD      (MOVE_COOLDOWN),A
 
         LD      A,E
-        CP      K_LEFT
+        CP      PACMO_DIR_LEFT
         JR      Z,MOVE_PLAYER_LEFT
-        CP      K_RIGHT
+        CP      PACMO_DIR_RIGHT
         JR      Z,MOVE_PLAYER_RIGHT
-        CP      K_ROTATE_CCW_ALT
+        CP      PACMO_DIR_UP
         JR      Z,MOVE_PLAYER_UP
-        CP      K_DROP
+        CP      PACMO_DIR_DOWN
         JR      Z,MOVE_PLAYER_DOWN
+        RET
+
+; NORMALIZE_INPUT_TO_DIRECTION
+; Input:
+;   A = raw MON-3 keypad code from API_SCANKEYS
+; Output:
+;   Carry set and E = PACMO_DIR_* for accepted movement keys
+;   Carry clear if the key is not a Pacmo movement key
+; Clobbers:
+;   A, E
+NORMALIZE_INPUT_TO_DIRECTION:
+        CP      K_LEFT
+        JR      Z,NORMALIZE_LEFT
+        CP      K_RIGHT
+        JR      Z,NORMALIZE_RIGHT
+        CP      0x05
+        JR      Z,NORMALIZE_RIGHT
+        CP      K_ROTATE_CCW
+        JR      Z,NORMALIZE_UP
+        CP      0x08
+        JR      Z,NORMALIZE_UP
+        CP      K_ROTATE
+        JR      Z,NORMALIZE_DOWN
+        CP      K_DROP
+        JR      Z,NORMALIZE_DOWN
+        OR      A
+        RET
+NORMALIZE_LEFT:
+        LD      E,PACMO_DIR_LEFT
+        SCF
+        RET
+NORMALIZE_RIGHT:
+        LD      E,PACMO_DIR_RIGHT
+        SCF
+        RET
+NORMALIZE_UP:
+        LD      E,PACMO_DIR_UP
+        SCF
+        RET
+NORMALIZE_DOWN:
+        LD      E,PACMO_DIR_DOWN
+        SCF
         RET
 
 ; CLEAR_INPUT_REPEAT_STATE
