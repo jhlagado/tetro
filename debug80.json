@@ -59,7 +59,7 @@
       "asm": "src/tetro.asm",
       "artifactBase": "tetro"
     },
-    "constants": {
+    "pacmo": {
       "outputDir": "build",
       "platform": "tec1g",
       "profile": "mon3",
@@ -92,9 +92,9 @@
           "roms/tec1g/mon3"
         ]
       },
-      "sourceFile": "src/inc/constants.asm",
-      "asm": "src/inc/constants.asm",
-      "artifactBase": "constants"
+      "sourceFile": "src/pacmo.asm",
+      "asm": "src/pacmo.asm",
+      "artifactBase": "pacmo"
     }
   }
 }

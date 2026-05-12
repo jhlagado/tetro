@@ -4,7 +4,7 @@ TETRO is a 7-piece falling-block game for the TEC-1G single-board Z80 computer, 
 
 The game draws an 8x8 RGB LED matrix, uses the MON-3 keypad for controls, shows status on an HD44780 LCD, and scans a six-digit seven-segment score display. All of that runs from one cooperative loop: one matrix row is emitted per pass, sound and score scan from the same tick, and game logic is spread across eight slices.
 
-The full code tour is in [codebase.md](codebase.md). It is the source-of-truth document for the architecture, state machine, collision path, rendering path, and lock/clear flow.
+The full code tour is in [docs/tetro-codebase.md](docs/tetro-codebase.md). It is the source-of-truth document for the architecture, state machine, collision path, rendering path, and lock/clear flow.
 
 ## Hardware
 
@@ -14,7 +14,7 @@ The full code tour is in [codebase.md](codebase.md). It is the source-of-truth d
 - Six-digit seven-segment display on `PORT_DIGITS` / `PORT_SEGS`.
 - Speaker driven from bit 7 of `PORT_DIGITS`.
 
-Port assignments and gameplay tuning constants live in [src/inc/constants.asm](src/inc/constants.asm).
+Port assignments and shared gameplay tuning constants live in [src/shared/inc/constants.asm](src/shared/inc/constants.asm).
 
 ## Controls
 
@@ -68,22 +68,24 @@ The LCD shows the splash screen. Press any key to start.
 
 ```text
 src/
-|-- tetro.asm                  ; ORG, START, MAIN_LOOP, include order
-|-- inc/
-|   `-- constants.asm          ; ports, key codes, tuning constants
-`-- modules/
-    |-- geometry_helpers.asm   ; pending-position and mask-shift helpers
-    |-- collision.asm          ; placement and top-out tests
-    |-- framebuffer.asm        ; back/front framebuffer rendering
-    |-- piece_active.asm       ; movement, gravity, rotation, RNG, spawn
-    |-- board_lock.asm         ; lock, merge, line clear, score, game over
-    |-- game_init.asm          ; cold start and restart setup
-    |-- scan_tick.asm          ; matrix row scan and scan-state advance
-    |-- logic_dispatch.asm     ; state dispatcher and 8-slice frame logic
-    |-- input.asm              ; keypad polling and repeat handling
-    |-- ui.asm                 ; sound, seven-seg score, LCD scripts
-    |-- data.asm               ; piece bitmaps and lookup tables
-    `-- ram.asm                ; mutable state layout
+|-- tetro.asm                  ; Debug80 target entry point and include order
+|-- shared/
+|   |-- inc/
+|   |   `-- constants.asm      ; ports, key codes, shared tuning constants
+|   |-- framebuffer.asm        ; back/front framebuffer rendering helpers
+|   |-- input.asm              ; keypad polling and repeat handling
+|   |-- scan_tick.asm          ; matrix row scan and scan-state advance
+|   `-- ui.asm                 ; sound, seven-seg score, LCD scripts
+`-- games/
+    `-- tetro/
+        |-- geometry_helpers.asm
+        |-- collision.asm
+        |-- piece_active.asm
+        |-- board_lock.asm
+        |-- game_init.asm
+        |-- logic_dispatch.asm
+        |-- data.asm
+        `-- ram.asm
 ```
 
 ## Documentation

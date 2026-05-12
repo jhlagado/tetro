@@ -33,7 +33,8 @@
 
         ORG     0x4000
 
-        .include "inc/constants.asm"
+        .include "shared/inc/constants.asm"
+        .include "games/tetro/constants.asm"
 
 START:
         CALL    INIT_STATE
@@ -43,15 +44,15 @@ MAIN_LOOP:
         CALL    LOGIC_TICK
         JR      MAIN_LOOP
 
-        .include "modules/geometry_helpers.asm"
-        .include "modules/collision.asm"
-        .include "modules/framebuffer.asm"
-        .include "modules/piece_active.asm"
-        .include "modules/board_lock.asm"
-        .include "modules/game_init.asm"
-        .include "modules/scan_tick.asm"
-        .include "modules/logic_dispatch.asm"
-        .include "modules/input.asm"
-        .include "modules/ui.asm"
-        .include "modules/data.asm"
-        .include "modules/ram.asm"
+        .include "games/tetro/geometry_helpers.asm"
+        .include "games/tetro/collision.asm"
+        .include "shared/framebuffer.asm"
+        .include "games/tetro/piece_active.asm"
+        .include "games/tetro/board_lock.asm"
+        .include "games/tetro/game_init.asm"
+        .include "shared/scan_tick.asm"
+        .include "games/tetro/logic_dispatch.asm"
+        .include "shared/input.asm"
+        .include "shared/ui.asm"
+        .include "games/tetro/data.asm"
+        .include "games/tetro/ram.asm"
