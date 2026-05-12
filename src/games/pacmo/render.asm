@@ -93,7 +93,9 @@ RENDER_WORLD_ROW:
         LD      C,A                     ; C = low byte of 15-bit row
         INC     DE
         LD      A,(VIEW_X)
+        PUSH    DE
         CALL    WINDOW_BYTE_FROM_BC
+        POP     DE
         INC     HL                      ; red off
         INC     HL                      ; green off
         LD      (HL),A                  ; blue walls / pattern
