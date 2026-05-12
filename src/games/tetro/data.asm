@@ -99,10 +99,10 @@ LCD_TEXT_SPLASH_MOVE:
         DB      "< > MOVE",0
 
 LCD_TEXT_SPLASH_ROTATE:
-        DB      "AD/GO ROTATE",0
+        DB      "AD/3 ROTATE",0
 
 LCD_TEXT_SPLASH_DROP:
-        DB      "0 DROP F PAUSE",0
+        DB      "GO DROP 0 PAUSE",0
 
 ; Default 3x3-scale piece set with precomputed clockwise rotations.
 ; Shapes are centered in a 3x3 local frame where practical; the engine still

@@ -22,7 +22,7 @@ K_ROTATE_CCW:   EQU     0x13
 K_ROTATE_ALT:   EQU     0x03
 K_ROTATE_CCW_ALT: EQU   0x02
 K_DROP:         EQU     0x00
-K_PAUSE:        EQU     0x0F
+K_PAUSE:        EQU     0x00
 NO_KEY:         EQU     0xFF
 
 ; Matrix / display constants. ROW_COUNT is the 8x8 matrix dimension; the name

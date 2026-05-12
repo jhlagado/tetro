@@ -25,8 +25,6 @@ POLL_INPUT_AND_UPDATE:
         OR      A
         JR      NZ,CLEAR_INPUT_REPEAT_STATE
         LD      A,E
-        CP      K_ROTATE
-        JR      Z,CLEAR_INPUT_REPEAT_STATE
         CP      K_ROTATE_CCW
         JR      Z,CLEAR_INPUT_REPEAT_STATE
         CP      K_ROTATE_ALT
@@ -44,7 +42,7 @@ KEY_NEW_PRESS:
         JP      Z,HANDLE_PAUSE_KEY
         LD      A,E
         CP      K_ROTATE
-        JP      Z,HANDLE_ROTATE_PRESS
+        JP      Z,HANDLE_KEY_DROP
         CP      K_ROTATE_CCW
         JP      Z,HANDLE_ROTATE_CCW_PRESS
         CP      K_ROTATE_ALT
@@ -59,6 +57,8 @@ HANDLE_DIRECTION_KEY:
         JP      Z,HANDLE_KEY_LEFT
         CP      K_RIGHT
         JP      Z,HANDLE_KEY_RIGHT
+        CP      K_ROTATE
+        JP      Z,HANDLE_KEY_DROP
         CP      K_DROP
         JP      Z,HANDLE_KEY_DROP
 
