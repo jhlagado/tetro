@@ -1,10 +1,15 @@
 PACMO_WORLD_MAX: EQU    14
 PACMO_VIEW_MAX:  EQU    7
 PACMO_MOVE_PERIOD: EQU   16
+PACMO_EATEN_BYTES: EQU  30
 PACMO_DIR_UP:    EQU    1
 PACMO_DIR_DOWN:  EQU    2
 PACMO_DIR_LEFT:  EQU    3
 PACMO_DIR_RIGHT: EQU    4
+
+PACMO_KEY_5_NUMERIC: EQU 0x05
+PACMO_KEY_5_RAW:     EQU 0x15
+PACMO_KEY_5_ASCII:   EQU 0x35
 
 DIGIT_MASK_TABLE:
         DB      0x20
@@ -33,3 +38,13 @@ PACMO_WORLD_ROWS:
         DB      %10111010,%11101010
         DB      %10000000,%00000010
         DB      %11111111,%11111110
+
+; Power-pill coordinates, stored as x,y pairs and terminated by 0xFF.
+; These are placed on open cells away from the player start and near broad
+; maze regions so they are visible test landmarks before consumption exists.
+PACMO_POWER_PILLS:
+        DB      1,3
+        DB      13,3
+        DB      1,11
+        DB      13,11
+        DB      0xFF

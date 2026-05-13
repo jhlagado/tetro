@@ -32,6 +32,12 @@ INIT_STATE:
         LD      (SCAN_PTR),HL
 
         CALL    CLEAR_FRONT_AND_BACK
+        CALL    CLEAR_EATEN_PATHS
+        LD      A,(PLAYER_X)
+        LD      B,A
+        LD      A,(PLAYER_Y)
+        LD      C,A
+        CALL    PACMO_MARK_EATEN_AT_BC
         CALL    BLANK_HUD_SCORE_DIGITS
         JP      REBUILD_FRAMEBUFFER
 
@@ -50,4 +56,21 @@ CLEAR_FRONT_AND_BACK_LOOP:
         LD      (HL),A
         INC     HL
         DJNZ    CLEAR_FRONT_AND_BACK_LOOP
+        RET
+
+; CLEAR_EATEN_PATHS
+; Input:
+;   none
+; Output:
+;   PACMO_EATEN_ROWS cleared to zero
+; Clobbers:
+;   A, B, HL
+CLEAR_EATEN_PATHS:
+        LD      HL,PACMO_EATEN_ROWS
+        LD      B,PACMO_EATEN_BYTES
+        XOR     A
+CLEAR_EATEN_PATHS_LOOP:
+        LD      (HL),A
+        INC     HL
+        DJNZ    CLEAR_EATEN_PATHS_LOOP
         RET
