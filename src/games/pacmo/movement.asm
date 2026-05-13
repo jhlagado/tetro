@@ -7,7 +7,7 @@
 ;   GO      (0x12) = down
 ;   key 8   (0x08) = up
 ;   key 0   (0x00) = down
-;   key 5   (0x05) = right
+;   key 5   (accepted MON-3 numeric/raw/ASCII forms) = right
 ;
 ; Raw keypad codes are normalized into PACMO_DIR_* intents before movement
 ; dispatch. Later game logic should consume directions, not physical keys.
@@ -71,7 +71,11 @@ NORMALIZE_INPUT_TO_DIRECTION:
         JR      Z,NORMALIZE_LEFT
         CP      K_RIGHT
         JR      Z,NORMALIZE_RIGHT
-        CP      0x05
+        CP      PACMO_KEY_5_NUMERIC
+        JR      Z,NORMALIZE_RIGHT
+        CP      PACMO_KEY_5_RAW
+        JR      Z,NORMALIZE_RIGHT
+        CP      PACMO_KEY_5_ASCII
         JR      Z,NORMALIZE_RIGHT
         CP      K_ROTATE_CCW
         JR      Z,NORMALIZE_UP
