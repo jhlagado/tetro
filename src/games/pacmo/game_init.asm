@@ -42,6 +42,9 @@ INIT_STATE:
         LD      A,(PLAYER_Y)
         LD      C,A
         CALL    PACMO_MARK_EATEN_AT_BC
+        XOR     A
+        LD      (PACMO_SCORE),A
+        LD      (PACMO_SCORE+1),A
         CALL    UPDATE_SCORE_DISPLAY
         JP      REBUILD_FRAMEBUFFER
 
