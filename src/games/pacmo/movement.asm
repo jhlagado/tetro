@@ -18,7 +18,7 @@
 ; Output:
 ;   may update PLAYER_X/Y, VIEW_X/Y, MOVE_COOLDOWN, LAST_KEY
 ; Clobbers:
-;   A, B, C, E
+;   A, BC, DE, HL
 POLL_INPUT_AND_UPDATE:
         LD      C,API_SCANKEYS
         RST     0x10
@@ -118,61 +118,124 @@ CLEAR_INPUT_REPEAT_STATE:
 ; Input:
 ;   PLAYER_X
 ; Output:
-;   decrements PLAYER_X unless already at world column 0; viewport adjusted
+;   decrements PLAYER_X unless already at world column 0 or target is a wall
 ; Clobbers:
-;   A
+;   A, BC, DE, HL
 MOVE_PLAYER_LEFT:
         LD      A,(PLAYER_X)
         OR      A
         RET     Z
         DEC     A
-        LD      (PLAYER_X),A
-        JP      UPDATE_VIEWPORT_FOR_PLAYER
+        LD      B,A
+        LD      A,(PLAYER_Y)
+        LD      C,A
+        JP      TRY_MOVE_PLAYER_TO_BC
 
 ; MOVE_PLAYER_RIGHT
 ; Input:
 ;   PLAYER_X
 ; Output:
-;   increments PLAYER_X unless already at world column 14; viewport adjusted
+;   increments PLAYER_X unless already at world column 14 or target is a wall
 ; Clobbers:
-;   A
+;   A, BC, DE, HL
 MOVE_PLAYER_RIGHT:
         LD      A,(PLAYER_X)
         CP      PACMO_WORLD_MAX
         RET     NC
         INC     A
-        LD      (PLAYER_X),A
-        JP      UPDATE_VIEWPORT_FOR_PLAYER
+        LD      B,A
+        LD      A,(PLAYER_Y)
+        LD      C,A
+        JP      TRY_MOVE_PLAYER_TO_BC
 
 ; MOVE_PLAYER_UP
 ; Input:
 ;   PLAYER_Y
 ; Output:
-;   decrements PLAYER_Y unless already at world row 0; viewport adjusted
+;   decrements PLAYER_Y unless already at world row 0 or target is a wall
 ; Clobbers:
-;   A
+;   A, BC, DE, HL
 MOVE_PLAYER_UP:
         LD      A,(PLAYER_Y)
         OR      A
         RET     Z
         DEC     A
-        LD      (PLAYER_Y),A
-        JP      UPDATE_VIEWPORT_FOR_PLAYER
+        LD      C,A
+        LD      A,(PLAYER_X)
+        LD      B,A
+        JP      TRY_MOVE_PLAYER_TO_BC
 
 ; MOVE_PLAYER_DOWN
 ; Input:
 ;   PLAYER_Y
 ; Output:
-;   increments PLAYER_Y unless already at world row 14; viewport adjusted
+;   increments PLAYER_Y unless already at world row 14 or target is a wall
 ; Clobbers:
-;   A
+;   A, BC, DE, HL
 MOVE_PLAYER_DOWN:
         LD      A,(PLAYER_Y)
         CP      PACMO_WORLD_MAX
         RET     NC
         INC     A
+        LD      C,A
+        LD      A,(PLAYER_X)
+        LD      B,A
+        JP      TRY_MOVE_PLAYER_TO_BC
+
+; TRY_MOVE_PLAYER_TO_BC
+; Input:
+;   B = candidate world x
+;   C = candidate world y
+; Output:
+;   if target is open, PLAYER_X/Y committed and viewport adjusted
+;   if target is a wall, PLAYER_X/Y unchanged
+; Clobbers:
+;   A, BC, DE, HL
+TRY_MOVE_PLAYER_TO_BC:
+        CALL    PACMO_IS_WALL_AT_BC
+        RET     C
+        LD      A,B
+        LD      (PLAYER_X),A
+        LD      A,C
         LD      (PLAYER_Y),A
         JP      UPDATE_VIEWPORT_FOR_PLAYER
+
+; PACMO_IS_WALL_AT_BC
+; Input:
+;   B = world x coordinate, expected 0..14
+;   C = world y coordinate, expected 0..14
+; Output:
+;   Carry set if PACMO_WORLD_ROWS has a wall bit at (B,C)
+;   Carry clear if the cell is open
+; Clobbers:
+;   A, DE, HL
+PACMO_IS_WALL_AT_BC:
+        LD      A,C
+        ADD     A,A
+        LD      E,A
+        LD      D,0
+        LD      HL,PACMO_WORLD_ROWS
+        ADD     HL,DE
+        LD      D,(HL)                  ; D = high byte, bit 7 is world column 0
+        INC     HL
+        LD      E,(HL)                  ; E = low byte, bit 1 is world column 14
+
+        LD      A,B
+        OR      A
+        JR      Z,PACMO_WALL_TEST
+PACMO_WALL_SHIFT_LOOP:
+        SLA     E
+        RL      D
+        DEC     A
+        JR      NZ,PACMO_WALL_SHIFT_LOOP
+PACMO_WALL_TEST:
+        BIT     7,D
+        JR      Z,PACMO_WALL_OPEN
+        SCF
+        RET
+PACMO_WALL_OPEN:
+        OR      A
+        RET
 
 ; UPDATE_VIEWPORT_FOR_PLAYER
 ; Input:
