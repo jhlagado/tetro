@@ -8,6 +8,7 @@
 REBUILD_FRAMEBUFFER:
         CALL    CLEAR_BACK_ALL
         CALL    RENDER_WORLD_TO_BACK
+        CALL    RENDER_POWER_PILLS_TO_BACK
         CALL    RENDER_PLAYER_TO_BACK
         JP      COPY_BACK_TO_FRONT
 
@@ -69,7 +70,7 @@ COPY_BACK_TO_FRONT:
 ; Input:
 ;   VIEW_X/Y and PACMO_WORLD_ROWS
 ; Output:
-;   visible 8x8 viewport rendered into blue framebuffer plane
+;   visible 8x8 viewport rendered as green open paths and blue walls
 ; Clobbers:
 ;   A, BC, DE, HL
 RENDER_WORLD_TO_BACK:
@@ -83,6 +84,15 @@ RENDER_WORLD_TO_BACK:
         ADD     HL,DE
         EX      DE,HL                   ; DE = source world row pointer
         POP     HL                      ; HL = framebuffer row pointer
+        PUSH    HL
+        LD      A,(VIEW_Y)
+        ADD     A,A
+        LD      L,A
+        LD      H,0
+        LD      BC,PACMO_EATEN_ROWS
+        ADD     HL,BC
+        LD      (RENDER_EATEN_PTR),HL
+        POP     HL
         LD      B,ROW_COUNT
 RENDER_WORLD_ROW:
         PUSH    BC
@@ -96,8 +106,29 @@ RENDER_WORLD_ROW:
         PUSH    DE
         CALL    WINDOW_BYTE_FROM_BC
         POP     DE
+        LD      C,A                     ; C = visible wall mask
+        PUSH    BC
+        PUSH    DE
+        PUSH    HL
+        LD      HL,(RENDER_EATEN_PTR)
+        LD      B,(HL)
+        INC     HL
+        LD      C,(HL)
+        INC     HL
+        LD      (RENDER_EATEN_PTR),HL
+        LD      A,(VIEW_X)
+        CALL    WINDOW_BYTE_FROM_BC
+        POP     HL
+        POP     DE
+        POP     BC
+        LD      B,A                     ; B = visible eaten mask
         INC     HL                      ; red off
-        INC     HL                      ; green off
+        LD      A,C
+        OR      B
+        CPL
+        LD      (HL),A                  ; green uneaten open path cells
+        INC     HL
+        LD      A,C
         LD      (HL),A                  ; blue walls / pattern
         INC     HL
         INC     HL                      ; aux byte
@@ -125,6 +156,73 @@ WINDOW_SHIFT_LOOP:
         JR      NZ,WINDOW_SHIFT_LOOP
 WINDOW_BYTE_DONE:
         LD      A,B
+        RET
+
+; RENDER_POWER_PILLS_TO_BACK
+; Input:
+;   VIEW_X/Y and PACMO_POWER_PILLS
+; Output:
+;   visible power pills ORed into red/green/blue planes (white)
+; Clobbers:
+;   A, BC, DE, HL
+RENDER_POWER_PILLS_TO_BACK:
+        LD      HL,PACMO_POWER_PILLS
+RENDER_POWER_PILL_LOOP:
+        LD      A,(HL)
+        CP      0xFF
+        RET     Z
+        LD      B,A                     ; B = world x
+        INC     HL
+        LD      A,(HL)
+        INC     HL
+        PUSH    HL
+        LD      C,A                     ; C = world y
+        CALL    RENDER_POWER_PILL_BC
+        POP     HL
+        JR      RENDER_POWER_PILL_LOOP
+
+; RENDER_POWER_PILL_BC
+; Input:
+;   B = world x
+;   C = world y
+; Output:
+;   if the cell is in the viewport, its framebuffer cell is set white
+; Clobbers:
+;   A, B, C, DE, HL
+RENDER_POWER_PILL_BC:
+        LD      A,(VIEW_Y)
+        LD      E,A
+        LD      A,C
+        SUB     E                       ; A = screenY
+        CP      ROW_COUNT
+        RET     NC
+        ADD     A,A
+        ADD     A,A
+        LD      E,A
+        LD      D,0
+        LD      HL,FRAMEBUFFER_BACK
+        ADD     HL,DE
+
+        LD      A,(VIEW_X)
+        LD      E,A
+        LD      A,B
+        SUB     E                       ; A = screenX
+        CP      ROW_COUNT
+        RET     NC
+        CALL    SCREEN_X_TO_MASK
+        LD      C,A
+
+        LD      A,(HL)
+        OR      C
+        LD      (HL),A                  ; red
+        INC     HL
+        LD      A,(HL)
+        OR      C
+        LD      (HL),A                  ; green
+        INC     HL
+        LD      A,(HL)
+        OR      C
+        LD      (HL),A                  ; blue
         RET
 
 ; RENDER_PLAYER_TO_BACK

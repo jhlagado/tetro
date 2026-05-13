@@ -198,7 +198,39 @@ TRY_MOVE_PLAYER_TO_BC:
         LD      (PLAYER_X),A
         LD      A,C
         LD      (PLAYER_Y),A
+        CALL    PACMO_MARK_EATEN_AT_BC
         JP      UPDATE_VIEWPORT_FOR_PLAYER
+
+; PACMO_MARK_EATEN_AT_BC
+; Input:
+;   B = world x coordinate, expected 0..14
+;   C = world y coordinate, expected 0..14
+; Output:
+;   corresponding bit set in PACMO_EATEN_ROWS
+; Clobbers:
+;   A, BC, DE, HL
+PACMO_MARK_EATEN_AT_BC:
+        LD      A,C
+        ADD     A,A
+        LD      E,A
+        LD      D,0
+        LD      HL,PACMO_EATEN_ROWS
+        ADD     HL,DE
+
+        LD      A,B
+        CP      8
+        JR      NC,PACMO_MARK_EATEN_LOW_BYTE
+        CALL    SCREEN_X_TO_MASK
+        OR      (HL)
+        LD      (HL),A
+        RET
+PACMO_MARK_EATEN_LOW_BYTE:
+        SUB     8
+        INC     HL
+        CALL    SCREEN_X_TO_MASK
+        OR      (HL)
+        LD      (HL),A
+        RET
 
 ; PACMO_IS_WALL_AT_BC
 ; Input:

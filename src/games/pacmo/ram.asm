@@ -24,6 +24,8 @@ FRAME_PHASE:
         DS      1
 LOGIC_SLICE:
         DS      1
+RENDER_EATEN_PTR:
+        DS      2
 SCAN_MASK:
         DS      1
 SCAN_PTR:
@@ -32,4 +34,6 @@ FRAMEBUFFER:
         DS      FRAMEBUFFER_BYTES
 FRAMEBUFFER_BACK:
         DS      FRAMEBUFFER_BYTES
+PACMO_EATEN_ROWS:
+        DS      PACMO_EATEN_BYTES
 RAM_END:
