@@ -19,6 +19,7 @@ LOGIC_TICK:
 
 LOGIC_SL0:
         CALL    POLL_INPUT_AND_UPDATE
+        CALL    TICK_POWER_TIMER
         XOR     A
         CALL    CLEAR_BACK_4
         JR      LOGIC_SLICE_NEXT
@@ -37,5 +38,21 @@ LOGIC_SLICE_NEXT:
         LD      A,(HL)
         INC     A
         AND     7
+        LD      (HL),A
+        RET
+
+; TICK_POWER_TIMER
+; Input:
+;   PACMO_POWER_TIMER
+; Output:
+;   decrements PACMO_POWER_TIMER by one when nonzero
+; Clobbers:
+;   A, HL
+TICK_POWER_TIMER:
+        LD      HL,PACMO_POWER_TIMER
+        LD      A,(HL)
+        OR      A
+        RET     Z
+        DEC     A
         LD      (HL),A
         RET

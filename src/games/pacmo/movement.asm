@@ -224,8 +224,17 @@ PACMO_CONSUME_POWER_PILL_LOOP:
         CP      C
         JR      NZ,PACMO_CONSUME_POWER_PILL_NEXT
         LD      A,(PACMO_POWER_PILLS_EATEN)
+        AND     D
+        RET     NZ
+        LD      A,(PACMO_POWER_PILLS_EATEN)
         OR      D
         LD      (PACMO_POWER_PILLS_EATEN),A
+        PUSH    BC
+        LD      A,PACMO_SCORE_POWER
+        CALL    PACMO_ADD_SCORE_A
+        POP     BC
+        LD      A,PACMO_POWER_TIMER_START
+        LD      (PACMO_POWER_TIMER),A
         RET
 PACMO_CONSUME_POWER_PILL_NEXT:
         INC     HL
@@ -252,6 +261,17 @@ PACMO_MARK_EATEN_AT_BC:
         CP      8
         JR      NC,PACMO_MARK_EATEN_LOW_BYTE
         CALL    SCREEN_X_TO_MASK
+        LD      E,A
+        LD      A,(HL)
+        AND     E
+        RET     NZ
+        PUSH    HL
+        PUSH    DE
+        LD      A,PACMO_SCORE_PATH
+        CALL    PACMO_ADD_SCORE_A
+        POP     DE
+        POP     HL
+        LD      A,E
         OR      (HL)
         LD      (HL),A
         RET
@@ -259,9 +279,35 @@ PACMO_MARK_EATEN_LOW_BYTE:
         SUB     8
         INC     HL
         CALL    SCREEN_X_TO_MASK
+        LD      E,A
+        LD      A,(HL)
+        AND     E
+        RET     NZ
+        PUSH    HL
+        PUSH    DE
+        LD      A,PACMO_SCORE_PATH
+        CALL    PACMO_ADD_SCORE_A
+        POP     DE
+        POP     HL
+        LD      A,E
         OR      (HL)
         LD      (HL),A
         RET
+
+; PACMO_ADD_SCORE_A
+; Input:
+;   A = unsigned score increment
+; Output:
+;   PACMO_SCORE increased by A; HUD score display refreshed
+; Clobbers:
+;   A, BC, DE, HL
+PACMO_ADD_SCORE_A:
+        LD      E,A
+        LD      D,0
+        LD      HL,(PACMO_SCORE)
+        ADD     HL,DE
+        LD      (PACMO_SCORE),HL
+        JP      UPDATE_SCORE_DISPLAY
 
 ; PACMO_IS_WALL_AT_BC
 ; Input:

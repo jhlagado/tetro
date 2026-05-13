@@ -3,6 +3,9 @@ PACMO_VIEW_MAX:  EQU    7
 PACMO_MOVE_PERIOD: EQU   16
 PACMO_EATEN_BYTES: EQU  30
 PACMO_POWER_PILL_COUNT: EQU 4
+PACMO_POWER_TIMER_START: EQU 240
+PACMO_SCORE_PATH: EQU 1
+PACMO_SCORE_POWER: EQU 10
 PACMO_DIR_UP:    EQU    1
 PACMO_DIR_DOWN:  EQU    2
 PACMO_DIR_LEFT:  EQU    3
@@ -21,6 +24,24 @@ DIGIT_MASK_TABLE:
         DB      0x04
         DB      0x02
         DB      0x01
+
+PACMO_HEX_SEG_TABLE:
+        DB      0xEB
+        DB      0x28
+        DB      0xCD
+        DB      0xAD
+        DB      0x2E
+        DB      0xA7
+        DB      0xE7
+        DB      0x29
+        DB      0xEF
+        DB      0x2F
+        DB      0x6F
+        DB      0xE6
+        DB      0xC3
+        DB      0xEC
+        DB      0xC7
+        DB      0x47
 
 ; 15-bit scrolling test bitmap.  Bit 15 is world column 0; bit 1 is column 14.
 ; This is deliberately a visual pattern, not a colliding maze yet.
