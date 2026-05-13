@@ -1,13 +1,13 @@
 ; Poll keypad and move the Pacmo cursor at a controlled repeat rate.
 ;
 ; Direction mapping for this first scrolling experiment:
-;   K_LEFT  (0x10) = left
-;   K_RIGHT (0x11) = right
+;   PACMO_KLEFT  (0x11) = left
+;   PACMO_KRIGHT (0x10) = right
 ;   ADD     (0x13) = up
 ;   GO      (0x12) = down
+;   key 5   (0x05) = right
 ;   key 8   (0x08) = up
 ;   key 0   (0x00) = down
-;   key 5   (accepted MON-3 numeric/raw/ASCII forms) = right
 ;
 ; Raw keypad codes are normalized into PACMO_DIR_* intents before movement
 ; dispatch. Later game logic should consume directions, not physical keys.
@@ -22,7 +22,7 @@
 POLL_INPUT_AND_UPDATE:
         LD      C,API_SCANKEYS
         RST     0x10
-        JR      NZ,CLEAR_INPUT_REPEAT_STATE
+        JP      NZ,CLEAR_INPUT_REPEAT_STATE
 
         CALL    NORMALIZE_INPUT_TO_DIRECTION
         JR      C,HANDLE_DIRECTION_KEY
@@ -67,23 +67,19 @@ HELD_SAME_KEY:
 ; Clobbers:
 ;   A, E
 NORMALIZE_INPUT_TO_DIRECTION:
-        CP      K_LEFT
+        CP      PACMO_KLEFT
         JR      Z,NORMALIZE_LEFT
-        CP      K_RIGHT
+        CP      PACMO_KRIGHT
         JR      Z,NORMALIZE_RIGHT
-        CP      PACMO_KEY_5_NUMERIC
-        JR      Z,NORMALIZE_RIGHT
-        CP      PACMO_KEY_5_RAW
-        JR      Z,NORMALIZE_RIGHT
-        CP      PACMO_KEY_5_ASCII
+        CP      PACMO_KEY_5
         JR      Z,NORMALIZE_RIGHT
         CP      K_ROTATE_CCW
         JR      Z,NORMALIZE_UP
-        CP      0x08
+        CP      PACMO_KEY_8
         JR      Z,NORMALIZE_UP
         CP      K_ROTATE
         JR      Z,NORMALIZE_DOWN
-        CP      K_DROP
+        CP      PACMO_KEY_0
         JR      Z,NORMALIZE_DOWN
         OR      A
         RET
@@ -122,14 +118,14 @@ CLEAR_INPUT_REPEAT_STATE:
 ; Input:
 ;   PLAYER_X
 ; Output:
-;   decrements PLAYER_X unless already at world column 0 or target is a wall
+;   moves visually left unless already at the mirrored horizontal edge or target is a wall
 ; Clobbers:
 ;   A, BC, DE, HL
 MOVE_PLAYER_LEFT:
         LD      A,(PLAYER_X)
-        OR      A
-        RET     Z
-        DEC     A
+        CP      PACMO_WORLD_MAX
+        RET     NC
+        INC     A
         LD      B,A
         LD      A,(PLAYER_Y)
         LD      C,A
@@ -139,14 +135,14 @@ MOVE_PLAYER_LEFT:
 ; Input:
 ;   PLAYER_X
 ; Output:
-;   increments PLAYER_X unless already at world column 14 or target is a wall
+;   moves visually right unless already at the mirrored horizontal edge or target is a wall
 ; Clobbers:
 ;   A, BC, DE, HL
 MOVE_PLAYER_RIGHT:
         LD      A,(PLAYER_X)
-        CP      PACMO_WORLD_MAX
-        RET     NC
-        INC     A
+        OR      A
+        RET     Z
+        DEC     A
         LD      B,A
         LD      A,(PLAYER_Y)
         LD      C,A
@@ -202,8 +198,39 @@ TRY_MOVE_PLAYER_TO_BC:
         LD      (PLAYER_X),A
         LD      A,C
         LD      (PLAYER_Y),A
+        CALL    PACMO_CONSUME_POWER_PILL_AT_BC
         CALL    PACMO_MARK_EATEN_AT_BC
         JP      UPDATE_VIEWPORT_FOR_PLAYER
+
+; PACMO_CONSUME_POWER_PILL_AT_BC
+; Input:
+;   B = world x coordinate
+;   C = world y coordinate
+; Output:
+;   matching bit set in PACMO_POWER_PILLS_EATEN when B/C is a power-pill cell
+; Clobbers:
+;   A, D, E, HL
+PACMO_CONSUME_POWER_PILL_AT_BC:
+        LD      HL,PACMO_POWER_PILLS
+        LD      D,1
+PACMO_CONSUME_POWER_PILL_LOOP:
+        LD      A,(HL)
+        CP      0xFF
+        RET     Z
+        CP      B
+        INC     HL
+        JR      NZ,PACMO_CONSUME_POWER_PILL_NEXT
+        LD      A,(HL)
+        CP      C
+        JR      NZ,PACMO_CONSUME_POWER_PILL_NEXT
+        LD      A,(PACMO_POWER_PILLS_EATEN)
+        OR      D
+        LD      (PACMO_POWER_PILLS_EATEN),A
+        RET
+PACMO_CONSUME_POWER_PILL_NEXT:
+        INC     HL
+        SLA     D
+        JR      PACMO_CONSUME_POWER_PILL_LOOP
 
 ; PACMO_MARK_EATEN_AT_BC
 ; Input:

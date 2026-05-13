@@ -167,6 +167,7 @@ WINDOW_BYTE_DONE:
 ;   A, BC, DE, HL
 RENDER_POWER_PILLS_TO_BACK:
         LD      HL,PACMO_POWER_PILLS
+        LD      D,1
 RENDER_POWER_PILL_LOOP:
         LD      A,(HL)
         CP      0xFF
@@ -175,10 +176,17 @@ RENDER_POWER_PILL_LOOP:
         INC     HL
         LD      A,(HL)
         INC     HL
-        PUSH    HL
         LD      C,A                     ; C = world y
+        LD      A,(PACMO_POWER_PILLS_EATEN)
+        AND     D
+        JR      NZ,RENDER_POWER_PILL_NEXT
+        PUSH    HL
+        PUSH    DE
         CALL    RENDER_POWER_PILL_BC
+        POP     DE
         POP     HL
+RENDER_POWER_PILL_NEXT:
+        SLA     D
         JR      RENDER_POWER_PILL_LOOP
 
 ; RENDER_POWER_PILL_BC
