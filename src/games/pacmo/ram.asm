@@ -18,6 +18,8 @@ SPEAKER_PORT_STATE:
         DS      1
 SOUND_TIMER:
         DS      1
+PACMO_SCORE:
+        DS      2
 HUD_SEG_BUFFER:
         DS      6
 FRAME_PHASE:
@@ -27,6 +29,8 @@ LOGIC_SLICE:
 RENDER_EATEN_PTR:
         DS      2
 PACMO_POWER_PILLS_EATEN:
+        DS      1
+PACMO_POWER_TIMER:
         DS      1
 SCAN_MASK:
         DS      1

@@ -25,7 +25,10 @@ INIT_STATE:
         LD      (HUD_SCAN_INDEX),A
         LD      (SPEAKER_PORT_STATE),A
         LD      (SOUND_TIMER),A
+        LD      (PACMO_SCORE),A
+        LD      (PACMO_SCORE+1),A
         LD      (PACMO_POWER_PILLS_EATEN),A
+        LD      (PACMO_POWER_TIMER),A
 
         LD      A,SCAN_MASK_START
         LD      (SCAN_MASK),A
@@ -39,7 +42,7 @@ INIT_STATE:
         LD      A,(PLAYER_Y)
         LD      C,A
         CALL    PACMO_MARK_EATEN_AT_BC
-        CALL    BLANK_HUD_SCORE_DIGITS
+        CALL    UPDATE_SCORE_DISPLAY
         JP      REBUILD_FRAMEBUFFER
 
 ; CLEAR_FRONT_AND_BACK

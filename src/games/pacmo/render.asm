@@ -237,7 +237,7 @@ RENDER_POWER_PILL_BC:
 ; Input:
 ;   PLAYER_X/Y, VIEW_X/Y
 ; Output:
-;   player pixel ORed into red and green framebuffer planes (yellow)
+;   player pixel ORed into framebuffer planes; yellow normally, cyan in power mode
 ; Clobbers:
 ;   A, B, C, DE, HL
 RENDER_PLAYER_TO_BACK:
@@ -274,6 +274,18 @@ RENDER_PLAYER_TO_BACK:
         LD      A,(HL)
         OR      C
         LD      (HL),A                  ; green
+        LD      A,(PACMO_POWER_TIMER)
+        OR      A
+        RET     Z
+        DEC     HL
+        LD      A,(HL)
+        XOR     C
+        LD      (HL),A                  ; red off in power mode
+        INC     HL
+        INC     HL
+        LD      A,(HL)
+        OR      C
+        LD      (HL),A                  ; blue on in power mode
         RET
 
 ; SCREEN_X_TO_MASK
