@@ -26,6 +26,8 @@ LOGIC_SLICE:
         DS      1
 RENDER_EATEN_PTR:
         DS      2
+PACMO_POWER_PILLS_EATEN:
+        DS      1
 SCAN_MASK:
         DS      1
 SCAN_PTR:

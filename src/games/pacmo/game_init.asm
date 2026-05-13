@@ -25,6 +25,7 @@ INIT_STATE:
         LD      (HUD_SCAN_INDEX),A
         LD      (SPEAKER_PORT_STATE),A
         LD      (SOUND_TIMER),A
+        LD      (PACMO_POWER_PILLS_EATEN),A
 
         LD      A,SCAN_MASK_START
         LD      (SCAN_MASK),A
