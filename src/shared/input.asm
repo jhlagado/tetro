@@ -49,9 +49,9 @@ KEY_NEW_PRESS:
 
 HANDLE_DIRECTION_KEY:
         LD      A,E
-        CP      K_LEFT
-        JP      Z,HANDLE_KEY_LEFT
         CP      K_RIGHT
+        JP      Z,HANDLE_KEY_LEFT
+        CP      K_LEFT
         JP      Z,HANDLE_KEY_RIGHT
         CP      K_ROTATE
         JP      Z,HANDLE_KEY_DROP
@@ -171,19 +171,19 @@ HANDLE_ROTATE_CCW_PRESS:
         JP      CLEAR_INPUT_REPEAT_STATE
 
 ; HANDLE_KEY_RIGHT
-; Tail-calls HANDLE_HELD_DIRECTION with A = K_RIGHT.
-; Clobbers:
-;   A, DE
-HANDLE_KEY_RIGHT:
-        LD      A,K_RIGHT
-        JP      HANDLE_HELD_DIRECTION
-
-; HANDLE_KEY_LEFT
 ; Tail-calls HANDLE_HELD_DIRECTION with A = K_LEFT.
 ; Clobbers:
 ;   A, DE
-HANDLE_KEY_LEFT:
+HANDLE_KEY_RIGHT:
         LD      A,K_LEFT
+        JP      HANDLE_HELD_DIRECTION
+
+; HANDLE_KEY_LEFT
+; Tail-calls HANDLE_HELD_DIRECTION with A = K_RIGHT.
+; Clobbers:
+;   A, DE
+HANDLE_KEY_LEFT:
+        LD      A,K_RIGHT
         JP      HANDLE_HELD_DIRECTION
 
 ; HANDLE_KEY_DROP
@@ -234,9 +234,9 @@ HELD_DIRECTION_NORMAL_RATE:
 HELD_DIRECTION_RATE_SET:
         LD      (MOVE_COOLDOWN),A
         LD      A,E
-        CP      K_LEFT
-        JP      Z,MOVE_LEFT
         CP      K_RIGHT
+        JP      Z,MOVE_LEFT
+        CP      K_LEFT
         JP      Z,MOVE_RIGHT
         CP      K_DROP
         JP      Z,SOFT_DROP

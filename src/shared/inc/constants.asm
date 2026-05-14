@@ -15,8 +15,8 @@ LCD_ROW4:       EQU     0xD4
 
 ; MON-3 API / keypad constants
 API_SCANKEYS:   EQU     16
-K_LEFT:         EQU     0x10
-K_RIGHT:        EQU     0x11
+K_LEFT:         EQU     0x11
+K_RIGHT:        EQU     0x10
 K_ROTATE:       EQU     0x12
 K_ROTATE_CCW:   EQU     0x13
 K_ROTATE_CW:    EQU     0x0C

@@ -14,8 +14,8 @@
 ;   collision and respawning a new active piece.
 ;
 ; Controls (MON-3 key codes):
-;   left  (0x10) = move left
-;   right (0x11) = move right
+;   left  (0x11) = move left
+;   right (0x10) = move right
 ;   GO     (0x12) = soft drop
 ;   AD     (0x13) = counter-clockwise rotate
 ;   C      (0x0C) = clockwise rotate

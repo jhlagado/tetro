@@ -20,8 +20,8 @@ Port assignments and shared gameplay tuning constants live in [src/shared/inc/co
 
 | Key | Code | Action |
 | --- | ---: | --- |
-| `<` | `0x10` | Move left |
-| `>` | `0x11` | Move right |
+| `<` | `0x11` | Move left |
+| `>` | `0x10` | Move right |
 | `GO` | `0x12` | Soft drop |
 | `AD` | `0x13` | Rotate counter-clockwise |
 | `C` | `0x0C` | Rotate clockwise |
