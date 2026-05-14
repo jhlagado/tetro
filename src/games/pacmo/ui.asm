@@ -86,19 +86,13 @@ BLANK_HUD_SCORE_DIGITS_LOOP:
 
 ; UPDATE_SCORE_DISPLAY
 ; Input:
-;   PACMO_SCORE, PACMO_LEVEL
+;   PACMO_SCORE
 ; Output:
-;   HUD_SEG_BUFFER updated with one level digit and five decimal score digits
+;   HUD_SEG_BUFFER updated with a six-digit decimal score display
 ; Clobbers:
 ;   A, BC, DE, HL
 UPDATE_SCORE_DISPLAY:
-        LD      A,(PACMO_LEVEL)
-        AND     0x0F
-        LD      L,A
-        LD      H,0
-        LD      DE,PACMO_HEX_SEG_TABLE
-        ADD     HL,DE
-        LD      A,(HL)
+        LD      A,(PACMO_HEX_SEG_TABLE)
         LD      (HUD_SEG_BUFFER),A
         LD      HL,(PACMO_SCORE)
         LD      BC,HUD_SEG_BUFFER+1
@@ -266,10 +260,11 @@ LCD_SHOW_PACMO_SPLASH:
 ; Output:
 ;   Pacmo running status shown on LCD
 ; Clobbers:
-;   A, HL
+;   A, DE, HL
 LCD_SHOW_PACMO_RUNNING:
         LD      HL,SCRIPT_PACMO_RUNNING
-        JP      LCD_SHOW_SCRIPT
+        CALL    LCD_SHOW_SCRIPT
+        JP      LCD_REFRESH_LEVEL_ROW
 
 ; LCD_SHOW_PACMO_CAUGHT
 ; Input:
@@ -292,3 +287,41 @@ LCD_SHOW_PACMO_CAUGHT:
 LCD_SHOW_PACMO_COMPLETE:
         LD      HL,SCRIPT_PACMO_COMPLETE
         JP      LCD_SHOW_SCRIPT
+
+; LCD_REFRESH_LEVEL_ROW
+; Input:
+;   PACMO_LEVEL
+; Output:
+;   row 2 rewritten as LEVEL X
+; Clobbers:
+;   A, DE, HL
+LCD_REFRESH_LEVEL_ROW:
+        PUSH    BC
+        LD      B,LCD_ROW2
+        CALL    LCD_COMMAND
+        LD      HL,LCD_TEXT_PACMO_LEVEL
+        CALL    LCD_STRING
+        LD      A,(PACMO_LEVEL)
+        AND     0x0F
+        LD      L,A
+        LD      H,0
+        LD      DE,PACMO_LEVEL_CHAR_TABLE
+        ADD     HL,DE
+        LD      A,(HL)
+        CALL    LCD_PUTC
+        POP     BC
+        RET
+
+; LCD_PUTC
+; Input:
+;   A = ASCII character
+; Output:
+;   character written at current LCD cursor position
+; Clobbers:
+;   none
+LCD_PUTC:
+        PUSH    AF
+        CALL    LCD_BUSY
+        POP     AF
+        OUT     (PORT_LCD_DATA),A
+        RET
