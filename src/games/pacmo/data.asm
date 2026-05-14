@@ -54,6 +54,12 @@ LCD_TEXT_PACMO_KEYS2:
 LCD_TEXT_PACMO_RUNNING:
         DB      "PACMO RUNNING",0
 
+LCD_TEXT_PACMO_POWER:
+        DB      "POWER MODE",0
+
+LCD_TEXT_PACMO_ENEMY_EATEN:
+        DB      "ENEMY EATEN",0
+
 LCD_TEXT_PACMO_LEVEL:
         DB      "LEVEL ",0
 
@@ -83,6 +89,20 @@ SCRIPT_PACMO_SPLASH:
 SCRIPT_PACMO_RUNNING:
         DB      LCD_ROW1
         DW      LCD_TEXT_PACMO_RUNNING
+        DB      LCD_ROW2
+        DW      LCD_TEXT_PACMO_LEVEL
+        DB      0
+
+SCRIPT_PACMO_POWER:
+        DB      LCD_ROW1
+        DW      LCD_TEXT_PACMO_POWER
+        DB      LCD_ROW2
+        DW      LCD_TEXT_PACMO_LEVEL
+        DB      0
+
+SCRIPT_PACMO_ENEMY_EATEN:
+        DB      LCD_ROW1
+        DW      LCD_TEXT_PACMO_ENEMY_EATEN
         DB      LCD_ROW2
         DW      LCD_TEXT_PACMO_LEVEL
         DB      0

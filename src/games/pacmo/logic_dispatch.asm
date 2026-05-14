@@ -75,9 +75,10 @@ TICK_LEVEL_COMPLETE_GATE:
 ; Input:
 ;   PACMO_POWER_TIMER_LO/HI
 ; Output:
-;   decrements 16-bit PACMO_POWER_TIMER by one when nonzero
+;   decrements 16-bit PACMO_POWER_TIMER by one when nonzero; restores
+;   running LCD status when power mode expires
 ; Clobbers:
-;   A, HL
+;   A, DE, HL
 TICK_POWER_TIMER:
         LD      HL,(PACMO_POWER_TIMER_LO)
         LD      A,H
@@ -85,7 +86,10 @@ TICK_POWER_TIMER:
         RET     Z
         DEC     HL
         LD      (PACMO_POWER_TIMER_LO),HL
-        RET
+        LD      A,H
+        OR      L
+        RET     NZ
+        JP      LCD_SHOW_PACMO_RUNNING
 
 ; TICK_ENEMY
 ; Input:
@@ -94,7 +98,7 @@ TICK_POWER_TIMER:
 ;   enemy patrol advances one world cell when ENEMY_TIMER reaches zero;
 ;   respawning enemy counts down, then returns to the patrol start
 ; Clobbers:
-;   A, HL
+;   A, DE, HL
 TICK_ENEMY:
         LD      A,(PACMO_SPLASH_ACTIVE)
         OR      A
@@ -154,7 +158,7 @@ TICK_ENEMY_TURN_RIGHT:
 ;   Carry set while enemy is respawning; when the timer reaches zero,
 ;   enemy position and direction are reset and carry is cleared
 ; Clobbers:
-;   A, HL
+;   A, DE, HL
 TICK_ENEMY_RESPAWN:
         LD      HL,ENEMY_RESPAWN_TIMER
         LD      A,(HL)
@@ -174,6 +178,15 @@ TICK_ENEMY_RESPAWN_DONE:
         LD      (ENEMY_DIR),A
         LD      A,(ENEMY_PERIOD_CURRENT)
         LD      (ENEMY_TIMER),A
+        LD      HL,(PACMO_POWER_TIMER_LO)
+        LD      A,H
+        OR      L
+        JR      Z,TICK_ENEMY_RESPAWN_SHOW_RUNNING
+        CALL    LCD_SHOW_PACMO_POWER
+        OR      A
+        RET
+TICK_ENEMY_RESPAWN_SHOW_RUNNING:
+        CALL    LCD_SHOW_PACMO_RUNNING
         OR      A
         RET
 
