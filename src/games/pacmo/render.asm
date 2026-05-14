@@ -236,12 +236,16 @@ RENDER_POWER_PILL_BC:
 
 ; RENDER_ENEMY_TO_BACK
 ; Input:
-;   ENEMY_X/Y, VIEW_X/Y
+;   ENEMY_X/Y, VIEW_X/Y, PACMO_POWER_TIMER, ENEMY_RESPAWN_TIMER
 ; Output:
-;   enemy pixel rendered red, replacing any path color at that cell
+;   enemy pixel rendered red normally or blue in power mode, replacing any
+;   path color at that cell; respawning enemy is not rendered
 ; Clobbers:
 ;   A, B, C, DE, HL
 RENDER_ENEMY_TO_BACK:
+        LD      A,(ENEMY_RESPAWN_TIMER)
+        OR      A
+        RET     NZ
         LD      A,(ENEMY_Y)
         LD      B,A
         LD      A,(VIEW_Y)
@@ -268,6 +272,10 @@ RENDER_ENEMY_TO_BACK:
         CALL    SCREEN_X_TO_MASK
         LD      C,A
 
+        LD      A,(PACMO_POWER_TIMER)
+        OR      A
+        JR      NZ,RENDER_ENEMY_BLUE
+
         LD      A,(HL)
         OR      C
         LD      (HL),A                  ; red
@@ -282,6 +290,23 @@ RENDER_ENEMY_TO_BACK:
         LD      A,(HL)
         AND     C
         LD      (HL),A                  ; blue off
+        RET
+RENDER_ENEMY_BLUE:
+        LD      A,C
+        CPL
+        LD      B,A
+        LD      A,(HL)
+        AND     B
+        LD      (HL),A                  ; red off
+        INC     HL
+        LD      A,(HL)
+        AND     B
+        LD      (HL),A                  ; green off
+        INC     HL
+        LD      A,B
+        CPL
+        OR      (HL)
+        LD      (HL),A                  ; blue
         RET
 
 ; RENDER_PLAYER_TO_BACK

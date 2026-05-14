@@ -69,15 +69,18 @@ TICK_POWER_TIMER:
 
 ; TICK_ENEMY
 ; Input:
-;   ENEMY_X, ENEMY_DIR, ENEMY_TIMER
+;   ENEMY_X, ENEMY_DIR, ENEMY_TIMER, ENEMY_RESPAWN_TIMER
 ; Output:
-;   enemy patrol advances one world cell when ENEMY_TIMER reaches zero
+;   enemy patrol advances one world cell when ENEMY_TIMER reaches zero;
+;   respawning enemy counts down, then returns to the patrol start
 ; Clobbers:
 ;   A, HL
 TICK_ENEMY:
         LD      A,(PACMO_PLAYER_CAUGHT)
         OR      A
         RET     NZ
+        CALL    TICK_ENEMY_RESPAWN
+        RET     C
         LD      HL,ENEMY_TIMER
         LD      A,(HL)
         DEC     A
@@ -116,4 +119,34 @@ TICK_ENEMY_TURN_RIGHT:
         LD      A,(ENEMY_X)
         INC     A
         LD      (ENEMY_X),A
+        RET
+
+; TICK_ENEMY_RESPAWN
+; Input:
+;   ENEMY_RESPAWN_TIMER
+; Output:
+;   Carry set while enemy is respawning; when the timer reaches zero,
+;   enemy position and direction are reset and carry is cleared
+; Clobbers:
+;   A, HL
+TICK_ENEMY_RESPAWN:
+        LD      HL,ENEMY_RESPAWN_TIMER
+        LD      A,(HL)
+        OR      A
+        RET     Z
+        DEC     A
+        LD      (HL),A
+        JR      Z,TICK_ENEMY_RESPAWN_DONE
+        SCF
+        RET
+TICK_ENEMY_RESPAWN_DONE:
+        LD      A,PACMO_ENEMY_MAX_X
+        LD      (ENEMY_X),A
+        LD      A,PACMO_ENEMY_Y
+        LD      (ENEMY_Y),A
+        LD      A,PACMO_ENEMY_DIR_RIGHT
+        LD      (ENEMY_DIR),A
+        LD      A,PACMO_ENEMY_PERIOD
+        LD      (ENEMY_TIMER),A
+        OR      A
         RET

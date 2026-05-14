@@ -12,6 +12,8 @@ ENEMY_DIR:
         DS      1
 ENEMY_TIMER:
         DS      1
+ENEMY_RESPAWN_TIMER:
+        DS      1
 VIEW_X:
         DS      1
 VIEW_Y:
