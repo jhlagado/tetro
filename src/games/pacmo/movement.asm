@@ -236,7 +236,7 @@ MOVE_PLAYER_DOWN:
 ;   if target is open, PLAYER_X/Y committed and viewport adjusted
 ;   if target is a wall, PLAYER_X/Y unchanged
 ; Clobbers:
-;   A, BC, DE, HL
+;   A, BC, DE, HL, IX
 TRY_MOVE_PLAYER_TO_BC:
         CALL    PACMO_IS_WALL_AT_BC
         RET     C
@@ -259,7 +259,8 @@ TRY_MOVE_PLAYER_TO_BC:
 
 ; PACMO_CHECK_PLAYER_CAUGHT
 ; Input:
-;   PLAYER_X/Y, ENEMY_X/Y, ENEMY_STATE, ENEMY_RESPAWN_TIMER
+;   IX = monster record base
+;   PLAYER_X/Y, monster X/Y, state, respawn timer
 ; Output:
 ;   PACMO_PLAYER_CAUGHT = 1 when player and active enemy occupy the same world cell
 ;   outside enemy flee mode; in enemy flee mode, enemy is consumed and starts respawning
@@ -306,6 +307,7 @@ PACMO_ENTER_GAME_OVER:
 
 ; PACMO_CONSUME_ENEMY
 ; Input:
+;   IX = monster record base
 ;   player and enemy occupy the same world cell while power mode is active
 ; Output:
 ;   enemy hidden until ENEMY_RESPAWN_TIMER expires; score increased
@@ -328,7 +330,7 @@ PACMO_CONSUME_ENEMY:
 ; Output:
 ;   matching bit set in PACMO_POWER_PILLS_EATEN when B/C is a power-pill cell
 ; Clobbers:
-;   A, D, E, HL
+;   A, BC, DE, HL
 PACMO_CONSUME_POWER_PILL_AT_BC:
         LD      HL,PACMO_POWER_PILLS
         LD      D,1
@@ -440,7 +442,7 @@ PACMO_ADD_SCORE_A:
 ; Output:
 ;   PACMO_ROUND_COMPLETE = 1 when every open cell has been consumed
 ; Clobbers:
-;   A, B, DE, HL
+;   A, BC, DE, HL
 PACMO_CHECK_ROUND_COMPLETE:
         LD      A,(PACMO_ROUND_COMPLETE)
         OR      A

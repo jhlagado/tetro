@@ -5,7 +5,7 @@
 ; Output:
 ;   slice 0 polls movement; slices 0..7 clear/render/copy the framebuffer
 ; Clobbers:
-;   A, HL, and registers clobbered by called slice routines
+;   A, BC, DE, HL, IX, and registers clobbered by called slice routines
 LOGIC_TICK:
         LD      A,(LOGIC_SLICE)
         AND     7
@@ -133,10 +133,11 @@ PACMO_IS_LEVEL2_PLUS:
 
 ; TICK_ENEMY
 ; Input:
-;   ENEMY_X, ENEMY_DIR, ENEMY_TIMER, ENEMY_RESPAWN_TIMER
+;   IX = monster record base
+;   monster X/Y, direction, timer, state, respawn timer
 ; Output:
-;   enemy roams to an open adjacent cell when ENEMY_TIMER reaches zero;
-;   respawning enemy counts down, then returns to the patrol start
+;   active enemy moves when its timer reaches zero; respawning enemy counts
+;   down, then respawns at the selected candidate cell
 ; Clobbers:
 ;   A, BC, DE, HL
 TICK_ENEMY:
@@ -164,7 +165,8 @@ TICK_ENEMY:
 
 ; ENEMY_ATTACK_STEP
 ; Input:
-;   ENEMY_X/Y, PLAYER_X/Y, ENEMY_DIR
+;   IX = monster record base
+;   monster X/Y and direction, PLAYER_X/Y
 ; Output:
 ;   enemy tries a greedy move that reduces distance to the player, then falls
 ;   back to roaming if both chase directions are blocked or reverse-only.
@@ -208,7 +210,8 @@ ENEMY_TRY_CHASE_BLOCKED:
 
 ; ENEMY_CHASE_DIRS
 ; Input:
-;   ENEMY_X/Y, PLAYER_X/Y
+;   IX = monster record base
+;   monster X/Y, PLAYER_X/Y
 ; Output:
 ;   D = preferred direction on the larger distance axis, or 0 when aligned
 ;   E = secondary reducing direction, or 0 when aligned
@@ -231,7 +234,8 @@ ENEMY_CHASE_DIRS:
 
 ; ENEMY_GET_HORIZONTAL_CHASE
 ; Input:
-;   ENEMY_X, PLAYER_X
+;   IX = monster record base
+;   monster X, PLAYER_X
 ; Output:
 ;   A = absolute horizontal distance
 ;   B = PACMO_DIR_LEFT/RIGHT reducing that distance, or 0 when aligned
@@ -263,7 +267,8 @@ ENEMY_GET_HORIZONTAL_ALIGNED:
 
 ; ENEMY_GET_VERTICAL_CHASE
 ; Input:
-;   ENEMY_Y, PLAYER_Y
+;   IX = monster record base
+;   monster Y, PLAYER_Y
 ; Output:
 ;   A = absolute vertical distance
 ;   B = PACMO_DIR_UP/DOWN reducing that distance, or 0 when aligned
@@ -295,7 +300,8 @@ ENEMY_GET_VERTICAL_ALIGNED:
 
 ; ENEMY_ROAM_STEP
 ; Input:
-;   ENEMY_X/Y, ENEMY_DIR, PACMO_LEVEL
+;   IX = monster record base
+;   monster X/Y and direction, PACMO_LEVEL
 ; Output:
 ;   ENEMY_X/Y updated to one open adjacent cell; ENEMY_DIR set to movement
 ;   direction. Immediate reversal is used only when no other direction is open.
@@ -372,9 +378,10 @@ ENEMY_OPPOSITE_RIGHT:
 
 ; ENEMY_TRY_MOVE_DIR
 ; Input:
+;   IX = monster record base
 ;   A = PACMO_DIR_* candidate
 ; Output:
-;   Carry set when move succeeds; ENEMY_X/Y and ENEMY_DIR committed.
+;   Carry set when move succeeds; monster X/Y and direction committed.
 ;   Carry clear when candidate is out of bounds or a wall.
 ; Clobbers:
 ;   A, BC, DE, HL

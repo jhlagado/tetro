@@ -4,7 +4,7 @@
 ; Output:
 ;   FRAMEBUFFER rebuilt from scratch
 ; Clobbers:
-;   A, BC, DE, HL
+;   A, BC, DE, HL, IX
 REBUILD_FRAMEBUFFER:
         CALL    CLEAR_BACK_ALL
         CALL    RENDER_WORLD_TO_BACK
@@ -397,7 +397,8 @@ RENDER_POWER_PILL_BC:
 
 ; RENDER_ENEMY_TO_BACK
 ; Input:
-;   ENEMY_X/Y, VIEW_X/Y, ENEMY_STATE, PACMO_POWER_TIMER_LO/HI, ENEMY_RESPAWN_TIMER
+;   IX = monster record base
+;   monster X/Y, VIEW_X/Y, monster state, PACMO_POWER_TIMER_LO/HI, respawn timer
 ; Output:
 ;   enemy pixel rendered as attack color normally or flee color when enemy state is flee,
 ;   replacing any path color at that cell; respawning enemy is not rendered
