@@ -147,21 +147,42 @@ TICK_ENEMY2:
 ; Output:
 ;   active enemy slot exchanged with enemy 2 slot
 ; Clobbers:
-;   A, BC, DE, HL
+;   A, C, DE, HL
 ENEMY2_SWAP_ACTIVE:
         LD      HL,ENEMY_X
         LD      DE,ENEMY2_X
-        LD      B,6
-ENEMY2_SWAP_ACTIVE_LOOP:
+        CALL    SWAP_BYTE_HL_DE
+        LD      HL,ENEMY_Y
+        LD      DE,ENEMY2_Y
+        CALL    SWAP_BYTE_HL_DE
+        LD      HL,ENEMY_DIR
+        LD      DE,ENEMY2_DIR
+        CALL    SWAP_BYTE_HL_DE
+        LD      HL,ENEMY_TIMER
+        LD      DE,ENEMY2_TIMER
+        CALL    SWAP_BYTE_HL_DE
+        LD      HL,ENEMY_RESPAWN_TIMER
+        LD      DE,ENEMY2_RESPAWN_TIMER
+        CALL    SWAP_BYTE_HL_DE
+        LD      HL,ENEMY_STATE
+        LD      DE,ENEMY2_STATE
+        JP      SWAP_BYTE_HL_DE
+
+; SWAP_BYTE_HL_DE
+; Input:
+;   HL = address of first byte
+;   DE = address of second byte
+; Output:
+;   bytes at HL and DE exchanged
+; Clobbers:
+;   A, C
+SWAP_BYTE_HL_DE:
         LD      A,(DE)
         LD      C,A
         LD      A,(HL)
         LD      (DE),A
         LD      A,C
         LD      (HL),A
-        INC     HL
-        INC     DE
-        DJNZ    ENEMY2_SWAP_ACTIVE_LOOP
         RET
 
 ; ENEMY_ATTACK_STEP
