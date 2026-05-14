@@ -4,7 +4,7 @@ TETRO is a falling-block game for the TEC-1G single-board Z80 computer. It runs 
 
 The important constraint is that there are no interrupts. The matrix is visible only because the CPU keeps scanning it. Sound and score display only continue because the same loop keeps servicing them. Game logic has to fit around that hardware maintenance.
 
-This tour follows the code as it now stands: a multi-game repository with shared hardware helpers and TETRO-specific game logic.
+This tour follows the TETRO code as it now stands. The shared loop, scan tick, LCD, HUD, sound, and framebuffer contracts are covered in [shared-runtime.md](shared-runtime.md).
 
 ---
 
@@ -60,31 +60,7 @@ This is still a careful harmonisation, not a large engine abstraction. Shared fi
 
 ---
 
-## Shared code and game code
-
-The shared layer is deliberately low-level.
-
-`shared/inc/constants.asm` defines hardware ports, MON-3 API constants, keypad codes, matrix dimensions, colour bits, and the speaker bit. These are facts about the machine, not about TETRO.
-
-`shared/scan_tick.asm` is the hardware heartbeat. It outputs one matrix row, services sound, scans one score digit, and advances the scan pointer.
-
-`shared/sound.asm` owns the generic speaker divider state machine. It knows how to turn a duration and divider into a square wave on `SPEAKER_PORT_STATE`, but it does not decide what a rotate sound or clear sound should be.
-
-`games/tetro/sound.asm` supplies those game meanings. `SOUND_TRIGGER_ROTATE`, `SOUND_TRIGGER_LOCK`, `SOUND_TRIGGER_CLEAR`, and the game-over cues load TETRO's durations and dividers, then tail-call the shared `SOUND_START`.
-
-`shared/hud.asm` scans the seven-segment display and blanks its six-byte segment buffer. It does not know what score means. `games/tetro/hud.asm` converts TETRO's 16-bit score into digit patterns by repeated subtraction.
-
-`shared/lcd.asm` contains the HD44780 primitives: wait for busy, send a command, write a string, print one character, and run a simple `(row command, string pointer)` script. `games/tetro/ui.asm` uses those primitives to show the TETRO splash, running, paused, and game-over screens, including the next-piece preview.
-
-`shared/framebuffer_core.asm` has generic double-buffer helpers: clear the back buffer, clear one row, and copy back to front. `shared/framebuffer.asm` is still more game-shaped: it rebuilds the full frame by calling `RENDER_BOARD_TO_BACK` and `RENDER_ACTIVE_TO_BACK`, and those routines understand TETRO board planes and active pieces.
-
-`shared/input.asm` is also shared in location, but its current contract is still TETRO-shaped. It maps keypad events to labels such as `MOVE_LEFT`, `MOVE_RIGHT`, `ROTATE_CW`, `ROTATE_LEFT`, and `SOFT_DROP`. It can be generalized later, but for now TETRO owns those labels.
-
-That boundary is useful: hardware helpers move toward `shared`; game semantics stay under `games/tetro`.
-
----
-
-## The main loop
+## Runtime model
 
 ```asm
 MAIN_LOOP:
@@ -93,37 +69,9 @@ MAIN_LOOP:
     JR      MAIN_LOOP
 ```
 
-Those three instructions in `src/tetro.asm` are the whole runtime. `SCAN_TICK` keeps the hardware alive: one matrix row, one sound-service step, one seven-segment digit, then the scan pointer advances. `LOGIC_TICK` does one slice of game work. The loop repeats forever.
-
-`SCAN_TICK` must run often enough to keep the RGB matrix steady. The matrix is row-multiplexed: only one row is driven at a time, and the image exists because all eight rows are refreshed quickly. If game logic takes too long between scan ticks, brightness becomes uneven or the panel flickers.
-
-`LOGIC_TICK` does not compute a whole game frame. It computes one slice. TETRO spreads one logical frame across eight passes through the main loop, matching the eight scan rows.
+Those three instructions in `src/tetro.asm` are the whole runtime. TETRO uses the shared cooperative loop described in [shared-runtime.md](shared-runtime.md): `SCAN_TICK` keeps the hardware alive, and `LOGIC_TICK` performs one slice of game work.
 
 This means the display, score digits, speaker, keypad, gravity, rendering, and line-clear timing all share the same cooperative clock.
-
----
-
-## Scan tick
-
-`SCAN_TICK` lives in `shared/scan_tick.asm`.
-
-Each call:
-
-1. Clears the active row select.
-2. Reads three bytes from `FRAMEBUFFER` through `SCAN_PTR`.
-3. Writes those bytes to the red, green, and blue matrix ports.
-4. Enables the row selected by `SCAN_MASK`.
-5. Calls `SERVICE_SOUND`.
-6. Calls `SCAN_SCORE_DIGIT`.
-7. Calls `ADVANCE_SCAN_STATE`.
-
-Clearing the row before changing colour data matters. If the row stayed enabled while new colour bytes were written, the previous row would briefly show the next row's data.
-
-`SERVICE_SOUND` is generic. A TETRO sound event loads `SOUND_TIMER`, `SOUND_DIVIDER_RELOAD`, and `SOUND_DIVIDER_COUNT`; each scan tick decrements the timer and toggles `SPEAKER_PORT_STATE` whenever the divider expires. The sound bit is ORed into the digit latch by the HUD scanner, so speaker and seven-segment multiplexing share the same output path.
-
-`SCAN_SCORE_DIGIT` is also generic. It uses `HUD_SCAN_INDEX` to pick one of six bytes in `HUD_SEG_BUFFER`, writes the segment pattern, then ORs the digit-select bit with the current speaker state on `PORT_DIGITS`.
-
-`ADVANCE_SCAN_STATE` moves `SCAN_PTR` to the next 4-byte framebuffer row and rotates `SCAN_MASK`. When the mask wraps back to row 0, it resets the pointer and increments `FRAME_PHASE`. TETRO uses `FRAME_PHASE` as an entropy source during the splash screen.
 
 ---
 

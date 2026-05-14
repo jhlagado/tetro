@@ -4,7 +4,7 @@ TETRO is a 7-piece falling-block game for the TEC-1G single-board Z80 computer, 
 
 The game draws an 8x8 RGB LED matrix, uses the MON-3 keypad for controls, shows status on an HD44780 LCD, and scans a six-digit seven-segment score display. All of that runs from one cooperative loop: one matrix row is emitted per pass, sound and score scan from the same tick, and game logic is spread across eight slices.
 
-The full code tour is in [docs/tetro-codebase.md](docs/tetro-codebase.md). It is the source-of-truth document for the architecture, state machine, collision path, rendering path, and lock/clear flow.
+The shared runtime is described in [docs/shared-runtime.md](docs/shared-runtime.md). The TETRO code tour is in [docs/tetro-codebase.md](docs/tetro-codebase.md).
 
 ## Hardware
 
@@ -105,7 +105,9 @@ src/
 
 ## Documentation
 
-[docs/tetro-codebase.md](docs/tetro-codebase.md) explains how the loop, scan tick, RAM layout, collision, movement, locking, rendering, pieces, LCD, score display, and game-over path fit together. Keep detailed architectural explanation there so the README stays short.
+- [docs/shared-runtime.md](docs/shared-runtime.md) explains the cooperative loop, scan tick, shared LCD/HUD/sound helpers, framebuffer contract, and shared/local boundary.
+- [docs/tetro-codebase.md](docs/tetro-codebase.md) explains TETRO's state machine, collision path, movement, locking, rendering, pieces, LCD wrappers, score path, and game-over flow.
+- [docs/pacmo-codebase.md](docs/pacmo-codebase.md) explains Pacmo's viewport, movement, maze consumption, power mode, monsters, rendering, scoring, and level progression.
 
 ## License
 
