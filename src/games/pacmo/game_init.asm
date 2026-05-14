@@ -9,7 +9,7 @@ INIT_STATE:
         XOR     A
         LD      (PACMO_SCORE),A
         LD      (PACMO_SCORE+1),A
-        LD      A,2
+        LD      A,1
         LD      (PACMO_LEVEL),A
         LD      A,PACMO_ENEMY_PERIOD
         LD      (ENEMY_PERIOD_CURRENT),A
@@ -69,6 +69,8 @@ INIT_LEVEL_STATE:
         LD      (HUD_SCAN_INDEX),A
         LD      (SPEAKER_PORT_STATE),A
         LD      (SOUND_TIMER),A
+        LD      (SOUND_DIVIDER_RELOAD),A
+        LD      (SOUND_DIVIDER_COUNT),A
         LD      (PACMO_POWER_PILLS_EATEN),A
         LD      (PACMO_POWER_TIMER_LO),A
         LD      (PACMO_POWER_TIMER_HI),A

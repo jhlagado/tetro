@@ -47,6 +47,10 @@ SPEAKER_PORT_STATE:
         DS      1
 SOUND_TIMER:
         DS      1
+SOUND_DIVIDER_RELOAD:
+        DS      1
+SOUND_DIVIDER_COUNT:
+        DS      1
 PACMO_SCORE:
         DS      2
 HUD_SEG_BUFFER:
