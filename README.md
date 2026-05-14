@@ -73,7 +73,7 @@ src/
 |   |-- framebuffer.asm        ; back/front framebuffer rendering helpers
 |   |-- input.asm              ; keypad polling and repeat handling
 |   |-- scan_tick.asm          ; matrix row scan and scan-state advance
-|   `-- ui.asm                 ; sound, seven-seg score, LCD scripts
+|   `-- ui.asm                 ; older shared UI routines retained for other targets
 `-- games/
     `-- tetro/
         |-- geometry_helpers.asm
@@ -82,13 +82,17 @@ src/
         |-- board_lock.asm
         |-- game_init.asm
         |-- logic_dispatch.asm
+        |-- sound.asm
+        |-- hud.asm
+        |-- lcd.asm
+        |-- ui.asm
         |-- data.asm
         `-- ram.asm
 ```
 
 ## Documentation
 
-[codebase.md](codebase.md) explains how the loop, scan tick, RAM layout, collision, movement, locking, rendering, pieces, LCD, score display, and game-over path fit together. Keep detailed architectural explanation there so the README stays short.
+[docs/tetro-codebase.md](docs/tetro-codebase.md) explains how the loop, scan tick, RAM layout, collision, movement, locking, rendering, pieces, LCD, score display, and game-over path fit together. Keep detailed architectural explanation there so the README stays short.
 
 ## License
 
