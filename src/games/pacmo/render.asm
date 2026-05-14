@@ -388,10 +388,10 @@ RENDER_POWER_PILL_BC:
 
 ; RENDER_ENEMY_TO_BACK
 ; Input:
-;   ENEMY_X/Y, VIEW_X/Y, PACMO_POWER_TIMER_LO/HI, ENEMY_RESPAWN_TIMER
+;   ENEMY_X/Y, VIEW_X/Y, ENEMY_STATE, PACMO_POWER_TIMER_LO/HI, ENEMY_RESPAWN_TIMER
 ; Output:
-;   enemy pixel rendered as attack color normally or flee color in power mode, replacing any
-;   path color at that cell; respawning enemy is not rendered
+;   enemy pixel rendered as attack color normally or flee color when enemy state is flee,
+;   replacing any path color at that cell; respawning enemy is not rendered
 ; Clobbers:
 ;   A, B, C, DE, HL
 RENDER_ENEMY_TO_BACK:
@@ -425,6 +425,9 @@ RENDER_ENEMY_TO_BACK:
         LD      C,A
 
         PUSH    HL
+        LD      A,(ENEMY_STATE)
+        CP      PACMO_ENEMY_STATE_FLEE
+        JR      NZ,RENDER_ENEMY_TIMER_ATTACK
         LD      HL,(PACMO_POWER_TIMER_LO)
         LD      A,H
         OR      L

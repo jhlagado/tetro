@@ -252,10 +252,10 @@ TRY_MOVE_PLAYER_TO_BC:
 
 ; PACMO_CHECK_PLAYER_CAUGHT
 ; Input:
-;   PLAYER_X/Y, ENEMY_X/Y, PACMO_POWER_TIMER_LO/HI, ENEMY_RESPAWN_TIMER
+;   PLAYER_X/Y, ENEMY_X/Y, ENEMY_STATE, ENEMY_RESPAWN_TIMER
 ; Output:
 ;   PACMO_PLAYER_CAUGHT = 1 when player and active enemy occupy the same world cell
-;   outside power mode; in power mode, enemy is consumed and starts respawning
+;   outside enemy flee mode; in enemy flee mode, enemy is consumed and starts respawning
 ; Clobbers:
 ;   A, BC, DE, HL when the enemy is consumed or game-over is entered;
 ;   A, B otherwise
@@ -276,11 +276,9 @@ PACMO_CHECK_PLAYER_CAUGHT:
         LD      A,(ENEMY_Y)
         CP      B
         RET     NZ
-        LD      HL,(PACMO_POWER_TIMER_LO)
-        LD      A,H
-        OR      L
-        OR      A
-        JR      NZ,PACMO_CONSUME_ENEMY
+        LD      A,(ENEMY_STATE)
+        CP      PACMO_ENEMY_STATE_FLEE
+        JR      Z,PACMO_CONSUME_ENEMY
         JP      PACMO_ENTER_GAME_OVER
 
 ; PACMO_ENTER_GAME_OVER
@@ -306,6 +304,8 @@ PACMO_ENTER_GAME_OVER:
 ; Clobbers:
 ;   A, BC, DE, HL
 PACMO_CONSUME_ENEMY:
+        LD      A,PACMO_ENEMY_STATE_RESPAWN
+        LD      (ENEMY_STATE),A
         LD      A,PACMO_ENEMY_RESPAWN_PERIOD
         LD      (ENEMY_RESPAWN_TIMER),A
         CALL    LCD_SHOW_PACMO_ENEMY_EATEN
@@ -345,6 +345,8 @@ PACMO_CONSUME_POWER_PILL_LOOP:
         POP     BC
         LD      HL,PACMO_POWER_TIMER_START
         LD      (PACMO_POWER_TIMER_LO),HL
+        LD      A,PACMO_ENEMY_STATE_FLEE
+        LD      (ENEMY_STATE),A
         CALL    LCD_SHOW_PACMO_POWER
         RET
 PACMO_CONSUME_POWER_PILL_NEXT:

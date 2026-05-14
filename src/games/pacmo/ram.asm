@@ -16,6 +16,8 @@ ENEMY_PERIOD_CURRENT:
         DS      1
 ENEMY_RESPAWN_TIMER:
         DS      1
+ENEMY_STATE:
+        DS      1
 VIEW_X:
         DS      1
 VIEW_Y:

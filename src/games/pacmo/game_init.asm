@@ -58,6 +58,7 @@ INIT_LEVEL_STATE:
         LD      (PACMO_POWER_TIMER_LO),A
         LD      (PACMO_POWER_TIMER_HI),A
         LD      (ENEMY_RESPAWN_TIMER),A
+        LD      (ENEMY_STATE),A
         LD      (PACMO_ROUND_COMPLETE),A
         LD      (PACMO_PLAYER_CAUGHT),A
         LD      (PACMO_LEVEL_COMPLETE_GATE_LO),A

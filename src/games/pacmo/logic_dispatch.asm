@@ -89,6 +89,8 @@ TICK_POWER_TIMER:
         LD      A,H
         OR      L
         RET     NZ
+        LD      A,PACMO_ENEMY_STATE_ATTACK
+        LD      (ENEMY_STATE),A
         JP      LCD_SHOW_PACMO_RUNNING
 
 ; TICK_ENEMY
@@ -281,6 +283,8 @@ TICK_ENEMY_RESPAWN:
         SCF
         RET
 TICK_ENEMY_RESPAWN_DONE:
+        LD      A,PACMO_ENEMY_STATE_ATTACK
+        LD      (ENEMY_STATE),A
         LD      A,PACMO_ENEMY_MAX_X
         LD      (ENEMY_X),A
         LD      A,PACMO_ENEMY_Y
@@ -289,14 +293,6 @@ TICK_ENEMY_RESPAWN_DONE:
         LD      (ENEMY_DIR),A
         LD      A,(ENEMY_PERIOD_CURRENT)
         LD      (ENEMY_TIMER),A
-        LD      HL,(PACMO_POWER_TIMER_LO)
-        LD      A,H
-        OR      L
-        JR      Z,TICK_ENEMY_RESPAWN_SHOW_RUNNING
-        CALL    LCD_SHOW_PACMO_POWER
-        OR      A
-        RET
-TICK_ENEMY_RESPAWN_SHOW_RUNNING:
         CALL    LCD_SHOW_PACMO_RUNNING
         OR      A
         RET
