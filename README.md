@@ -67,24 +67,37 @@ The LCD shows the splash screen. Press any key to start.
 ```text
 src/
 |-- tetro.asm                  ; Debug80 target entry point and include order
+|-- pacmo.asm                  ; Debug80 target entry point and include order
 |-- shared/
 |   |-- inc/
 |   |   `-- constants.asm      ; ports, key codes, shared tuning constants
-|   |-- framebuffer.asm        ; back/front framebuffer rendering helpers
+|   |-- framebuffer_core.asm   ; generic back-buffer clear/copy helpers
+|   |-- framebuffer.asm        ; TETRO board/active rendering helpers
+|   |-- hud.asm                ; seven-segment scan and blanking helpers
 |   |-- input.asm              ; keypad polling and repeat handling
+|   |-- lcd.asm                ; HD44780 primitive operations and scripts
 |   |-- scan_tick.asm          ; matrix row scan and scan-state advance
-|   `-- ui.asm                 ; older shared UI routines retained for other targets
+|   `-- sound.asm              ; speaker divider service
 `-- games/
-    `-- tetro/
-        |-- geometry_helpers.asm
-        |-- collision.asm
-        |-- piece_active.asm
-        |-- board_lock.asm
+    |-- tetro/
+    |   |-- geometry_helpers.asm
+    |   |-- collision.asm
+    |   |-- piece_active.asm
+    |   |-- board_lock.asm
+    |   |-- game_init.asm
+    |   |-- logic_dispatch.asm
+    |   |-- sound.asm
+    |   |-- hud.asm
+    |   |-- ui.asm
+    |   |-- data.asm
+    |   `-- ram.asm
+    `-- pacmo/
         |-- game_init.asm
         |-- logic_dispatch.asm
+        |-- movement.asm
+        |-- render.asm
         |-- sound.asm
         |-- hud.asm
-        |-- lcd.asm
         |-- ui.asm
         |-- data.asm
         `-- ram.asm
