@@ -200,6 +200,7 @@ TRY_MOVE_PLAYER_TO_BC:
         LD      (PLAYER_Y),A
         CALL    PACMO_CONSUME_POWER_PILL_AT_BC
         CALL    PACMO_MARK_EATEN_AT_BC
+        CALL    PACMO_CHECK_ROUND_COMPLETE
         JP      UPDATE_VIEWPORT_FOR_PLAYER
 
 ; PACMO_CONSUME_POWER_PILL_AT_BC
@@ -308,6 +309,36 @@ PACMO_ADD_SCORE_A:
         ADD     HL,DE
         LD      (PACMO_SCORE),HL
         JP      UPDATE_SCORE_DISPLAY
+
+; PACMO_CHECK_ROUND_COMPLETE
+; Input:
+;   PACMO_WORLD_ROWS / PACMO_EATEN_ROWS
+; Output:
+;   PACMO_ROUND_COMPLETE = 1 when every open cell has been consumed
+; Clobbers:
+;   A, B, DE, HL
+PACMO_CHECK_ROUND_COMPLETE:
+        LD      B,ROW_COUNT+7
+        LD      DE,PACMO_WORLD_ROWS
+        LD      HL,PACMO_EATEN_ROWS
+PACMO_CHECK_ROUND_ROW:
+        LD      A,(DE)
+        OR      (HL)
+        CP      0xFF
+        RET     NZ
+        INC     DE
+        INC     HL
+        LD      A,(DE)
+        OR      (HL)
+        OR      0x01                    ; bit 0 is outside the 15-column maze
+        CP      0xFF
+        RET     NZ
+        INC     DE
+        INC     HL
+        DJNZ    PACMO_CHECK_ROUND_ROW
+        LD      A,1
+        LD      (PACMO_ROUND_COMPLETE),A
+        RET
 
 ; PACMO_IS_WALL_AT_BC
 ; Input:

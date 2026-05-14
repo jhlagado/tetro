@@ -4,6 +4,14 @@ PLAYER_X:
         DS      1
 PLAYER_Y:
         DS      1
+ENEMY_X:
+        DS      1
+ENEMY_Y:
+        DS      1
+ENEMY_DIR:
+        DS      1
+ENEMY_TIMER:
+        DS      1
 VIEW_X:
         DS      1
 VIEW_Y:
@@ -31,6 +39,8 @@ RENDER_EATEN_PTR:
 PACMO_POWER_PILLS_EATEN:
         DS      1
 PACMO_POWER_TIMER:
+        DS      1
+PACMO_ROUND_COMPLETE:
         DS      1
 SCAN_MASK:
         DS      1

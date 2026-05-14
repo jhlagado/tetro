@@ -9,6 +9,14 @@ INIT_STATE:
         LD      A,7
         LD      (PLAYER_X),A
         LD      (PLAYER_Y),A
+        LD      A,PACMO_ENEMY_MAX_X
+        LD      (ENEMY_X),A
+        LD      A,PACMO_ENEMY_Y
+        LD      (ENEMY_Y),A
+        LD      A,PACMO_ENEMY_DIR_RIGHT
+        LD      (ENEMY_DIR),A
+        LD      A,PACMO_ENEMY_PERIOD
+        LD      (ENEMY_TIMER),A
 
         LD      A,3
         LD      (VIEW_X),A
@@ -29,6 +37,7 @@ INIT_STATE:
         LD      (PACMO_SCORE+1),A
         LD      (PACMO_POWER_PILLS_EATEN),A
         LD      (PACMO_POWER_TIMER),A
+        LD      (PACMO_ROUND_COMPLETE),A
 
         LD      A,SCAN_MASK_START
         LD      (SCAN_MASK),A
