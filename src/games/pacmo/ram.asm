@@ -24,6 +24,8 @@ MOVE_COOLDOWN:
         DS      1
 LAST_KEY:
         DS      1
+PACMO_SPLASH_ACTIVE:
+        DS      1
 HUD_SCAN_INDEX:
         DS      1
 SPEAKER_PORT_STATE:

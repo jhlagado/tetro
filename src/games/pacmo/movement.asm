@@ -20,6 +20,9 @@
 ; Clobbers:
 ;   A, BC, DE, HL
 POLL_INPUT_AND_UPDATE:
+        LD      A,(PACMO_SPLASH_ACTIVE)
+        OR      A
+        JP      NZ,POLL_SPLASH_START
         LD      A,(PACMO_PLAYER_CAUGHT)
         OR      A
         JP      NZ,POLL_CAUGHT_RESTART
@@ -33,6 +36,21 @@ POLL_INPUT_AND_UPDATE:
         CALL    NORMALIZE_INPUT_TO_DIRECTION
         JR      C,HANDLE_DIRECTION_KEY
         JR      CLEAR_INPUT_REPEAT_STATE
+
+; POLL_SPLASH_START
+; Input:
+;   PACMO_SPLASH_ACTIVE is nonzero
+; Output:
+;   starts Pacmo on any key press
+; Clobbers:
+;   A, BC, DE, HL when starting; A, C otherwise
+POLL_SPLASH_START:
+        LD      C,API_SCANKEYS
+        RST     0x10
+        RET     NZ
+        XOR     A
+        LD      (PACMO_SPLASH_ACTIVE),A
+        JP      LCD_SHOW_PACMO_RUNNING
 
 ; POLL_CAUGHT_RESTART
 ; Input:
@@ -277,6 +295,7 @@ PACMO_ENTER_GAME_OVER:
         LD      (PACMO_PLAYER_CAUGHT),A
         LD      HL,PACMO_GAME_OVER_GATE_TICKS
         LD      (PACMO_GAME_OVER_GATE_LO),HL
+        CALL    LCD_SHOW_PACMO_CAUGHT
         JP      REBUILD_FRAMEBUFFER
 
 ; PACMO_CONSUME_ENEMY
@@ -432,6 +451,7 @@ PACMO_CHECK_ROUND_ROW:
         LD      (PACMO_ROUND_COMPLETE),A
         LD      HL,PACMO_LEVEL_COMPLETE_GATE_TICKS
         LD      (PACMO_LEVEL_COMPLETE_GATE_LO),HL
+        CALL    LCD_SHOW_PACMO_COMPLETE
         RET
 
 ; PACMO_IS_WALL_AT_BC

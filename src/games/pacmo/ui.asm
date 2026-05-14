@@ -156,3 +156,139 @@ SCORE_WRITE_DIGIT_DONE:
         INC     BC
         POP     HL
         RET
+
+; LCD_BUSY
+; Input:
+;   none
+; Output:
+;   waits until LCD busy flag clears
+; Clobbers:
+;   none
+LCD_BUSY:
+        PUSH    AF
+LCD_BUSY_LOOP:
+        IN      A,(PORT_LCD_INST)
+        RLCA
+        JR      C,LCD_BUSY_LOOP
+        POP     AF
+        RET
+
+; LCD_COMMAND
+; Input:
+;   B = LCD instruction byte
+; Output:
+;   instruction sent to LCD
+; Clobbers:
+;   none
+LCD_COMMAND:
+        PUSH    AF
+        CALL    LCD_BUSY
+        LD      A,B
+        OUT     (PORT_LCD_INST),A
+        POP     AF
+        RET
+
+; LCD_CLEAR_DISPLAY
+; Input:
+;   none
+; Output:
+;   LCD cleared, cursor home
+; Clobbers:
+;   B
+LCD_CLEAR_DISPLAY:
+        LD      B,0x01
+        JP      LCD_COMMAND
+
+; LCD_STRING
+; Input:
+;   HL = zero-terminated ASCII string
+; Output:
+;   string written at current LCD cursor position
+; Clobbers:
+;   A, HL
+LCD_STRING:
+        LD      A,(HL)
+        INC     HL
+        OR      A
+        RET     Z
+        CALL    LCD_BUSY
+        OUT     (PORT_LCD_DATA),A
+        JR      LCD_STRING
+
+; LCD_SHOW_SCRIPT
+; Input:
+;   HL = pointer to script table (DB row_cmd, DW text_ptr, ..., DB 0)
+; Output:
+;   LCD cleared, then each row/text pair rendered
+; Clobbers:
+;   A, HL (BC, DE pushed/popped)
+LCD_SHOW_SCRIPT:
+        PUSH    BC
+        PUSH    DE
+        PUSH    HL
+        EX      DE,HL
+        CALL    LCD_CLEAR_DISPLAY
+LCD_SCRIPT_LOOP:
+        LD      A,(DE)
+        OR      A
+        JR      Z,LCD_SCRIPT_DONE
+        LD      B,A
+        INC     DE
+        CALL    LCD_COMMAND
+        LD      A,(DE)
+        LD      L,A
+        INC     DE
+        LD      A,(DE)
+        LD      H,A
+        INC     DE
+        CALL    LCD_STRING
+        JR      LCD_SCRIPT_LOOP
+LCD_SCRIPT_DONE:
+        POP     HL
+        POP     DE
+        POP     BC
+        RET
+
+; LCD_SHOW_PACMO_SPLASH
+; Input:
+;   none
+; Output:
+;   Pacmo splash and control hint shown on LCD
+; Clobbers:
+;   A, HL
+LCD_SHOW_PACMO_SPLASH:
+        LD      HL,SCRIPT_PACMO_SPLASH
+        JP      LCD_SHOW_SCRIPT
+
+; LCD_SHOW_PACMO_RUNNING
+; Input:
+;   none
+; Output:
+;   Pacmo running status shown on LCD
+; Clobbers:
+;   A, HL
+LCD_SHOW_PACMO_RUNNING:
+        LD      HL,SCRIPT_PACMO_RUNNING
+        JP      LCD_SHOW_SCRIPT
+
+; LCD_SHOW_PACMO_CAUGHT
+; Input:
+;   none
+; Output:
+;   Pacmo caught status shown on LCD
+; Clobbers:
+;   A, HL
+LCD_SHOW_PACMO_CAUGHT:
+        LD      HL,SCRIPT_PACMO_CAUGHT
+        JP      LCD_SHOW_SCRIPT
+
+; LCD_SHOW_PACMO_COMPLETE
+; Input:
+;   none
+; Output:
+;   Pacmo level-complete status shown on LCD
+; Clobbers:
+;   A, HL
+LCD_SHOW_PACMO_COMPLETE:
+        LD      HL,SCRIPT_PACMO_COMPLETE
+        JP      LCD_SHOW_SCRIPT

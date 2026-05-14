@@ -13,7 +13,10 @@ INIT_STATE:
         LD      (PACMO_LEVEL),A
         LD      A,PACMO_ENEMY_PERIOD
         LD      (ENEMY_PERIOD_CURRENT),A
-        JP      INIT_LEVEL_STATE
+        CALL    INIT_LEVEL_STATE
+        LD      A,1
+        LD      (PACMO_SPLASH_ACTIVE),A
+        JP      LCD_SHOW_PACMO_SPLASH
 
 ; INIT_LEVEL_STATE
 ; Input:
@@ -45,6 +48,7 @@ INIT_LEVEL_STATE:
         LD      (LAST_KEY),A
 
         XOR     A
+        LD      (PACMO_SPLASH_ACTIVE),A
         LD      (LOGIC_SLICE),A
         LD      (FRAME_PHASE),A
         LD      (HUD_SCAN_INDEX),A
