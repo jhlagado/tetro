@@ -40,21 +40,35 @@ CLEAR_BACK_ALL_LOOP:
 ; Input:
 ;   none
 ; Output:
-;   FRAMEBUFFER_BACK filled solid red as a dramatic Pacmo game-over cue
+;   FRAMEBUFFER_BACK filled with PACMO_COLOR_GAME_OVER as a dramatic cue
 ; Clobbers:
 ;   A, B, HL
 RENDER_GAME_OVER_TO_BACK:
         LD      HL,FRAMEBUFFER_BACK
         LD      B,ROW_COUNT
 RENDER_GAME_OVER_ROW:
+        LD      A,PACMO_COLOR_GAME_OVER
+        AND     COLOR_RED
+        JR      Z,RENDER_GAME_OVER_RED_OFF
         LD      A,0xFF
-        LD      (HL),A                  ; red on
+RENDER_GAME_OVER_RED_OFF:
+        LD      (HL),A
+        INC     HL
+        LD      A,PACMO_COLOR_GAME_OVER
+        AND     COLOR_GREEN
+        JR      Z,RENDER_GAME_OVER_GREEN_OFF
+        LD      A,0xFF
+RENDER_GAME_OVER_GREEN_OFF:
+        LD      (HL),A
+        INC     HL
+        LD      A,PACMO_COLOR_GAME_OVER
+        AND     COLOR_BLUE
+        JR      Z,RENDER_GAME_OVER_BLUE_OFF
+        LD      A,0xFF
+RENDER_GAME_OVER_BLUE_OFF:
+        LD      (HL),A
         INC     HL
         XOR     A
-        LD      (HL),A                  ; green off
-        INC     HL
-        LD      (HL),A                  ; blue off
-        INC     HL
         LD      (HL),A                  ; aux off
         INC     HL
         DJNZ    RENDER_GAME_OVER_ROW
@@ -101,7 +115,7 @@ COPY_BACK_TO_FRONT:
 ; Input:
 ;   VIEW_X/Y and PACMO_WORLD_ROWS
 ; Output:
-;   visible 8x8 viewport rendered as green open paths and blue walls
+;   visible 8x8 viewport rendered with PACMO_COLOR_PATH and PACMO_COLOR_WALL
 ; Clobbers:
 ;   A, BC, DE, HL
 RENDER_WORLD_TO_BACK:
@@ -153,18 +167,77 @@ RENDER_WORLD_ROW:
         POP     DE
         POP     BC
         LD      B,A                     ; B = visible eaten mask
-        INC     HL                      ; red off
         LD      A,C
         OR      B
-        CPL
-        LD      (HL),A                  ; green uneaten open path cells
-        INC     HL
-        LD      A,C
-        LD      (HL),A                  ; blue walls / pattern
-        INC     HL
+        CPL                             ; A = visible uneaten open path mask
+        LD      D,A
+        CALL    WRITE_WORLD_ROW_COLORS
         INC     HL                      ; aux byte
         POP     BC
         DJNZ    RENDER_WORLD_ROW
+        RET
+
+; WRITE_WORLD_ROW_COLORS
+; Input:
+;   HL = red plane byte for the target framebuffer row
+;   C  = visible wall mask
+;   D  = visible uneaten path mask
+; Output:
+;   red/green/blue plane bytes written from PACMO_COLOR_WALL/PATH;
+;   HL points to the aux byte after the blue plane
+; Clobbers:
+;   A, B, HL
+WRITE_WORLD_ROW_COLORS:
+        XOR     A
+        LD      B,A
+        LD      A,PACMO_COLOR_WALL
+        AND     COLOR_RED
+        JR      Z,WRITE_WORLD_RED_PATH
+        LD      B,C
+WRITE_WORLD_RED_PATH:
+        LD      A,PACMO_COLOR_PATH
+        AND     COLOR_RED
+        JR      Z,WRITE_WORLD_RED_STORE
+        LD      A,B
+        OR      D
+        LD      B,A
+WRITE_WORLD_RED_STORE:
+        LD      (HL),B
+        INC     HL
+
+        XOR     A
+        LD      B,A
+        LD      A,PACMO_COLOR_WALL
+        AND     COLOR_GREEN
+        JR      Z,WRITE_WORLD_GREEN_PATH
+        LD      B,C
+WRITE_WORLD_GREEN_PATH:
+        LD      A,PACMO_COLOR_PATH
+        AND     COLOR_GREEN
+        JR      Z,WRITE_WORLD_GREEN_STORE
+        LD      A,B
+        OR      D
+        LD      B,A
+WRITE_WORLD_GREEN_STORE:
+        LD      (HL),B
+        INC     HL
+
+        XOR     A
+        LD      B,A
+        LD      A,PACMO_COLOR_WALL
+        AND     COLOR_BLUE
+        JR      Z,WRITE_WORLD_BLUE_PATH
+        LD      B,C
+WRITE_WORLD_BLUE_PATH:
+        LD      A,PACMO_COLOR_PATH
+        AND     COLOR_BLUE
+        JR      Z,WRITE_WORLD_BLUE_STORE
+        LD      A,B
+        OR      D
+        LD      B,A
+WRITE_WORLD_BLUE_STORE:
+        LD      (HL),B
+        INC     HL
         RET
 
 ; WINDOW_BYTE_FROM_BC
@@ -193,7 +266,7 @@ WINDOW_BYTE_DONE:
 ; Input:
 ;   VIEW_X/Y and PACMO_POWER_PILLS
 ; Output:
-;   visible power pills ORed into red/green/blue planes (white)
+;   visible power pills rendered with PACMO_COLOR_POWER_PILL
 ; Clobbers:
 ;   A, BC, DE, HL
 RENDER_POWER_PILLS_TO_BACK:
@@ -225,7 +298,7 @@ RENDER_POWER_PILL_NEXT:
 ;   B = world x
 ;   C = world y
 ; Output:
-;   if the cell is in the viewport, its framebuffer cell is set white
+;   if the cell is in the viewport, its framebuffer cell is set to power-pill color
 ; Clobbers:
 ;   A, B, C, DE, HL
 RENDER_POWER_PILL_BC:
@@ -251,24 +324,14 @@ RENDER_POWER_PILL_BC:
         CALL    SCREEN_X_TO_MASK
         LD      C,A
 
-        LD      A,(HL)
-        OR      C
-        LD      (HL),A                  ; red
-        INC     HL
-        LD      A,(HL)
-        OR      C
-        LD      (HL),A                  ; green
-        INC     HL
-        LD      A,(HL)
-        OR      C
-        LD      (HL),A                  ; blue
-        RET
+        LD      A,PACMO_COLOR_POWER_PILL
+        JP      WRITE_CELL_COLOR_C_A
 
 ; RENDER_ENEMY_TO_BACK
 ; Input:
 ;   ENEMY_X/Y, VIEW_X/Y, PACMO_POWER_TIMER, ENEMY_RESPAWN_TIMER
 ; Output:
-;   enemy pixel rendered red normally or blue in power mode, replacing any
+;   enemy pixel rendered as attack color normally or flee color in power mode, replacing any
 ;   path color at that cell; respawning enemy is not rendered
 ; Clobbers:
 ;   A, B, C, DE, HL
@@ -304,47 +367,19 @@ RENDER_ENEMY_TO_BACK:
 
         LD      A,(PACMO_POWER_TIMER)
         OR      A
-        JR      NZ,RENDER_ENEMY_BLUE
-
-        LD      A,(HL)
-        OR      C
-        LD      (HL),A                  ; red
-        LD      A,C
-        CPL
-        LD      C,A
-        INC     HL
-        LD      A,(HL)
-        AND     C
-        LD      (HL),A                  ; green off
-        INC     HL
-        LD      A,(HL)
-        AND     C
-        LD      (HL),A                  ; blue off
-        RET
-RENDER_ENEMY_BLUE:
-        LD      A,C
-        CPL
-        LD      B,A
-        LD      A,(HL)
-        AND     B
-        LD      (HL),A                  ; red off
-        INC     HL
-        LD      A,(HL)
-        AND     B
-        LD      (HL),A                  ; green off
-        INC     HL
-        LD      A,B
-        CPL
-        OR      (HL)
-        LD      (HL),A                  ; blue
-        RET
+        JR      NZ,RENDER_ENEMY_FLEE
+        LD      A,PACMO_COLOR_ENEMY_ATTACK
+        JP      WRITE_CELL_COLOR_C_A
+RENDER_ENEMY_FLEE:
+        LD      A,PACMO_COLOR_ENEMY_FLEE
+        JP      WRITE_CELL_COLOR_C_A
 
 ; RENDER_PLAYER_TO_BACK
 ; Input:
 ;   PLAYER_X/Y, VIEW_X/Y
 ; Output:
-;   player pixel ORed into framebuffer planes; yellow normally, cyan in power mode,
-;   white when the round is complete, red when caught
+;   player pixel rendered with palette colors; yellow normally, white when the
+;   round is complete, red when caught
 ; Clobbers:
 ;   A, B, C, DE, HL
 RENDER_PLAYER_TO_BACK:
@@ -378,50 +413,67 @@ RENDER_PLAYER_TO_BACK:
         OR      A
         JR      NZ,RENDER_PLAYER_CAUGHT
 
-        LD      A,(HL)
-        OR      C
-        LD      (HL),A                  ; red
-        INC     HL
-        LD      A,(HL)
-        OR      C
-        LD      (HL),A                  ; green
         LD      A,(PACMO_ROUND_COMPLETE)
         OR      A
         JR      NZ,RENDER_PLAYER_WHITE
-        LD      A,(PACMO_POWER_TIMER)
-        OR      A
-        RET     Z
-        DEC     HL
-        LD      A,(HL)
-        XOR     C
-        LD      (HL),A                  ; red off in power mode
-        INC     HL
-        INC     HL
-        LD      A,(HL)
-        OR      C
-        LD      (HL),A                  ; blue on in power mode
-        RET
+        LD      A,PACMO_COLOR_PLAYER
+        JP      WRITE_CELL_COLOR_C_A
 RENDER_PLAYER_WHITE:
-        INC     HL
-        LD      A,(HL)
-        OR      C
-        LD      (HL),A                  ; blue on for round-complete white
-        RET
+        LD      A,PACMO_COLOR_ROUND_COMPLETE
+        JP      WRITE_CELL_COLOR_C_A
 RENDER_PLAYER_CAUGHT:
-        LD      A,(HL)
-        OR      C
-        LD      (HL),A                  ; red only for caught state
+        LD      A,PACMO_COLOR_ENEMY_ATTACK
+        JP      WRITE_CELL_COLOR_C_A
+
+; WRITE_CELL_COLOR_C_A
+; Input:
+;   HL = red plane byte for the target row
+;   C  = target cell bit mask
+;   A  = COLOR_* bitfield
+; Output:
+;   target cell set to the requested color, replacing previous RGB bits
+; Clobbers:
+;   A, B, D, HL
+WRITE_CELL_COLOR_C_A:
+        LD      B,A
         LD      A,C
         CPL
-        LD      C,A
-        INC     HL
+        LD      D,A
+        LD      A,B
+        AND     COLOR_RED
+        JR      Z,WRITE_CELL_RED_OFF
         LD      A,(HL)
-        AND     C
-        LD      (HL),A                  ; green off
-        INC     HL
+        OR      C
+        JR      WRITE_CELL_RED_STORE
+WRITE_CELL_RED_OFF:
         LD      A,(HL)
-        AND     C
-        LD      (HL),A                  ; blue off
+        AND     D
+WRITE_CELL_RED_STORE:
+        LD      (HL),A
+        INC     HL
+        LD      A,B
+        AND     COLOR_GREEN
+        JR      Z,WRITE_CELL_GREEN_OFF
+        LD      A,(HL)
+        OR      C
+        JR      WRITE_CELL_GREEN_STORE
+WRITE_CELL_GREEN_OFF:
+        LD      A,(HL)
+        AND     D
+WRITE_CELL_GREEN_STORE:
+        LD      (HL),A
+        INC     HL
+        LD      A,B
+        AND     COLOR_BLUE
+        JR      Z,WRITE_CELL_BLUE_OFF
+        LD      A,(HL)
+        OR      C
+        JR      WRITE_CELL_BLUE_STORE
+WRITE_CELL_BLUE_OFF:
+        LD      A,(HL)
+        AND     D
+WRITE_CELL_BLUE_STORE:
+        LD      (HL),A
         RET
 
 ; SCREEN_X_TO_MASK
