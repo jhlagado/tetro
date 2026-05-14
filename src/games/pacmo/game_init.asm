@@ -33,10 +33,17 @@ INIT_LEVEL_STATE:
         LD      (ENEMY_X),A
         LD      A,PACMO_ENEMY_Y
         LD      (ENEMY_Y),A
-        LD      A,PACMO_ENEMY_DIR_RIGHT
+        LD      A,PACMO_DIR_RIGHT
         LD      (ENEMY_DIR),A
         LD      A,(ENEMY_PERIOD_CURRENT)
         LD      (ENEMY_TIMER),A
+        LD      A,1
+        LD      (ENEMY2_X),A
+        LD      (ENEMY2_Y),A
+        LD      A,PACMO_DIR_LEFT
+        LD      (ENEMY2_DIR),A
+        LD      A,(ENEMY_PERIOD_CURRENT)
+        LD      (ENEMY2_TIMER),A
 
         LD      A,3
         LD      (VIEW_X),A
@@ -58,6 +65,9 @@ INIT_LEVEL_STATE:
         LD      (PACMO_POWER_TIMER_LO),A
         LD      (PACMO_POWER_TIMER_HI),A
         LD      (ENEMY_RESPAWN_TIMER),A
+        LD      (ENEMY_STATE),A
+        LD      (ENEMY2_RESPAWN_TIMER),A
+        LD      (ENEMY2_STATE),A
         LD      (PACMO_ROUND_COMPLETE),A
         LD      (PACMO_PLAYER_CAUGHT),A
         LD      (PACMO_LEVEL_COMPLETE_GATE_LO),A

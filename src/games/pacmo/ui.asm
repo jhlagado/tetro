@@ -266,6 +266,30 @@ LCD_SHOW_PACMO_RUNNING:
         CALL    LCD_SHOW_SCRIPT
         JP      LCD_REFRESH_LEVEL_ROW
 
+; LCD_SHOW_PACMO_POWER
+; Input:
+;   none
+; Output:
+;   Pacmo power-mode status shown on LCD
+; Clobbers:
+;   A, DE, HL
+LCD_SHOW_PACMO_POWER:
+        LD      HL,SCRIPT_PACMO_POWER
+        CALL    LCD_SHOW_SCRIPT
+        JP      LCD_REFRESH_LEVEL_ROW
+
+; LCD_SHOW_PACMO_ENEMY_EATEN
+; Input:
+;   none
+; Output:
+;   Pacmo enemy-eaten status shown on LCD
+; Clobbers:
+;   A, DE, HL
+LCD_SHOW_PACMO_ENEMY_EATEN:
+        LD      HL,SCRIPT_PACMO_ENEMY_EATEN
+        CALL    LCD_SHOW_SCRIPT
+        JP      LCD_REFRESH_LEVEL_ROW
+
 ; LCD_SHOW_PACMO_CAUGHT
 ; Input:
 ;   none

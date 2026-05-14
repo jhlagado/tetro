@@ -9,6 +9,9 @@ REBUILD_FRAMEBUFFER:
         CALL    CLEAR_BACK_ALL
         CALL    RENDER_WORLD_TO_BACK
         CALL    RENDER_POWER_PILLS_TO_BACK
+        LD      IX,MONSTER0
+        CALL    RENDER_ENEMY_TO_BACK
+        LD      IX,MONSTER1
         CALL    RENDER_ENEMY_TO_BACK
         CALL    RENDER_PLAYER_TO_BACK
         JP      COPY_BACK_TO_FRONT
@@ -218,13 +221,15 @@ RENDER_WORLD_ROW:
 ;   D  = visible uneaten path mask
 ; Output:
 ;   red/green/blue plane bytes written from PACMO_COLOR_WALL/PATH;
+;   caught state renders walls with PACMO_COLOR_CAUGHT_WALL;
+;   complete state renders walls with PACMO_COLOR_COMPLETE_WALL
 ;   HL points to the aux byte after the blue plane
 ; Clobbers:
 ;   A, B, HL
 WRITE_WORLD_ROW_COLORS:
         XOR     A
         LD      B,A
-        LD      A,PACMO_COLOR_WALL
+        CALL    GET_CURRENT_WALL_COLOR
         AND     COLOR_RED
         JR      Z,WRITE_WORLD_RED_PATH
         LD      B,C
@@ -241,7 +246,7 @@ WRITE_WORLD_RED_STORE:
 
         XOR     A
         LD      B,A
-        LD      A,PACMO_COLOR_WALL
+        CALL    GET_CURRENT_WALL_COLOR
         AND     COLOR_GREEN
         JR      Z,WRITE_WORLD_GREEN_PATH
         LD      B,C
@@ -258,7 +263,7 @@ WRITE_WORLD_GREEN_STORE:
 
         XOR     A
         LD      B,A
-        LD      A,PACMO_COLOR_WALL
+        CALL    GET_CURRENT_WALL_COLOR
         AND     COLOR_BLUE
         JR      Z,WRITE_WORLD_BLUE_PATH
         LD      B,C
@@ -272,6 +277,29 @@ WRITE_WORLD_BLUE_PATH:
 WRITE_WORLD_BLUE_STORE:
         LD      (HL),B
         INC     HL
+        RET
+
+; GET_CURRENT_WALL_COLOR
+; Input:
+;   PACMO_PLAYER_CAUGHT, PACMO_ROUND_COMPLETE
+; Output:
+;   A = wall color for the current render state
+; Clobbers:
+;   A
+GET_CURRENT_WALL_COLOR:
+        LD      A,(PACMO_PLAYER_CAUGHT)
+        OR      A
+        JR      NZ,GET_CURRENT_WALL_COLOR_CAUGHT
+        LD      A,(PACMO_ROUND_COMPLETE)
+        OR      A
+        JR      NZ,GET_CURRENT_WALL_COLOR_COMPLETE
+        LD      A,PACMO_COLOR_WALL
+        RET
+GET_CURRENT_WALL_COLOR_CAUGHT:
+        LD      A,PACMO_COLOR_CAUGHT_WALL
+        RET
+GET_CURRENT_WALL_COLOR_COMPLETE:
+        LD      A,PACMO_COLOR_COMPLETE_WALL
         RET
 
 ; WINDOW_BYTE_FROM_BC
@@ -363,17 +391,17 @@ RENDER_POWER_PILL_BC:
 
 ; RENDER_ENEMY_TO_BACK
 ; Input:
-;   ENEMY_X/Y, VIEW_X/Y, PACMO_POWER_TIMER_LO/HI, ENEMY_RESPAWN_TIMER
+;   ENEMY_X/Y, VIEW_X/Y, ENEMY_STATE, PACMO_POWER_TIMER_LO/HI, ENEMY_RESPAWN_TIMER
 ; Output:
-;   enemy pixel rendered as attack color normally or flee color in power mode, replacing any
-;   path color at that cell; respawning enemy is not rendered
+;   enemy pixel rendered as attack color normally or flee color when enemy state is flee,
+;   replacing any path color at that cell; respawning enemy is not rendered
 ; Clobbers:
 ;   A, B, C, DE, HL
 RENDER_ENEMY_TO_BACK:
-        LD      A,(ENEMY_RESPAWN_TIMER)
+        LD      A,(IX+MONSTER_RESPAWN_TIMER)
         OR      A
         RET     NZ
-        LD      A,(ENEMY_Y)
+        LD      A,(IX+MONSTER_Y)
         LD      B,A
         LD      A,(VIEW_Y)
         LD      C,A
@@ -388,7 +416,7 @@ RENDER_ENEMY_TO_BACK:
         LD      HL,FRAMEBUFFER_BACK
         ADD     HL,DE
 
-        LD      A,(ENEMY_X)
+        LD      A,(IX+MONSTER_X)
         LD      B,A
         LD      A,(VIEW_X)
         LD      C,A
@@ -400,6 +428,9 @@ RENDER_ENEMY_TO_BACK:
         LD      C,A
 
         PUSH    HL
+        LD      A,(IX+MONSTER_STATE)
+        CP      PACMO_ENEMY_STATE_FLEE
+        JR      NZ,RENDER_ENEMY_TIMER_ATTACK
         LD      HL,(PACMO_POWER_TIMER_LO)
         LD      A,H
         OR      L

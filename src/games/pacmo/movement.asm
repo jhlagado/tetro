@@ -247,15 +247,18 @@ TRY_MOVE_PLAYER_TO_BC:
         CALL    PACMO_CONSUME_POWER_PILL_AT_BC
         CALL    PACMO_MARK_EATEN_AT_BC
         CALL    PACMO_CHECK_ROUND_COMPLETE
+        LD      IX,MONSTER0
+        CALL    PACMO_CHECK_PLAYER_CAUGHT
+        LD      IX,MONSTER1
         CALL    PACMO_CHECK_PLAYER_CAUGHT
         JP      UPDATE_VIEWPORT_FOR_PLAYER
 
 ; PACMO_CHECK_PLAYER_CAUGHT
 ; Input:
-;   PLAYER_X/Y, ENEMY_X/Y, PACMO_POWER_TIMER_LO/HI, ENEMY_RESPAWN_TIMER
+;   PLAYER_X/Y, ENEMY_X/Y, ENEMY_STATE, ENEMY_RESPAWN_TIMER
 ; Output:
 ;   PACMO_PLAYER_CAUGHT = 1 when player and active enemy occupy the same world cell
-;   outside power mode; in power mode, enemy is consumed and starts respawning
+;   outside enemy flee mode; in enemy flee mode, enemy is consumed and starts respawning
 ; Clobbers:
 ;   A, BC, DE, HL when the enemy is consumed or game-over is entered;
 ;   A, B otherwise
@@ -263,24 +266,22 @@ PACMO_CHECK_PLAYER_CAUGHT:
         LD      A,(PACMO_PLAYER_CAUGHT)
         OR      A
         RET     NZ
-        LD      A,(ENEMY_RESPAWN_TIMER)
+        LD      A,(IX+MONSTER_RESPAWN_TIMER)
         OR      A
         RET     NZ
         LD      A,(PLAYER_X)
         LD      B,A
-        LD      A,(ENEMY_X)
+        LD      A,(IX+MONSTER_X)
         CP      B
         RET     NZ
         LD      A,(PLAYER_Y)
         LD      B,A
-        LD      A,(ENEMY_Y)
+        LD      A,(IX+MONSTER_Y)
         CP      B
         RET     NZ
-        LD      HL,(PACMO_POWER_TIMER_LO)
-        LD      A,H
-        OR      L
-        OR      A
-        JR      NZ,PACMO_CONSUME_ENEMY
+        LD      A,(IX+MONSTER_STATE)
+        CP      PACMO_ENEMY_STATE_FLEE
+        JR      Z,PACMO_CONSUME_ENEMY
         JP      PACMO_ENTER_GAME_OVER
 
 ; PACMO_ENTER_GAME_OVER
@@ -306,8 +307,11 @@ PACMO_ENTER_GAME_OVER:
 ; Clobbers:
 ;   A, BC, DE, HL
 PACMO_CONSUME_ENEMY:
+        LD      A,PACMO_ENEMY_STATE_RESPAWN
+        LD      (IX+MONSTER_STATE),A
         LD      A,PACMO_ENEMY_RESPAWN_PERIOD
-        LD      (ENEMY_RESPAWN_TIMER),A
+        LD      (IX+MONSTER_RESPAWN_TIMER),A
+        CALL    LCD_SHOW_PACMO_ENEMY_EATEN
         LD      A,PACMO_SCORE_ENEMY
         JP      PACMO_ADD_SCORE_A
 
@@ -344,6 +348,10 @@ PACMO_CONSUME_POWER_PILL_LOOP:
         POP     BC
         LD      HL,PACMO_POWER_TIMER_START
         LD      (PACMO_POWER_TIMER_LO),HL
+        LD      A,PACMO_ENEMY_STATE_FLEE
+        LD      (ENEMY_STATE),A
+        LD      (ENEMY2_STATE),A
+        CALL    LCD_SHOW_PACMO_POWER
         RET
 PACMO_CONSUME_POWER_PILL_NEXT:
         INC     HL
