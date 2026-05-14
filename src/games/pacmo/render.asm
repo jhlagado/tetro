@@ -218,13 +218,14 @@ RENDER_WORLD_ROW:
 ;   D  = visible uneaten path mask
 ; Output:
 ;   red/green/blue plane bytes written from PACMO_COLOR_WALL/PATH;
+;   caught state renders walls with PACMO_COLOR_CAUGHT_WALL
 ;   HL points to the aux byte after the blue plane
 ; Clobbers:
 ;   A, B, HL
 WRITE_WORLD_ROW_COLORS:
         XOR     A
         LD      B,A
-        LD      A,PACMO_COLOR_WALL
+        CALL    GET_CURRENT_WALL_COLOR
         AND     COLOR_RED
         JR      Z,WRITE_WORLD_RED_PATH
         LD      B,C
@@ -241,7 +242,7 @@ WRITE_WORLD_RED_STORE:
 
         XOR     A
         LD      B,A
-        LD      A,PACMO_COLOR_WALL
+        CALL    GET_CURRENT_WALL_COLOR
         AND     COLOR_GREEN
         JR      Z,WRITE_WORLD_GREEN_PATH
         LD      B,C
@@ -258,7 +259,7 @@ WRITE_WORLD_GREEN_STORE:
 
         XOR     A
         LD      B,A
-        LD      A,PACMO_COLOR_WALL
+        CALL    GET_CURRENT_WALL_COLOR
         AND     COLOR_BLUE
         JR      Z,WRITE_WORLD_BLUE_PATH
         LD      B,C
@@ -272,6 +273,23 @@ WRITE_WORLD_BLUE_PATH:
 WRITE_WORLD_BLUE_STORE:
         LD      (HL),B
         INC     HL
+        RET
+
+; GET_CURRENT_WALL_COLOR
+; Input:
+;   PACMO_PLAYER_CAUGHT
+; Output:
+;   A = wall color for the current render state
+; Clobbers:
+;   A
+GET_CURRENT_WALL_COLOR:
+        LD      A,(PACMO_PLAYER_CAUGHT)
+        OR      A
+        JR      NZ,GET_CURRENT_WALL_COLOR_CAUGHT
+        LD      A,PACMO_COLOR_WALL
+        RET
+GET_CURRENT_WALL_COLOR_CAUGHT:
+        LD      A,PACMO_COLOR_CAUGHT_WALL
         RET
 
 ; WINDOW_BYTE_FROM_BC
