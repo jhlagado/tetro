@@ -1,8 +1,8 @@
 ; Poll keypad and move the Pacmo cursor at a controlled repeat rate.
 ;
 ; Direction mapping for this first scrolling experiment:
-;   PACMO_KLEFT  (0x11) = left
-;   PACMO_KRIGHT (0x10) = right
+;   K_LEFT  (0x11) = left
+;   K_RIGHT (0x10) = right
 ;   ADD     (0x13) = up
 ;   GO      (0x12) = down
 ;   key 5   (0x05) = right
@@ -113,9 +113,9 @@ HELD_SAME_KEY:
 ; Clobbers:
 ;   A, E
 NORMALIZE_INPUT_TO_DIRECTION:
-        CP      PACMO_KLEFT
+        CP      K_LEFT
         JR      Z,NORMALIZE_LEFT
-        CP      PACMO_KRIGHT
+        CP      K_RIGHT
         JR      Z,NORMALIZE_RIGHT
         CP      PACMO_KEY_5
         JR      Z,NORMALIZE_RIGHT
