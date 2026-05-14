@@ -60,18 +60,18 @@ LOGIC_SLICE_NEXT:
 
 ; TICK_POWER_TIMER
 ; Input:
-;   PACMO_POWER_TIMER
+;   PACMO_POWER_TIMER_LO/HI
 ; Output:
-;   decrements PACMO_POWER_TIMER by one when nonzero
+;   decrements 16-bit PACMO_POWER_TIMER by one when nonzero
 ; Clobbers:
 ;   A, HL
 TICK_POWER_TIMER:
-        LD      HL,PACMO_POWER_TIMER
-        LD      A,(HL)
-        OR      A
+        LD      HL,(PACMO_POWER_TIMER_LO)
+        LD      A,H
+        OR      L
         RET     Z
-        DEC     A
-        LD      (HL),A
+        DEC     HL
+        LD      (PACMO_POWER_TIMER_LO),HL
         RET
 
 ; TICK_ENEMY

@@ -170,8 +170,10 @@ RENDER_WORLD_ROW:
         LD      A,C
         OR      B
         CPL                             ; A = visible uneaten open path mask
+        PUSH    DE
         LD      D,A
         CALL    WRITE_WORLD_ROW_COLORS
+        POP     DE
         INC     HL                      ; aux byte
         POP     BC
         DJNZ    RENDER_WORLD_ROW
@@ -329,7 +331,7 @@ RENDER_POWER_PILL_BC:
 
 ; RENDER_ENEMY_TO_BACK
 ; Input:
-;   ENEMY_X/Y, VIEW_X/Y, PACMO_POWER_TIMER, ENEMY_RESPAWN_TIMER
+;   ENEMY_X/Y, VIEW_X/Y, PACMO_POWER_TIMER_LO/HI, ENEMY_RESPAWN_TIMER
 ; Output:
 ;   enemy pixel rendered as attack color normally or flee color in power mode, replacing any
 ;   path color at that cell; respawning enemy is not rendered
@@ -365,8 +367,11 @@ RENDER_ENEMY_TO_BACK:
         CALL    SCREEN_X_TO_MASK
         LD      C,A
 
-        LD      A,(PACMO_POWER_TIMER)
-        OR      A
+        PUSH    HL
+        LD      HL,(PACMO_POWER_TIMER_LO)
+        LD      A,H
+        OR      L
+        POP     HL
         JR      NZ,RENDER_ENEMY_FLEE
         LD      A,PACMO_COLOR_ENEMY_ATTACK
         JP      WRITE_CELL_COLOR_C_A

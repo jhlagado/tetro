@@ -231,7 +231,7 @@ TRY_MOVE_PLAYER_TO_BC:
 
 ; PACMO_CHECK_PLAYER_CAUGHT
 ; Input:
-;   PLAYER_X/Y, ENEMY_X/Y, PACMO_POWER_TIMER, ENEMY_RESPAWN_TIMER
+;   PLAYER_X/Y, ENEMY_X/Y, PACMO_POWER_TIMER_LO/HI, ENEMY_RESPAWN_TIMER
 ; Output:
 ;   PACMO_PLAYER_CAUGHT = 1 when player and active enemy occupy the same world cell
 ;   outside power mode; in power mode, enemy is consumed and starts respawning
@@ -255,7 +255,9 @@ PACMO_CHECK_PLAYER_CAUGHT:
         LD      A,(ENEMY_Y)
         CP      B
         RET     NZ
-        LD      A,(PACMO_POWER_TIMER)
+        LD      HL,(PACMO_POWER_TIMER_LO)
+        LD      A,H
+        OR      L
         OR      A
         JR      NZ,PACMO_CONSUME_ENEMY
         JP      PACMO_ENTER_GAME_OVER
@@ -318,8 +320,8 @@ PACMO_CONSUME_POWER_PILL_LOOP:
         LD      A,PACMO_SCORE_POWER
         CALL    PACMO_ADD_SCORE_A
         POP     BC
-        LD      A,PACMO_POWER_TIMER_START
-        LD      (PACMO_POWER_TIMER),A
+        LD      HL,PACMO_POWER_TIMER_START
+        LD      (PACMO_POWER_TIMER_LO),HL
         RET
 PACMO_CONSUME_POWER_PILL_NEXT:
         INC     HL
