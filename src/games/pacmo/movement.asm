@@ -18,7 +18,7 @@
 ; Output:
 ;   may update PLAYER_X/Y, VIEW_X/Y, MOVE_COOLDOWN, LAST_KEY
 ; Clobbers:
-;   A, BC, DE, HL
+;   A, BC, DE, HL, IX
 POLL_INPUT_AND_UPDATE:
         LD      A,(PACMO_SPLASH_ACTIVE)
         OR      A
@@ -59,7 +59,7 @@ POLL_SPLASH_START:
 ;   waits for PACMO_GAME_OVER_GATE, then restarts Pacmo through INIT_STATE
 ;   when any key is pressed
 ; Clobbers:
-;   A, BC, DE, HL when restarting; A, C, HL otherwise
+;   A, BC, DE, HL, IX when restarting; A, C, HL otherwise
 POLL_CAUGHT_RESTART:
         LD      HL,(PACMO_GAME_OVER_GATE_LO)
         LD      A,H
@@ -166,7 +166,7 @@ CLEAR_INPUT_REPEAT_STATE:
 ; Output:
 ;   moves visually left unless already at the mirrored horizontal edge or target is a wall
 ; Clobbers:
-;   A, BC, DE, HL
+;   A, BC, DE, HL, IX
 MOVE_PLAYER_LEFT:
         LD      A,(PLAYER_X)
         CP      PACMO_WORLD_MAX
@@ -183,7 +183,7 @@ MOVE_PLAYER_LEFT:
 ; Output:
 ;   moves visually right unless already at the mirrored horizontal edge or target is a wall
 ; Clobbers:
-;   A, BC, DE, HL
+;   A, BC, DE, HL, IX
 MOVE_PLAYER_RIGHT:
         LD      A,(PLAYER_X)
         OR      A
@@ -200,7 +200,7 @@ MOVE_PLAYER_RIGHT:
 ; Output:
 ;   decrements PLAYER_Y unless already at world row 0 or target is a wall
 ; Clobbers:
-;   A, BC, DE, HL
+;   A, BC, DE, HL, IX
 MOVE_PLAYER_UP:
         LD      A,(PLAYER_Y)
         OR      A
@@ -217,7 +217,7 @@ MOVE_PLAYER_UP:
 ; Output:
 ;   increments PLAYER_Y unless already at world row 14 or target is a wall
 ; Clobbers:
-;   A, BC, DE, HL
+;   A, BC, DE, HL, IX
 MOVE_PLAYER_DOWN:
         LD      A,(PLAYER_Y)
         CP      PACMO_WORLD_MAX
@@ -236,7 +236,7 @@ MOVE_PLAYER_DOWN:
 ;   if target is open, PLAYER_X/Y committed and viewport adjusted
 ;   if target is a wall, PLAYER_X/Y unchanged
 ; Clobbers:
-;   A, BC, DE, HL
+;   A, BC, DE, HL, IX
 TRY_MOVE_PLAYER_TO_BC:
         CALL    PACMO_IS_WALL_AT_BC
         RET     C
@@ -251,16 +251,21 @@ TRY_MOVE_PLAYER_TO_BC:
         CALL    PACMO_CHECK_PLAYER_CAUGHT
         LD      IX,MONSTER1
         CALL    PACMO_CHECK_PLAYER_CAUGHT
+        CALL    PACMO_IS_LEVEL2_PLUS
+        JP      C,UPDATE_VIEWPORT_FOR_PLAYER
+        LD      IX,MONSTER2
+        CALL    PACMO_CHECK_PLAYER_CAUGHT
         JP      UPDATE_VIEWPORT_FOR_PLAYER
 
 ; PACMO_CHECK_PLAYER_CAUGHT
 ; Input:
-;   PLAYER_X/Y, ENEMY_X/Y, ENEMY_STATE, ENEMY_RESPAWN_TIMER
+;   IX = monster record base
+;   PLAYER_X/Y, monster X/Y, state, respawn timer
 ; Output:
 ;   PACMO_PLAYER_CAUGHT = 1 when player and active enemy occupy the same world cell
 ;   outside enemy flee mode; in enemy flee mode, enemy is consumed and starts respawning
 ; Clobbers:
-;   A, BC, DE, HL when the enemy is consumed or game-over is entered;
+;   A, BC, DE, HL, IX when the enemy is consumed or game-over is entered;
 ;   A, B otherwise
 PACMO_CHECK_PLAYER_CAUGHT:
         LD      A,(PACMO_PLAYER_CAUGHT)
@@ -290,17 +295,19 @@ PACMO_CHECK_PLAYER_CAUGHT:
 ; Output:
 ;   PACMO_PLAYER_CAUGHT latched; restart gate loaded; framebuffer rebuilt
 ; Clobbers:
-;   A, BC, DE, HL
+;   A, BC, DE, HL, IX
 PACMO_ENTER_GAME_OVER:
         LD      A,1
         LD      (PACMO_PLAYER_CAUGHT),A
         LD      HL,PACMO_GAME_OVER_GATE_TICKS
         LD      (PACMO_GAME_OVER_GATE_LO),HL
+        CALL    PACMO_SOUND_CAUGHT
         CALL    LCD_SHOW_PACMO_CAUGHT
         JP      REBUILD_FRAMEBUFFER
 
 ; PACMO_CONSUME_ENEMY
 ; Input:
+;   IX = monster record base
 ;   player and enemy occupy the same world cell while power mode is active
 ; Output:
 ;   enemy hidden until ENEMY_RESPAWN_TIMER expires; score increased
@@ -311,6 +318,7 @@ PACMO_CONSUME_ENEMY:
         LD      (IX+MONSTER_STATE),A
         LD      A,PACMO_ENEMY_RESPAWN_PERIOD
         LD      (IX+MONSTER_RESPAWN_TIMER),A
+        CALL    PACMO_SOUND_EAT_ENEMY
         CALL    LCD_SHOW_PACMO_ENEMY_EATEN
         LD      A,PACMO_SCORE_ENEMY
         JP      PACMO_ADD_SCORE_A
@@ -322,7 +330,7 @@ PACMO_CONSUME_ENEMY:
 ; Output:
 ;   matching bit set in PACMO_POWER_PILLS_EATEN when B/C is a power-pill cell
 ; Clobbers:
-;   A, D, E, HL
+;   A, DE, HL; B and C are preserved
 PACMO_CONSUME_POWER_PILL_AT_BC:
         LD      HL,PACMO_POWER_PILLS
         LD      D,1
@@ -345,12 +353,14 @@ PACMO_CONSUME_POWER_PILL_LOOP:
         PUSH    BC
         LD      A,PACMO_SCORE_POWER
         CALL    PACMO_ADD_SCORE_A
+        CALL    PACMO_SOUND_POWER
         POP     BC
         LD      HL,PACMO_POWER_TIMER_START
         LD      (PACMO_POWER_TIMER_LO),HL
         LD      A,PACMO_ENEMY_STATE_FLEE
         LD      (ENEMY_STATE),A
         LD      (ENEMY2_STATE),A
+        LD      (ENEMY3_STATE),A
         CALL    LCD_SHOW_PACMO_POWER
         RET
 PACMO_CONSUME_POWER_PILL_NEXT:
@@ -432,7 +442,7 @@ PACMO_ADD_SCORE_A:
 ; Output:
 ;   PACMO_ROUND_COMPLETE = 1 when every open cell has been consumed
 ; Clobbers:
-;   A, B, DE, HL
+;   A, BC, DE, HL
 PACMO_CHECK_ROUND_COMPLETE:
         LD      A,(PACMO_ROUND_COMPLETE)
         OR      A
@@ -459,6 +469,7 @@ PACMO_CHECK_ROUND_ROW:
         LD      (PACMO_ROUND_COMPLETE),A
         LD      HL,PACMO_LEVEL_COMPLETE_GATE_TICKS
         LD      (PACMO_LEVEL_COMPLETE_GATE_LO),HL
+        CALL    PACMO_SOUND_LEVEL_COMPLETE
         CALL    LCD_SHOW_PACMO_COMPLETE
         RET
 

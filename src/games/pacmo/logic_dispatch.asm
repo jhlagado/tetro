@@ -5,7 +5,7 @@
 ; Output:
 ;   slice 0 polls movement; slices 0..7 clear/render/copy the framebuffer
 ; Clobbers:
-;   A, HL, and registers clobbered by called slice routines
+;   A, BC, DE, HL, IX, and registers clobbered by called slice routines
 LOGIC_TICK:
         LD      A,(LOGIC_SLICE)
         AND     7
@@ -32,10 +32,20 @@ LOGIC_SL1:
         CALL    TICK_ENEMY
         LD      IX,MONSTER1
         CALL    TICK_ENEMY
+        CALL    PACMO_IS_LEVEL2_PLUS
+        JR      C,LOGIC_SL1_TICK_DONE
+        LD      IX,MONSTER2
+        CALL    TICK_ENEMY
+LOGIC_SL1_TICK_DONE:
         LD      IX,MONSTER0
         CALL    PACMO_CHECK_PLAYER_CAUGHT
         LD      IX,MONSTER1
         CALL    PACMO_CHECK_PLAYER_CAUGHT
+        CALL    PACMO_IS_LEVEL2_PLUS
+        JR      C,LOGIC_SL1_COLLISION_DONE
+        LD      IX,MONSTER2
+        CALL    PACMO_CHECK_PLAYER_CAUGHT
+LOGIC_SL1_COLLISION_DONE:
         LD      A,4
         CALL    CLEAR_BACK_4
         JR      LOGIC_SLICE_NEXT
@@ -49,6 +59,11 @@ LOGIC_SL7:
         CALL    RENDER_ENEMY_TO_BACK
         LD      IX,MONSTER1
         CALL    RENDER_ENEMY_TO_BACK
+        CALL    PACMO_IS_LEVEL2_PLUS
+        JR      C,LOGIC_SL7_MONSTERS_DONE
+        LD      IX,MONSTER2
+        CALL    RENDER_ENEMY_TO_BACK
+LOGIC_SL7_MONSTERS_DONE:
         CALL    RENDER_PLAYER_TO_BACK
         CALL    COPY_BACK_TO_FRONT
         JR      LOGIC_SLICE_NEXT
@@ -101,14 +116,28 @@ TICK_POWER_TIMER:
         LD      A,PACMO_ENEMY_STATE_ATTACK
         LD      (ENEMY_STATE),A
         LD      (ENEMY2_STATE),A
+        LD      (ENEMY3_STATE),A
         JP      LCD_SHOW_PACMO_RUNNING
+
+; PACMO_IS_LEVEL2_PLUS
+; Input:
+;   PACMO_LEVEL
+; Output:
+;   carry clear when level >= 2, carry set when level < 2
+; Clobbers:
+;   A
+PACMO_IS_LEVEL2_PLUS:
+        LD      A,(PACMO_LEVEL)
+        CP      2
+        RET
 
 ; TICK_ENEMY
 ; Input:
-;   ENEMY_X, ENEMY_DIR, ENEMY_TIMER, ENEMY_RESPAWN_TIMER
+;   IX = monster record base
+;   monster X/Y, direction, timer, state, respawn timer
 ; Output:
-;   enemy roams to an open adjacent cell when ENEMY_TIMER reaches zero;
-;   respawning enemy counts down, then returns to the patrol start
+;   active enemy moves when its timer reaches zero; respawning enemy counts
+;   down, then respawns at the selected candidate cell
 ; Clobbers:
 ;   A, BC, DE, HL
 TICK_ENEMY:
@@ -136,7 +165,8 @@ TICK_ENEMY:
 
 ; ENEMY_ATTACK_STEP
 ; Input:
-;   ENEMY_X/Y, PLAYER_X/Y, ENEMY_DIR
+;   IX = monster record base
+;   monster X/Y and direction, PLAYER_X/Y
 ; Output:
 ;   enemy tries a greedy move that reduces distance to the player, then falls
 ;   back to roaming if both chase directions are blocked or reverse-only.
@@ -180,7 +210,8 @@ ENEMY_TRY_CHASE_BLOCKED:
 
 ; ENEMY_CHASE_DIRS
 ; Input:
-;   ENEMY_X/Y, PLAYER_X/Y
+;   IX = monster record base
+;   monster X/Y, PLAYER_X/Y
 ; Output:
 ;   D = preferred direction on the larger distance axis, or 0 when aligned
 ;   E = secondary reducing direction, or 0 when aligned
@@ -203,7 +234,8 @@ ENEMY_CHASE_DIRS:
 
 ; ENEMY_GET_HORIZONTAL_CHASE
 ; Input:
-;   ENEMY_X, PLAYER_X
+;   IX = monster record base
+;   monster X, PLAYER_X
 ; Output:
 ;   A = absolute horizontal distance
 ;   B = PACMO_DIR_LEFT/RIGHT reducing that distance, or 0 when aligned
@@ -235,7 +267,8 @@ ENEMY_GET_HORIZONTAL_ALIGNED:
 
 ; ENEMY_GET_VERTICAL_CHASE
 ; Input:
-;   ENEMY_Y, PLAYER_Y
+;   IX = monster record base
+;   monster Y, PLAYER_Y
 ; Output:
 ;   A = absolute vertical distance
 ;   B = PACMO_DIR_UP/DOWN reducing that distance, or 0 when aligned
@@ -267,7 +300,8 @@ ENEMY_GET_VERTICAL_ALIGNED:
 
 ; ENEMY_ROAM_STEP
 ; Input:
-;   ENEMY_X/Y, ENEMY_DIR, PACMO_LEVEL
+;   IX = monster record base
+;   monster X/Y and direction, PACMO_LEVEL
 ; Output:
 ;   ENEMY_X/Y updated to one open adjacent cell; ENEMY_DIR set to movement
 ;   direction. Immediate reversal is used only when no other direction is open.
@@ -344,9 +378,10 @@ ENEMY_OPPOSITE_RIGHT:
 
 ; ENEMY_TRY_MOVE_DIR
 ; Input:
+;   IX = monster record base
 ;   A = PACMO_DIR_* candidate
 ; Output:
-;   Carry set when move succeeds; ENEMY_X/Y and ENEMY_DIR committed.
+;   Carry set when move succeeds; monster X/Y and direction committed.
 ;   Carry clear when candidate is out of bounds or a wall.
 ; Clobbers:
 ;   A, BC, DE, HL
@@ -438,10 +473,12 @@ TICK_ENEMY_RESPAWN_DONE:
 
 ; ENEMY_SELECT_RESPAWN
 ; Input:
-;   PLAYER_X/Y, PACMO_ENEMY_SPAWNS
+;   IX = respawning monster record base
+;   PLAYER_X/Y, PACMO_ENEMY_SPAWNS, MONSTERS
 ; Output:
-;   ENEMY_X/Y set to the spawn candidate with the greatest Manhattan distance
-;   from the player.  Ties keep the earlier table entry.
+;   monster X/Y set to the spawn candidate with the highest score:
+;   distance from player plus distance from the other active monster.
+;   Ties keep the earlier table entry.
 ; Clobbers:
 ;   A, BC, DE, HL
 ENEMY_SELECT_RESPAWN:
@@ -459,7 +496,9 @@ ENEMY_SELECT_RESPAWN_LOOP:
         PUSH    HL
         LD      H,A                     ; H = candidate y
         LD      L,C                     ; L = candidate x
-        CALL    ENEMY_DISTANCE_LH_TO_PLAYER
+        PUSH    BC
+        CALL    ENEMY_RESPAWN_SCORE_LH
+        POP     BC
         LD      C,A                     ; C = candidate distance
         LD      A,B
         CP      0xFF
@@ -482,6 +521,136 @@ ENEMY_SELECT_RESPAWN_COMMIT:
         LD      (IX+MONSTER_Y),A
         RET
 
+; ENEMY_RESPAWN_SCORE_LH
+; Input:
+;   L = candidate x
+;   H = candidate y
+;   IX = respawning monster record base
+; Output:
+;   A = candidate score.  Higher is better.
+; Clobbers:
+;   A, BC
+ENEMY_RESPAWN_SCORE_LH:
+        PUSH    DE
+        CALL    ENEMY_IS_LH_IN_VIEWPORT
+        JR      C,ENEMY_RESPAWN_SCORE_ZERO
+        CALL    ENEMY_DISTANCE_LH_TO_PLAYER
+        CP      8
+        JR      C,ENEMY_RESPAWN_SCORE_ZERO
+        LD      C,A
+        PUSH    BC
+        CALL    ENEMY_DISTANCE_LH_TO_OTHER_MONSTER
+        POP     BC
+        ADD     A,C
+        POP     DE
+        RET
+ENEMY_RESPAWN_SCORE_ZERO:
+        XOR     A
+        POP     DE
+        RET
+
+; ENEMY_IS_LH_IN_VIEWPORT
+; Input:
+;   L = candidate x
+;   H = candidate y
+; Output:
+;   carry set when candidate is currently visible in the 8x8 viewport,
+;   carry clear otherwise
+; Clobbers:
+;   A, C
+ENEMY_IS_LH_IN_VIEWPORT:
+        LD      A,(VIEW_X)
+        LD      C,A
+        LD      A,L
+        CP      C
+        JR      C,ENEMY_IS_LH_NOT_VISIBLE
+        SUB     C
+        CP      ROW_COUNT
+        JR      NC,ENEMY_IS_LH_NOT_VISIBLE
+        LD      A,(VIEW_Y)
+        LD      C,A
+        LD      A,H
+        CP      C
+        JR      C,ENEMY_IS_LH_NOT_VISIBLE
+        SUB     C
+        CP      ROW_COUNT
+        JR      NC,ENEMY_IS_LH_NOT_VISIBLE
+        SCF
+        RET
+ENEMY_IS_LH_NOT_VISIBLE:
+        OR      A
+        RET
+
+; ENEMY_DISTANCE_LH_TO_OTHER_MONSTER
+; Input:
+;   L = candidate x
+;   H = candidate y
+;   IX = respawning monster record base
+; Output:
+;   A = summed distance to other active monsters.  Respawning monsters, the
+;   current IX monster, and level-2 monster before level 2 are ignored.
+; Clobbers:
+;   A, BC, DE
+ENEMY_DISTANCE_LH_TO_OTHER_MONSTER:
+        LD      B,0                     ; B = accumulated distance score
+        LD      DE,MONSTER0
+        CALL    ENEMY_ADD_DISTANCE_TO_MONSTER_DE
+        LD      DE,MONSTER1
+        CALL    ENEMY_ADD_DISTANCE_TO_MONSTER_DE
+        LD      A,B
+        LD      C,A
+        CALL    PACMO_IS_LEVEL2_PLUS
+        LD      B,C
+        LD      A,B
+        RET     C
+        LD      DE,MONSTER2
+        CALL    ENEMY_ADD_DISTANCE_TO_MONSTER_DE
+        LD      A,B
+        RET
+
+; ENEMY_ADD_DISTANCE_TO_MONSTER_DE
+; Input:
+;   B = accumulated distance score
+;   L = candidate x
+;   H = candidate y
+;   DE = monster record pointer
+;   IX = respawning monster record base
+; Output:
+;   B = updated accumulated distance score
+; Clobbers:
+;   A, C, DE
+ENEMY_ADD_DISTANCE_TO_MONSTER_DE:
+        PUSH    HL
+        PUSH    DE
+        PUSH    IX
+        POP     HL
+        OR      A
+        SBC     HL,DE
+        POP     DE
+        POP     HL
+        RET     Z
+        PUSH    HL
+        LD      H,D
+        LD      L,E
+        INC     HL
+        INC     HL
+        INC     HL
+        INC     HL
+        LD      A,(HL)
+        POP     HL
+        OR      A
+        RET     NZ
+        LD      A,(DE)
+        LD      C,A
+        INC     DE
+        LD      A,(DE)
+        LD      D,A
+        LD      E,C
+        CALL    ENEMY_DISTANCE_LH_TO_DE
+        ADD     A,B
+        LD      B,A
+        RET
+
 ; ENEMY_DISTANCE_LH_TO_PLAYER
 ; Input:
 ;   L = candidate x
@@ -491,14 +660,34 @@ ENEMY_SELECT_RESPAWN_COMMIT:
 ; Clobbers:
 ;   A, C
 ENEMY_DISTANCE_LH_TO_PLAYER:
+        PUSH    DE
+        LD      A,(PLAYER_X)
+        LD      E,A
+        LD      A,(PLAYER_Y)
+        LD      D,A
+        CALL    ENEMY_DISTANCE_LH_TO_DE
+        POP     DE
+        RET
+
+; ENEMY_DISTANCE_LH_TO_DE
+; Input:
+;   L = candidate x
+;   H = candidate y
+;   E = target x
+;   D = target y
+; Output:
+;   A = |candidate x - target x| + |candidate y - target y|
+; Clobbers:
+;   A, C
+ENEMY_DISTANCE_LH_TO_DE:
         LD      A,L
         LD      C,A
-        LD      A,(PLAYER_X)
+        LD      A,E
         CP      C
         JR      NC,ENEMY_DISTANCE_X_PLAYER_HIGHER
         LD      A,C
         LD      C,A
-        LD      A,(PLAYER_X)
+        LD      A,E
         SUB     C
         NEG
         LD      C,A
@@ -510,12 +699,12 @@ ENEMY_DISTANCE_Y:
         LD      A,H
         PUSH    BC
         LD      C,A
-        LD      A,(PLAYER_Y)
+        LD      A,D
         CP      C
         JR      NC,ENEMY_DISTANCE_Y_PLAYER_HIGHER
         LD      A,C
         LD      C,A
-        LD      A,(PLAYER_Y)
+        LD      A,D
         SUB     C
         NEG
         JR      ENEMY_DISTANCE_SUM

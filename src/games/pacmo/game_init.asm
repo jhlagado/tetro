@@ -44,6 +44,14 @@ INIT_LEVEL_STATE:
         LD      (ENEMY2_DIR),A
         LD      A,(ENEMY_PERIOD_CURRENT)
         LD      (ENEMY2_TIMER),A
+        LD      A,13
+        LD      (ENEMY3_X),A
+        LD      A,1
+        LD      (ENEMY3_Y),A
+        LD      A,PACMO_DIR_DOWN
+        LD      (ENEMY3_DIR),A
+        LD      A,(ENEMY_PERIOD_CURRENT)
+        LD      (ENEMY3_TIMER),A
 
         LD      A,3
         LD      (VIEW_X),A
@@ -61,6 +69,8 @@ INIT_LEVEL_STATE:
         LD      (HUD_SCAN_INDEX),A
         LD      (SPEAKER_PORT_STATE),A
         LD      (SOUND_TIMER),A
+        LD      (SOUND_DIVIDER_RELOAD),A
+        LD      (SOUND_DIVIDER_COUNT),A
         LD      (PACMO_POWER_PILLS_EATEN),A
         LD      (PACMO_POWER_TIMER_LO),A
         LD      (PACMO_POWER_TIMER_HI),A
@@ -68,6 +78,8 @@ INIT_LEVEL_STATE:
         LD      (ENEMY_STATE),A
         LD      (ENEMY2_RESPAWN_TIMER),A
         LD      (ENEMY2_STATE),A
+        LD      (ENEMY3_RESPAWN_TIMER),A
+        LD      (ENEMY3_STATE),A
         LD      (PACMO_ROUND_COMPLETE),A
         LD      (PACMO_PLAYER_CAUGHT),A
         LD      (PACMO_LEVEL_COMPLETE_GATE_LO),A
