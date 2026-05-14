@@ -59,7 +59,7 @@ POLL_SPLASH_START:
 ;   waits for PACMO_GAME_OVER_GATE, then restarts Pacmo through INIT_STATE
 ;   when any key is pressed
 ; Clobbers:
-;   A, BC, DE, HL when restarting; A, C, HL otherwise
+;   A, BC, DE, HL, IX when restarting; A, C, HL otherwise
 POLL_CAUGHT_RESTART:
         LD      HL,(PACMO_GAME_OVER_GATE_LO)
         LD      A,H
@@ -330,7 +330,7 @@ PACMO_CONSUME_ENEMY:
 ; Output:
 ;   matching bit set in PACMO_POWER_PILLS_EATEN when B/C is a power-pill cell
 ; Clobbers:
-;   A, BC, DE, HL
+;   A, DE, HL; B and C are preserved
 PACMO_CONSUME_POWER_PILL_AT_BC:
         LD      HL,PACMO_POWER_PILLS
         LD      D,1
