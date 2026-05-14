@@ -74,6 +74,44 @@ RENDER_GAME_OVER_BLUE_OFF:
         DJNZ    RENDER_GAME_OVER_ROW
         RET
 
+; RENDER_LEVEL_COMPLETE_TO_BACK
+; Input:
+;   none
+; Output:
+;   FRAMEBUFFER_BACK filled with PACMO_COLOR_ROUND_COMPLETE
+; Clobbers:
+;   A, B, HL
+RENDER_LEVEL_COMPLETE_TO_BACK:
+        LD      HL,FRAMEBUFFER_BACK
+        LD      B,ROW_COUNT
+RENDER_LEVEL_COMPLETE_ROW:
+        LD      A,PACMO_COLOR_ROUND_COMPLETE
+        AND     COLOR_RED
+        JR      Z,RENDER_LEVEL_COMPLETE_RED_OFF
+        LD      A,0xFF
+RENDER_LEVEL_COMPLETE_RED_OFF:
+        LD      (HL),A
+        INC     HL
+        LD      A,PACMO_COLOR_ROUND_COMPLETE
+        AND     COLOR_GREEN
+        JR      Z,RENDER_LEVEL_COMPLETE_GREEN_OFF
+        LD      A,0xFF
+RENDER_LEVEL_COMPLETE_GREEN_OFF:
+        LD      (HL),A
+        INC     HL
+        LD      A,PACMO_COLOR_ROUND_COMPLETE
+        AND     COLOR_BLUE
+        JR      Z,RENDER_LEVEL_COMPLETE_BLUE_OFF
+        LD      A,0xFF
+RENDER_LEVEL_COMPLETE_BLUE_OFF:
+        LD      (HL),A
+        INC     HL
+        XOR     A
+        LD      (HL),A                  ; aux off
+        INC     HL
+        DJNZ    RENDER_LEVEL_COMPLETE_ROW
+        RET
+
 ; Clear 4 bytes at FRAMEBUFFER_BACK + A.
 ; CLEAR_BACK_4
 ; Input:

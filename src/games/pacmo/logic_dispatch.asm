@@ -21,6 +21,7 @@ LOGIC_TICK:
 
 LOGIC_SL0:
         CALL    POLL_INPUT_AND_UPDATE
+        CALL    TICK_LEVEL_COMPLETE_GATE
         CALL    TICK_POWER_TIMER
         XOR     A
         CALL    CLEAR_BACK_4
@@ -39,6 +40,9 @@ LOGIC_SL7:
         LD      A,(PACMO_PLAYER_CAUGHT)
         OR      A
         JR      NZ,LOGIC_SL7_GAME_OVER
+        LD      A,(PACMO_ROUND_COMPLETE)
+        OR      A
+        JR      NZ,LOGIC_SL7_LEVEL_COMPLETE
         CALL    RENDER_WORLD_TO_BACK
         CALL    RENDER_POWER_PILLS_TO_BACK
         CALL    RENDER_ENEMY_TO_BACK
@@ -49,6 +53,10 @@ LOGIC_SL7_GAME_OVER:
         CALL    RENDER_GAME_OVER_TO_BACK
         CALL    COPY_BACK_TO_FRONT
         JR      LOGIC_SLICE_NEXT
+LOGIC_SL7_LEVEL_COMPLETE:
+        CALL    RENDER_LEVEL_COMPLETE_TO_BACK
+        CALL    COPY_BACK_TO_FRONT
+        JR      LOGIC_SLICE_NEXT
 
 LOGIC_SLICE_NEXT:
         LD      HL,LOGIC_SLICE
@@ -56,6 +64,25 @@ LOGIC_SLICE_NEXT:
         INC     A
         AND     7
         LD      (HL),A
+        RET
+
+; TICK_LEVEL_COMPLETE_GATE
+; Input:
+;   PACMO_ROUND_COMPLETE, PACMO_LEVEL_COMPLETE_GATE_LO/HI
+; Output:
+;   when a completed-level delay expires, advances and initializes next level
+; Clobbers:
+;   A, HL while waiting; A, BC, DE, HL when advancing the level
+TICK_LEVEL_COMPLETE_GATE:
+        LD      A,(PACMO_ROUND_COMPLETE)
+        OR      A
+        RET     Z
+        LD      HL,(PACMO_LEVEL_COMPLETE_GATE_LO)
+        LD      A,H
+        OR      L
+        JP      Z,PACMO_ADVANCE_LEVEL
+        DEC     HL
+        LD      (PACMO_LEVEL_COMPLETE_GATE_LO),HL
         RET
 
 ; TICK_POWER_TIMER
@@ -86,6 +113,9 @@ TICK_ENEMY:
         LD      A,(PACMO_PLAYER_CAUGHT)
         OR      A
         RET     NZ
+        LD      A,(PACMO_ROUND_COMPLETE)
+        OR      A
+        RET     NZ
         CALL    TICK_ENEMY_RESPAWN
         RET     C
         LD      HL,ENEMY_TIMER
@@ -93,7 +123,7 @@ TICK_ENEMY:
         DEC     A
         LD      (HL),A
         RET     NZ
-        LD      A,PACMO_ENEMY_PERIOD
+        LD      A,(ENEMY_PERIOD_CURRENT)
         LD      (HL),A
 
         LD      A,(ENEMY_DIR)
@@ -153,7 +183,28 @@ TICK_ENEMY_RESPAWN_DONE:
         LD      (ENEMY_Y),A
         LD      A,PACMO_ENEMY_DIR_RIGHT
         LD      (ENEMY_DIR),A
-        LD      A,PACMO_ENEMY_PERIOD
+        LD      A,(ENEMY_PERIOD_CURRENT)
         LD      (ENEMY_TIMER),A
         OR      A
         RET
+
+; PACMO_ADVANCE_LEVEL
+; Input:
+;   PACMO_LEVEL, ENEMY_PERIOD_CURRENT
+; Output:
+;   level count incremented, enemy period reduced to its minimum, level restarted
+; Clobbers:
+;   A, BC, DE, HL
+PACMO_ADVANCE_LEVEL:
+        LD      HL,PACMO_LEVEL
+        INC     (HL)
+        LD      A,(ENEMY_PERIOD_CURRENT)
+        CP      PACMO_ENEMY_PERIOD_MIN+PACMO_ENEMY_PERIOD_STEP
+        JR      C,PACMO_ADVANCE_LEVEL_MIN
+        SUB     PACMO_ENEMY_PERIOD_STEP
+        LD      (ENEMY_PERIOD_CURRENT),A
+        JP      INIT_LEVEL_STATE
+PACMO_ADVANCE_LEVEL_MIN:
+        LD      A,PACMO_ENEMY_PERIOD_MIN
+        LD      (ENEMY_PERIOD_CURRENT),A
+        JP      INIT_LEVEL_STATE

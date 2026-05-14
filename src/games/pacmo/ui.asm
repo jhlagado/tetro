@@ -86,13 +86,19 @@ BLANK_HUD_SCORE_DIGITS_LOOP:
 
 ; UPDATE_SCORE_DISPLAY
 ; Input:
-;   PACMO_SCORE
+;   PACMO_SCORE, PACMO_LEVEL
 ; Output:
-;   HUD_SEG_BUFFER updated with a six-digit decimal score display
+;   HUD_SEG_BUFFER updated with one level digit and five decimal score digits
 ; Clobbers:
 ;   A, BC, DE, HL
 UPDATE_SCORE_DISPLAY:
-        LD      A,(PACMO_HEX_SEG_TABLE)
+        LD      A,(PACMO_LEVEL)
+        AND     0x0F
+        LD      L,A
+        LD      H,0
+        LD      DE,PACMO_HEX_SEG_TABLE
+        ADD     HL,DE
+        LD      A,(HL)
         LD      (HUD_SEG_BUFFER),A
         LD      HL,(PACMO_SCORE)
         LD      BC,HUD_SEG_BUFFER+1
