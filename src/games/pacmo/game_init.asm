@@ -38,6 +38,7 @@ INIT_STATE:
         LD      (PACMO_POWER_PILLS_EATEN),A
         LD      (PACMO_POWER_TIMER),A
         LD      (PACMO_ROUND_COMPLETE),A
+        LD      (PACMO_PLAYER_CAUGHT),A
 
         LD      A,SCAN_MASK_START
         LD      (SCAN_MASK),A

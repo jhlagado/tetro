@@ -20,6 +20,9 @@
 ; Clobbers:
 ;   A, BC, DE, HL
 POLL_INPUT_AND_UPDATE:
+        LD      A,(PACMO_PLAYER_CAUGHT)
+        OR      A
+        RET     NZ
         LD      C,API_SCANKEYS
         RST     0x10
         JP      NZ,CLEAR_INPUT_REPEAT_STATE
@@ -201,7 +204,30 @@ TRY_MOVE_PLAYER_TO_BC:
         CALL    PACMO_CONSUME_POWER_PILL_AT_BC
         CALL    PACMO_MARK_EATEN_AT_BC
         CALL    PACMO_CHECK_ROUND_COMPLETE
+        CALL    PACMO_CHECK_PLAYER_CAUGHT
         JP      UPDATE_VIEWPORT_FOR_PLAYER
+
+; PACMO_CHECK_PLAYER_CAUGHT
+; Input:
+;   PLAYER_X/Y, ENEMY_X/Y
+; Output:
+;   PACMO_PLAYER_CAUGHT = 1 when player and enemy occupy the same world cell
+; Clobbers:
+;   A, B
+PACMO_CHECK_PLAYER_CAUGHT:
+        LD      A,(PLAYER_X)
+        LD      B,A
+        LD      A,(ENEMY_X)
+        CP      B
+        RET     NZ
+        LD      A,(PLAYER_Y)
+        LD      B,A
+        LD      A,(ENEMY_Y)
+        CP      B
+        RET     NZ
+        LD      A,1
+        LD      (PACMO_PLAYER_CAUGHT),A
+        RET
 
 ; PACMO_CONSUME_POWER_PILL_AT_BC
 ; Input:

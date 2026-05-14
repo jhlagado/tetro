@@ -28,6 +28,7 @@ LOGIC_SL0:
 
 LOGIC_SL1:
         CALL    TICK_ENEMY
+        CALL    PACMO_CHECK_PLAYER_CAUGHT
         LD      A,4
         CALL    CLEAR_BACK_4
         JR      LOGIC_SLICE_NEXT
@@ -74,6 +75,9 @@ TICK_POWER_TIMER:
 ; Clobbers:
 ;   A, HL
 TICK_ENEMY:
+        LD      A,(PACMO_PLAYER_CAUGHT)
+        OR      A
+        RET     NZ
         LD      HL,ENEMY_TIMER
         LD      A,(HL)
         DEC     A
