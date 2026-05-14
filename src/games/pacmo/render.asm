@@ -9,6 +9,7 @@ REBUILD_FRAMEBUFFER:
         CALL    CLEAR_BACK_ALL
         CALL    RENDER_WORLD_TO_BACK
         CALL    RENDER_POWER_PILLS_TO_BACK
+        CALL    RENDER_ENEMY_TO_BACK
         CALL    RENDER_PLAYER_TO_BACK
         JP      COPY_BACK_TO_FRONT
 
@@ -233,6 +234,45 @@ RENDER_POWER_PILL_BC:
         LD      (HL),A                  ; blue
         RET
 
+; RENDER_ENEMY_TO_BACK
+; Input:
+;   ENEMY_X/Y, VIEW_X/Y
+; Output:
+;   enemy pixel ORed into red framebuffer plane
+; Clobbers:
+;   A, B, C, DE, HL
+RENDER_ENEMY_TO_BACK:
+        LD      A,(ENEMY_Y)
+        LD      B,A
+        LD      A,(VIEW_Y)
+        LD      C,A
+        LD      A,B
+        SUB     C                       ; A = screenY
+        CP      ROW_COUNT
+        RET     NC
+        ADD     A,A
+        ADD     A,A
+        LD      E,A
+        LD      D,0
+        LD      HL,FRAMEBUFFER_BACK
+        ADD     HL,DE
+
+        LD      A,(ENEMY_X)
+        LD      B,A
+        LD      A,(VIEW_X)
+        LD      C,A
+        LD      A,B
+        SUB     C                       ; A = screenX
+        CP      ROW_COUNT
+        RET     NC
+        CALL    SCREEN_X_TO_MASK
+        LD      C,A
+
+        LD      A,(HL)
+        OR      C
+        LD      (HL),A                  ; red
+        RET
+
 ; RENDER_PLAYER_TO_BACK
 ; Input:
 ;   PLAYER_X/Y, VIEW_X/Y
@@ -274,6 +314,9 @@ RENDER_PLAYER_TO_BACK:
         LD      A,(HL)
         OR      C
         LD      (HL),A                  ; green
+        LD      A,(PACMO_ROUND_COMPLETE)
+        OR      A
+        JR      NZ,RENDER_PLAYER_WHITE
         LD      A,(PACMO_POWER_TIMER)
         OR      A
         RET     Z
@@ -286,6 +329,12 @@ RENDER_PLAYER_TO_BACK:
         LD      A,(HL)
         OR      C
         LD      (HL),A                  ; blue on in power mode
+        RET
+RENDER_PLAYER_WHITE:
+        INC     HL
+        LD      A,(HL)
+        OR      C
+        LD      (HL),A                  ; blue on for round-complete white
         RET
 
 ; SCREEN_X_TO_MASK
