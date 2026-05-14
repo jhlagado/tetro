@@ -9,7 +9,7 @@ INIT_STATE:
         XOR     A
         LD      (PACMO_SCORE),A
         LD      (PACMO_SCORE+1),A
-        LD      A,1
+        LD      A,2
         LD      (PACMO_LEVEL),A
         LD      A,PACMO_ENEMY_PERIOD
         LD      (ENEMY_PERIOD_CURRENT),A

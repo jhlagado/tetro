@@ -525,11 +525,51 @@ ENEMY_SELECT_RESPAWN_COMMIT:
 ;   A, B, C
 ENEMY_RESPAWN_SCORE_LH:
         PUSH    DE
+        CALL    ENEMY_IS_LH_IN_VIEWPORT
+        JR      C,ENEMY_RESPAWN_SCORE_ZERO
         CALL    ENEMY_DISTANCE_LH_TO_PLAYER
+        CP      8
+        JR      C,ENEMY_RESPAWN_SCORE_ZERO
         LD      B,A
         CALL    ENEMY_DISTANCE_LH_TO_OTHER_MONSTER
         ADD     A,B
         POP     DE
+        RET
+ENEMY_RESPAWN_SCORE_ZERO:
+        XOR     A
+        POP     DE
+        RET
+
+; ENEMY_IS_LH_IN_VIEWPORT
+; Input:
+;   L = candidate x
+;   H = candidate y
+; Output:
+;   carry set when candidate is currently visible in the 8x8 viewport,
+;   carry clear otherwise
+; Clobbers:
+;   A, C
+ENEMY_IS_LH_IN_VIEWPORT:
+        LD      A,(VIEW_X)
+        LD      C,A
+        LD      A,L
+        CP      C
+        JR      C,ENEMY_IS_LH_NOT_VISIBLE
+        SUB     C
+        CP      ROW_COUNT
+        JR      NC,ENEMY_IS_LH_NOT_VISIBLE
+        LD      A,(VIEW_Y)
+        LD      C,A
+        LD      A,H
+        CP      C
+        JR      C,ENEMY_IS_LH_NOT_VISIBLE
+        SUB     C
+        CP      ROW_COUNT
+        JR      NC,ENEMY_IS_LH_NOT_VISIBLE
+        SCF
+        RET
+ENEMY_IS_LH_NOT_VISIBLE:
+        OR      A
         RET
 
 ; ENEMY_DISTANCE_LH_TO_OTHER_MONSTER
