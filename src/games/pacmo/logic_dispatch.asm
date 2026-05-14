@@ -529,7 +529,7 @@ ENEMY_SELECT_RESPAWN_COMMIT:
 ; Output:
 ;   A = candidate score.  Higher is better.
 ; Clobbers:
-;   A, B, C
+;   A, BC
 ENEMY_RESPAWN_SCORE_LH:
         PUSH    DE
         CALL    ENEMY_IS_LH_IN_VIEWPORT
@@ -537,9 +537,11 @@ ENEMY_RESPAWN_SCORE_LH:
         CALL    ENEMY_DISTANCE_LH_TO_PLAYER
         CP      8
         JR      C,ENEMY_RESPAWN_SCORE_ZERO
-        LD      B,A
+        LD      C,A
+        PUSH    BC
         CALL    ENEMY_DISTANCE_LH_TO_OTHER_MONSTER
-        ADD     A,B
+        POP     BC
+        ADD     A,C
         POP     DE
         RET
 ENEMY_RESPAWN_SCORE_ZERO:

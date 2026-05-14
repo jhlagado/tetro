@@ -18,7 +18,7 @@
 ; Output:
 ;   may update PLAYER_X/Y, VIEW_X/Y, MOVE_COOLDOWN, LAST_KEY
 ; Clobbers:
-;   A, BC, DE, HL
+;   A, BC, DE, HL, IX
 POLL_INPUT_AND_UPDATE:
         LD      A,(PACMO_SPLASH_ACTIVE)
         OR      A
@@ -166,7 +166,7 @@ CLEAR_INPUT_REPEAT_STATE:
 ; Output:
 ;   moves visually left unless already at the mirrored horizontal edge or target is a wall
 ; Clobbers:
-;   A, BC, DE, HL
+;   A, BC, DE, HL, IX
 MOVE_PLAYER_LEFT:
         LD      A,(PLAYER_X)
         CP      PACMO_WORLD_MAX
@@ -183,7 +183,7 @@ MOVE_PLAYER_LEFT:
 ; Output:
 ;   moves visually right unless already at the mirrored horizontal edge or target is a wall
 ; Clobbers:
-;   A, BC, DE, HL
+;   A, BC, DE, HL, IX
 MOVE_PLAYER_RIGHT:
         LD      A,(PLAYER_X)
         OR      A
@@ -200,7 +200,7 @@ MOVE_PLAYER_RIGHT:
 ; Output:
 ;   decrements PLAYER_Y unless already at world row 0 or target is a wall
 ; Clobbers:
-;   A, BC, DE, HL
+;   A, BC, DE, HL, IX
 MOVE_PLAYER_UP:
         LD      A,(PLAYER_Y)
         OR      A
@@ -217,7 +217,7 @@ MOVE_PLAYER_UP:
 ; Output:
 ;   increments PLAYER_Y unless already at world row 14 or target is a wall
 ; Clobbers:
-;   A, BC, DE, HL
+;   A, BC, DE, HL, IX
 MOVE_PLAYER_DOWN:
         LD      A,(PLAYER_Y)
         CP      PACMO_WORLD_MAX
@@ -265,7 +265,7 @@ TRY_MOVE_PLAYER_TO_BC:
 ;   PACMO_PLAYER_CAUGHT = 1 when player and active enemy occupy the same world cell
 ;   outside enemy flee mode; in enemy flee mode, enemy is consumed and starts respawning
 ; Clobbers:
-;   A, BC, DE, HL when the enemy is consumed or game-over is entered;
+;   A, BC, DE, HL, IX when the enemy is consumed or game-over is entered;
 ;   A, B otherwise
 PACMO_CHECK_PLAYER_CAUGHT:
         LD      A,(PACMO_PLAYER_CAUGHT)
@@ -295,7 +295,7 @@ PACMO_CHECK_PLAYER_CAUGHT:
 ; Output:
 ;   PACMO_PLAYER_CAUGHT latched; restart gate loaded; framebuffer rebuilt
 ; Clobbers:
-;   A, BC, DE, HL
+;   A, BC, DE, HL, IX
 PACMO_ENTER_GAME_OVER:
         LD      A,1
         LD      (PACMO_PLAYER_CAUGHT),A
