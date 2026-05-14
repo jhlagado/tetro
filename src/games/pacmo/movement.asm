@@ -22,7 +22,7 @@
 POLL_INPUT_AND_UPDATE:
         LD      A,(PACMO_PLAYER_CAUGHT)
         OR      A
-        RET     NZ
+        JP      NZ,POLL_CAUGHT_RESTART
         LD      C,API_SCANKEYS
         RST     0x10
         JP      NZ,CLEAR_INPUT_REPEAT_STATE
@@ -30,6 +30,19 @@ POLL_INPUT_AND_UPDATE:
         CALL    NORMALIZE_INPUT_TO_DIRECTION
         JR      C,HANDLE_DIRECTION_KEY
         JR      CLEAR_INPUT_REPEAT_STATE
+
+; POLL_CAUGHT_RESTART
+; Input:
+;   PACMO_PLAYER_CAUGHT is nonzero
+; Output:
+;   restarts Pacmo through INIT_STATE when any key is pressed
+; Clobbers:
+;   A, BC, DE, HL when restarting; A, C otherwise
+POLL_CAUGHT_RESTART:
+        LD      C,API_SCANKEYS
+        RST     0x10
+        RET     NZ
+        JP      INIT_STATE
 
 HANDLE_DIRECTION_KEY:
         LD      A,(LAST_KEY)
