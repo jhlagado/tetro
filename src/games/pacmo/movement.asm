@@ -244,9 +244,6 @@ TRY_MOVE_PLAYER_TO_BC:
         LD      (PLAYER_X),A
         LD      A,C
         LD      (PLAYER_Y),A
-        PUSH    BC
-        CALL    PACMO_SOUND_MOVE
-        POP     BC
         CALL    PACMO_CONSUME_POWER_PILL_AT_BC
         CALL    PACMO_MARK_EATEN_AT_BC
         CALL    PACMO_CHECK_ROUND_COMPLETE
@@ -354,6 +351,7 @@ PACMO_CONSUME_POWER_PILL_LOOP:
         PUSH    BC
         LD      A,PACMO_SCORE_POWER
         CALL    PACMO_ADD_SCORE_A
+        CALL    PACMO_SOUND_POWER
         POP     BC
         LD      HL,PACMO_POWER_TIMER_START
         LD      (PACMO_POWER_TIMER_LO),HL

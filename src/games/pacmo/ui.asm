@@ -15,16 +15,16 @@ SOUND_START:
         LD      (SPEAKER_PORT_STATE),A
         RET
 
-; PACMO_SOUND_MOVE
+; PACMO_SOUND_POWER
 ; Input:
 ;   none
 ; Output:
-;   starts the short Pacmo movement sound cue
+;   starts the Pacmo power-pill eaten sound cue
 ; Clobbers:
 ;   A, C
-PACMO_SOUND_MOVE:
-        LD      A,PACMO_SOUND_MOVE_LEN
-        LD      C,PACMO_SOUND_MOVE_DIV
+PACMO_SOUND_POWER:
+        LD      A,PACMO_SOUND_POWER_LEN
+        LD      C,PACMO_SOUND_POWER_DIV
         JP      SOUND_START
 
 ; PACMO_SOUND_EAT_ENEMY
