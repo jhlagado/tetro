@@ -1,12 +1,90 @@
 # TETRO: a tour of the code
 
-A falling-block puzzle game, on an 8×8 RGB matrix, with a six-digit seven-segment score readout, an LCD HUD, and a beeper — all driven by a single Z80 with no interrupts. The matrix only exists when the CPU is actively scanning it, no timer fires when something needs doing, and there is no second thread for background work. Everything shares one loop.
+TETRO is a falling-block game for the TEC-1G single-board Z80 computer. It runs under MON-3, draws an 8x8 RGB LED matrix, scans a six-digit seven-segment score display, writes an HD44780 LCD, reads the MON-3 keypad, and drives a speaker.
 
-This document follows that constraint into the code. Loop first, then scan, slices, collision, the lock chain, rendering, and the path one piece takes from spawn to game over.
+The important constraint is that there are no interrupts. The matrix is visible only because the CPU keeps scanning it. Sound and score display only continue because the same loop keeps servicing them. Game logic has to fit around that hardware maintenance.
+
+This tour follows the code as it now stands: a multi-game repository with shared hardware helpers and TETRO-specific game logic.
 
 ---
 
-## The loop
+## Source layout
+
+The Debug80 target is still the top-level file:
+
+```text
+src/tetro.asm
+```
+
+That file owns the `ORG`, the reset entry, the main loop, and the include order. Debug80 can treat it as the TETRO target without needing to know how the internal files are arranged.
+
+The current TETRO include order is:
+
+```asm
+.include "shared/inc/constants.asm"
+.include "games/tetro/constants.asm"
+
+START:
+    CALL    INIT_STATE
+
+MAIN_LOOP:
+    CALL    SCAN_TICK
+    CALL    LOGIC_TICK
+    JR      MAIN_LOOP
+
+.include "games/tetro/geometry_helpers.asm"
+.include "games/tetro/collision.asm"
+.include "shared/framebuffer_core.asm"
+.include "shared/framebuffer.asm"
+.include "games/tetro/piece_active.asm"
+.include "games/tetro/board_lock.asm"
+.include "games/tetro/game_init.asm"
+.include "shared/scan_tick.asm"
+.include "shared/sound.asm"
+.include "games/tetro/sound.asm"
+.include "shared/hud.asm"
+.include "games/tetro/hud.asm"
+.include "shared/lcd.asm"
+.include "games/tetro/ui.asm"
+.include "games/tetro/logic_dispatch.asm"
+.include "shared/input.asm"
+.include "games/tetro/data.asm"
+.include "games/tetro/ram.asm"
+```
+
+The include order is deliberate. `shared/scan_tick.asm` calls `SERVICE_SOUND` and `SCAN_SCORE_DIGIT` before their labels appear in the include stream. `asm80` resolves those forward references. The pattern keeps scanout generic while letting the program decide which sound and HUD services satisfy the calls.
+
+The split is intentional. Files under `src/shared/` are generic hardware or buffer routines that can serve more than one game. Files under `src/games/tetro/` contain TETRO's rules, state, tables, and game-specific wrappers.
+
+This is still a careful harmonisation, not a large engine abstraction. Shared files are the small, stable pieces: scan tick, LCD primitives, score digit scanning, sound state machine, and framebuffer core helpers. TETRO keeps its own rules, board representation, scoring events, piece data, and presentation choices.
+
+---
+
+## Shared code and game code
+
+The shared layer is deliberately low-level.
+
+`shared/inc/constants.asm` defines hardware ports, MON-3 API constants, keypad codes, matrix dimensions, colour bits, and the speaker bit. These are facts about the machine, not about TETRO.
+
+`shared/scan_tick.asm` is the hardware heartbeat. It outputs one matrix row, services sound, scans one score digit, and advances the scan pointer.
+
+`shared/sound.asm` owns the generic speaker divider state machine. It knows how to turn a duration and divider into a square wave on `SPEAKER_PORT_STATE`, but it does not decide what a rotate sound or clear sound should be.
+
+`games/tetro/sound.asm` supplies those game meanings. `SOUND_TRIGGER_ROTATE`, `SOUND_TRIGGER_LOCK`, `SOUND_TRIGGER_CLEAR`, and the game-over cues load TETRO's durations and dividers, then tail-call the shared `SOUND_START`.
+
+`shared/hud.asm` scans the seven-segment display and blanks its six-byte segment buffer. It does not know what score means. `games/tetro/hud.asm` converts TETRO's 16-bit score into digit patterns by repeated subtraction.
+
+`shared/lcd.asm` contains the HD44780 primitives: wait for busy, send a command, write a string, print one character, and run a simple `(row command, string pointer)` script. `games/tetro/ui.asm` uses those primitives to show the TETRO splash, running, paused, and game-over screens, including the next-piece preview.
+
+`shared/framebuffer_core.asm` has generic double-buffer helpers: clear the back buffer, clear one row, and copy back to front. `shared/framebuffer.asm` is still more game-shaped: it rebuilds the full frame by calling `RENDER_BOARD_TO_BACK` and `RENDER_ACTIVE_TO_BACK`, and those routines understand TETRO board planes and active pieces.
+
+`shared/input.asm` is also shared in location, but its current contract is still TETRO-shaped. It maps keypad events to labels such as `MOVE_LEFT`, `MOVE_RIGHT`, `ROTATE_CW`, `ROTATE_LEFT`, and `SOFT_DROP`. It can be generalized later, but for now TETRO owns those labels.
+
+That boundary is useful: hardware helpers move toward `shared`; game semantics stay under `games/tetro`.
+
+---
+
+## The main loop
 
 ```asm
 MAIN_LOOP:
@@ -15,216 +93,385 @@ MAIN_LOOP:
     JR      MAIN_LOOP
 ```
 
-Three lines. The whole program runs underneath them.
+Those three instructions in `src/tetro.asm` are the whole runtime. `SCAN_TICK` keeps the hardware alive: one matrix row, one sound-service step, one seven-segment digit, then the scan pointer advances. `LOGIC_TICK` does one slice of game work. The loop repeats forever.
 
-The 8×8 matrix is row-multiplexed: at any moment exactly one row is driven and the other seven sit dark. To produce a steady image the program steps through all eight rows fast enough that the eye averages them into a frame. A late `SCAN_TICK` means uneven brightness. A very late `SCAN_TICK` means flicker. Anything else — gravity, input, line clears — has to fit between scanouts.
+`SCAN_TICK` must run often enough to keep the RGB matrix steady. The matrix is row-multiplexed: only one row is driven at a time, and the image exists because all eight rows are refreshed quickly. If game logic takes too long between scan ticks, brightness becomes uneven or the panel flickers.
 
-`LOGIC_TICK` doesn't compute a full frame. It computes one-eighth of a frame. Each logical frame's work is spread across eight passes through the loop, with a `SCAN_TICK` on each pass to keep the matrix running. Sound works the same way: no timers, just a counter decremented once per scan. The display, the speaker, and the score digits are all maintained by keeping the CPU in this loop.
+`LOGIC_TICK` does not compute a whole game frame. It computes one slice. TETRO spreads one logical frame across eight passes through the main loop, matching the eight scan rows.
 
----
-
-## SCAN_TICK
-
-`SCAN_TICK` is the program's clock. Each call drives one matrix row, advances one step of the sound generator, refreshes one digit of the score readout, and returns.
-
-Three bytes from the framebuffer go to the red, green, and blue ports; one bit from `SCAN_MASK` selects the row. `SCAN_MASK` rotates left every call, so eight calls light all eight rows in turn. The row select clears *before* the new colours are written — otherwise the previous row briefly receives the new row's data and ghost images appear across the panel.
-
-`SERVICE_SOUND` handles the speaker. A divider counts down to zero and toggles the speaker bit; a duration counts down to zero and stops the note. Both decrement once per scan tick. Sound effects — the lock thud, the rotate chirp, the game-over groan — set a divider and a duration. The following scan ticks produce the square wave.
-
-`SCAN_SCORE_DIGIT` drives the seven-segment readout the same way: six digits, one lit at a time, indexed by `HUD_SCAN_INDEX` and stepped through six successive ticks. The segment patterns were written into `HUD_SEG_BUFFER` the last time the score changed; the scanner reads bytes and sends them to the digit and segment ports.
-
-When all three are done, `ADVANCE_SCAN_STATE` moves `SCAN_PTR` to the next framebuffer row and rotates `SCAN_MASK`. Wrapping back to row 0 also increments `FRAME_PHASE`, a counter used only during the splash screen to seed the RNG — more on that later.
+This means the display, score digits, speaker, keypad, gravity, rendering, and line-clear timing all share the same cooperative clock.
 
 ---
 
-## LOGIC_TICK
+## Scan tick
 
-Before any gameplay runs, `LOGIC_TICK` checks the current game state. Game over takes priority, then splash, then a line-clear hold, then pause, then input lockout, then normal play. Each is a one-byte flag in RAM; the dispatcher reads top to bottom and the first flag set takes the call.
+`SCAN_TICK` lives in `shared/scan_tick.asm`.
 
-```asm
-LOGIC_TICK:
-    CALL    SANITIZE_ACTIVE_POSITION
-    LD      A,(GAME_OVER)
-    OR      A
-    JR      Z,LOGIC_TICK_GAME_OVER_DONE
-    CALL    WAIT_GAME_OVER_KEY_GATE
-    RET
-LOGIC_TICK_GAME_OVER_DONE:
-    LD      A,(SPLASH_TIMER)
-    ...
+Each call:
+
+1. Clears the active row select.
+2. Reads three bytes from `FRAMEBUFFER` through `SCAN_PTR`.
+3. Writes those bytes to the red, green, and blue matrix ports.
+4. Enables the row selected by `SCAN_MASK`.
+5. Calls `SERVICE_SOUND`.
+6. Calls `SCAN_SCORE_DIGIT`.
+7. Calls `ADVANCE_SCAN_STATE`.
+
+Clearing the row before changing colour data matters. If the row stayed enabled while new colour bytes were written, the previous row would briefly show the next row's data.
+
+`SERVICE_SOUND` is generic. A TETRO sound event loads `SOUND_TIMER`, `SOUND_DIVIDER_RELOAD`, and `SOUND_DIVIDER_COUNT`; each scan tick decrements the timer and toggles `SPEAKER_PORT_STATE` whenever the divider expires. The sound bit is ORed into the digit latch by the HUD scanner, so speaker and seven-segment multiplexing share the same output path.
+
+`SCAN_SCORE_DIGIT` is also generic. It uses `HUD_SCAN_INDEX` to pick one of six bytes in `HUD_SEG_BUFFER`, writes the segment pattern, then ORs the digit-select bit with the current speaker state on `PORT_DIGITS`.
+
+`ADVANCE_SCAN_STATE` moves `SCAN_PTR` to the next 4-byte framebuffer row and rotates `SCAN_MASK`. When the mask wraps back to row 0, it resets the pointer and increments `FRAME_PHASE`. TETRO uses `FRAME_PHASE` as an entropy source during the splash screen.
+
+---
+
+## Logic dispatch
+
+`LOGIC_TICK` lives in `games/tetro/logic_dispatch.asm`. It starts by sanitizing the active piece position, then chooses the highest-priority game mode.
+
+The priority is:
+
+1. Game over.
+2. Splash.
+3. Line-clear hold.
+4. Pause.
+5. Input lockout.
+6. Active play.
+
+The order is part of the design. During game over, only restart gating matters. During a line-clear hold, the active piece is disabled and the next spawn waits. During input lockout, the key that dismissed the splash or restarted the game is not allowed to become a gameplay move.
+
+In active play, `LOGIC_SLICE` selects one of eight slices:
+
+```text
+slice 0      poll input, clear framebuffer-back row 0
+slice 1      apply gravity, clear row 1
+slices 2-6   clear one back-buffer row each
+slice 7      clear row 7, render board, render active piece, copy back to front
 ```
 
-The order encodes priority. While the line-clear timer runs, the next piece doesn't exist yet. While the game is over, only the restart gate matters. Each state blocks the ones below it.
-
-`SANITIZE_ACTIVE_POSITION` clamps `PLAYER_X` back from the right edge if rotation widened the piece off-screen, and clamps `PLAYER_Y` against the bottom. Negative `PLAYER_Y` is left alone — pieces spawn above the visible field and fall into it.
-
-In normal play, `LOGIC_SLICE` (a counter mod 8) selects which portion of the frame's work runs this pass. Slice 0 polls the keypad. Slice 1 ticks gravity. Slices 2 through 6 each blank four bytes of the back framebuffer, one row at a time. Slice 7 blanks the last row, then composes the frame: landed board first, falling piece on top, then an `LDIR` from `FRAMEBUFFER_BACK` to `FRAMEBUFFER`. Until that copy completes, `SCAN_TICK` reads the previous frame. By the time slice 7 writes, the matrix has just finished its pass and is wrapping back to row 0, so the new frame is ready as the display starts again.
-
-Eight slices, eight matrix rows. A logical frame and a full matrix scan take exactly the same number of loop iterations, so the two stay in step automatically.
+The back buffer is cleared gradually so no single loop pass does all the work. Slice 7 composes the finished frame and copies it to `FRAMEBUFFER`, which the next scan pass reads.
 
 ---
 
-## What's in RAM
+## RAM layout
 
-The layout in `ram.asm` mirrors the code that touches it.
+TETRO's mutable state is in `games/tetro/ram.asm`.
 
-The active piece is a small cluster of bytes: `PLAYER_X`, `PLAYER_Y`, a pointer to the bitmap in ROM, the current rotation, the rightmost occupied column (so collision can clamp without scanning the bitmap), the colour, and an enable flag. The enable flag is used during line clears and game over, when the board still needs to render but the active piece should not appear.
+The RAM file is arranged around the systems that mutate it:
 
-Adjacent to that is a parallel set of *pending* fields: `PENDING_X`, `PENDING_Y`, `PENDING_ROTATION`, plus a scratch byte called `SHIFT_COUNT`. Every move writes a candidate position into the pending fields, runs the collision test, and only on a pass copies the result back to the live fields. Nothing visible changes until the position is confirmed valid.
+- active-piece state
+- pending movement and rotation state
+- input repeat state
+- pause, splash, game-over, and line-clear flags
+- score and line counters
+- HUD and speaker state
+- frame/slice counters
+- scan state and framebuffers
+- landed board occupancy and colour planes
 
-The board splits across four parallel planes. `BOARD_ROWS` is a one-bit-per-cell occupancy map: eight bytes for eight rows. Collision reads only this plane. Colour is stored separately in `BOARD_RED`, `BOARD_GREEN`, `BOARD_BLUE`. Collision walks one byte per row and ANDs against a shifted piece mask — no unpacking needed. Render walks three bytes per row straight into the framebuffer — no masking needed. A combined representation would require one or the other to do extra work on every slice.
+The active piece state includes:
 
-The framebuffer is doubled: `FRAMEBUFFER_BACK` is composed by the slices; `FRAMEBUFFER` is read by `SCAN_TICK`. Both are thirty-two bytes — eight rows of four — where the first three bytes per row are red, green, and blue, and the fourth pads the stride to four for simpler address arithmetic.
+- `PLAYER_X`, `PLAYER_Y`
+- `CURRENT_PIECE_PTR`
+- `CURRENT_PIECE_INDEX`
+- `CURRENT_ROTATION`
+- `CURRENT_PIECE_RIGHT`
+- `CURRENT_PIECE_COLOR`
+- `ACTIVE_PIECE_ENABLED`
+
+The pending fields are a small transaction buffer:
+
+- `PENDING_X`
+- `PENDING_Y`
+- `PENDING_ROTATION`
+- `SHIFT_COUNT`
+
+Movement and rotation write candidates into pending state, run collision, and commit only if the placement is legal. That keeps failed moves invisible.
+
+The board is split into four planes:
+
+- `BOARD_ROWS` is the occupancy plane.
+- `BOARD_RED`, `BOARD_GREEN`, and `BOARD_BLUE` are colour planes.
+
+Collision reads only `BOARD_ROWS`. Rendering reads colour planes directly. This avoids unpacking colour data during collision and avoids reconstructing colour during rendering.
+
+The framebuffer is double-buffered:
+
+- `FRAMEBUFFER_BACK` is composed by the logic slices.
+- `FRAMEBUFFER` is read by `SCAN_TICK`.
+
+Both buffers are 32 bytes: eight rows, four bytes per row. The first three bytes are red, green, and blue. The fourth byte is padding.
+
+The shared scanout does not know what these bytes represent as game state. It only emits the front buffer. TETRO owns the meaning of the board planes and active-piece state that produce those bytes.
 
 ---
 
-## Cold start and restart
+## Initialization and restart
 
-`INIT_STATE` zeros everything via `INIT_STATE_BASE`, sets `SPLASH_TIMER`, draws the splash on the LCD, and rebuilds the framebuffer. Then it returns to the main loop with the splash flag set.
+`games/tetro/game_init.asm` owns startup and restart.
 
-While the splash is displayed, the loop keeps running. `SCAN_TICK` increments `FRAME_PHASE` every time the matrix scan wraps. The number of increments before the player presses a key depends on how long they wait — anywhere from nearly zero to several seconds, at tens of thousands of loop iterations per second. When the splash ends, `FRAME_PHASE` becomes `RNG_SEED`.
+`INIT_STATE` calls `INIT_STATE_BASE`, enables the splash state, shows the splash LCD script, and rebuilds the framebuffer.
 
-A fallback handles the case where a key is pressed before the matrix has wrapped even once: a hardcoded seed is used instead.
+`INIT_STATE_BASE` resets TETRO state: movement cooldown, gravity period, game-over flags, clear flags, score, LCD/HUD scan state, sound state, scan mask, scan pointer, board planes, and score digits.
 
-After seeding, `HANDLE_SPLASH_STATE` generates the first upcoming piece, spawns the first active piece, and sets `INPUT_LOCKOUT` so the keypress that dismissed the splash is not also treated as a game move. The lockout clears when the player releases the key.
+The splash screen is not idle. The main loop keeps scanning the matrix, servicing sound, scanning the score display, and incrementing `FRAME_PHASE` once per full matrix wrap. When the player presses a key, `HANDLE_SPLASH_STATE` uses `FRAME_PHASE` as `RNG_SEED`. If the key arrives before any wrap, it falls back to `RNG_SEED_INIT`.
 
-`INIT_STATE_RESTART` is the post-game-over path. It clears game state but leaves the RNG alone, so successive games continue from the same pseudo-random stream. No splash, no `FRAME_PHASE` accumulation — just a fresh board and a new piece.
+`INIT_STATE_RESTART` is the post-game-over path. It clears the board and score but does not reset the RNG seed. A restart continues the pseudo-random stream instead of returning to the same first pieces.
 
 ---
 
 ## Collision
 
-`CHECK_COLLISION_AT_DE` is the only placement test in the program. Spawn, movement, rotation, and gravity all call it. It takes the candidate position in `D` (x) and `E` (y), and returns carry set if the placement is illegal.
+`games/tetro/collision.asm` provides the placement test used by spawn, movement, rotation, gravity, and lock.
 
-Horizontal bounds are checked first. If `D` is less than `X_MIN`, the piece is past the left wall. If `D + CURRENT_PIECE_RIGHT` reaches `ROW_COUNT`, it is past the right wall. Both return immediately — there is no need to examine the piece bitmap if it is already out of bounds.
+`CHECK_COLLISION_AT_DE` takes:
 
-If the bounds pass, the test walks the four rows of the piece bitmap. Each row is an 8-bit mask; `SHIFT_ROW_MASK` slides it left by `SHIFT_COUNT` (the candidate x) so the bits align with board columns. Empty rows are skipped. Rows whose board y is negative are skipped — pieces may spawn above the visible field. A row whose y exceeds the bottom of the board is a wall collision.
+```text
+D = candidate x
+E = candidate y
+```
 
-For rows that remain, the shifted mask is ANDed against the matching byte in `BOARD_ROWS`. Non-zero means the piece overlaps a landed cell.
+It returns carry set if the placement is illegal.
 
-All failure modes — left wall, right wall, bottom, cell overlap — set carry and exit through the same epilogue. Each entry point has its own pushes; there is one place that pops them. A new failure path added later will not leave the stack unbalanced.
+The routine first checks horizontal bounds. `CURRENT_PIECE_RIGHT` lets it test the right edge without scanning the bitmap. If the piece is outside the left or right wall, it returns immediately.
 
-`SHIFT_ROW_MASK` is shared by collision, the active-piece renderer, and the board-merge routine. All three place an 8-bit mask at an x offset, and they must agree on how that is done. If they differed, pieces would collide differently from how they are drawn, or settle in a different position from where the collision test approved. Using a single shared routine avoids that problem.
+If the horizontal bounds pass, it walks the four rows of the current piece bitmap. Each bitmap row is shifted by `SHIFT_ROW_MASK` using the candidate x. Empty rows are skipped. Rows above the visible field are allowed, because pieces spawn partly above the display. Rows below the field are collisions.
+
+For visible rows, the shifted mask is ANDed with the matching row in `BOARD_ROWS`. A non-zero result means the active piece overlaps a landed cell.
+
+`CHECK_TOP_OUT_ON_LOCK` is separate. It detects the loss condition where a piece locks while any occupied bitmap row is still above the visible field.
 
 ---
 
-## Movement, gravity, rotation
+## Movement, gravity, and rotation
 
-Every move follows the same pattern:
+`games/tetro/piece_active.asm` owns active-piece movement, rotation, gravity, spawning, and random piece selection.
 
-```
-write candidate to PENDING_*
+Every movement uses the same pattern:
+
+```text
+write candidate position
 call CHECK_COLLISION_AT_DE
-on success, commit candidate to PLAYER_*
+commit only if carry is clear
 ```
 
-`MOVE_LEFT` and `MOVE_RIGHT` use a shared helper, `HORIZONTAL_PROBE_APPLY_PENDING_X`. It writes `PENDING_X`, copies `PLAYER_Y` to `PENDING_Y`, runs the test, and on success writes back. On failure, nothing changes.
+`MOVE_LEFT` and `MOVE_RIGHT` update `PENDING_X` and call `HORIZONTAL_PROBE_APPLY_PENDING_X`. That helper copies the current y into `PENDING_Y`, tests collision, and commits the candidate x only on success.
 
-`STEP_ACTIVE_DOWN_ONE_CELL` is the shared downward probe used by both `APPLY_GRAVITY` and `SOFT_DROP`. Both call the same routine, so gravity and soft drop use identical collision rules.
+`STEP_ACTIVE_DOWN_ONE_CELL` is shared by gravity and soft drop. `APPLY_GRAVITY` waits for `GRAVITY_COOLDOWN` to expire, then probes one row down. If the probe fails, it calls `LOCK_ACTIVE_PIECE`. `SOFT_DROP` skips the cooldown and probes immediately. If soft drop locks a piece, it sets `DROP_LOCKOUT` so a held drop key does not immediately force the next piece down.
 
-`APPLY_GRAVITY` decrements `GRAVITY_COOLDOWN` and returns if it is not yet zero. When it fires, it reloads the cooldown from `CURRENT_GRAVITY_PERIOD`, probes one row down, and either commits the new y or calls `LOCK_ACTIVE_PIECE`. The cooldown controls fall speed. Reducing `CURRENT_GRAVITY_PERIOD` later in a session makes pieces fall faster.
+Rotation changes the bitmap, not the position. `ROTATE_CW` and `ROTATE_LEFT` save the previous rotation, load the candidate rotation state, then test collision at the current position. If the test fails, the old rotation and metadata are restored. There is no wall kick. On success, TETRO plays the rotate sound and resets the gravity cooldown.
 
-`SOFT_DROP` skips the cooldown. When the probe finds the piece blocked, it sets `DROP_LOCKOUT` and locks the piece. Without the lockout, a player still holding the drop key when the next piece spawns would immediately push it to the floor.
-
-Rotation does not change the position — only the bitmap. The routine saves the current rotation in `PENDING_ROTATION`, writes the new rotation into `CURRENT_ROTATION`, loads the corresponding bitmap and metadata via `LOAD_CURRENT_ROTATION_STATE`, and tests at `(PLAYER_X, PLAYER_Y)`. If the test fails, the old rotation and metadata are restored. There is no wall-kick; the rotation either fits or it does not. On success, the rotate sound plays and `GRAVITY_COOLDOWN` resets to a full period, giving the player one extra gravity cycle before the piece drops another row.
+`RNG_NEXT8` is an 8-bit shift-register generator. `RNG_NEXT_PIECE` folds higher bits into lower bits, masks to three bits, and retries when the value is 7. That gives piece indices 0 through 6.
 
 ---
 
-## Lock, clear, score
+## Lock, line clear, and score
 
-`LOCK_ACTIVE_PIECE` is called when gravity or a blocked soft drop determines the piece can go no further. It is the only path from active piece to the board.
+`games/tetro/board_lock.asm` owns the transition from active piece to board.
 
-The first check is for top-out. `CHECK_TOP_OUT_ON_LOCK` looks for any occupied row in the piece bitmap whose board y is still negative — meaning the piece is locking with part of itself above the visible field. That is the loss condition. `LOCK_GAME_OVER` merges the piece into the board so the final position is visible, then calls `ENTER_GAME_OVER`.
+`LOCK_ACTIVE_PIECE` first calls `CHECK_TOP_OUT_ON_LOCK`. If the active piece is still partly above the visible field, TETRO merges it into the board and enters game over.
 
-If top-out does not apply, `MERGE_ACTIVE_TO_BOARD` writes the piece into the board. The same `SHIFT_ROW_MASK` used by collision places the piece in exactly the cells the collision test approved. The shifted mask is ORed into `BOARD_ROWS` and into the colour planes for the channels set in `CURRENT_PIECE_COLOR`.
+Otherwise, `MERGE_ACTIVE_TO_BOARD` writes the shifted active piece into `BOARD_ROWS` and into the colour planes selected by `CURRENT_PIECE_COLOR`. It uses the same `SHIFT_ROW_MASK` routine as collision and rendering, so the cells that collide, draw, and merge are the same cells.
 
-`CHECK_FULL_ROWS` scans `BOARD_ROWS` for bytes equal to 0xFF and records each in `CLEAR_MASK`. If nothing is full, the lock sound plays and `SPAWN_ACTIVE_PIECE` runs immediately. If one or more rows are full, the clear sound plays, `CLEAR_PENDING` is set, `CLEAR_TIMER` is loaded, and the active piece is disabled. Spawning waits.
+`CHECK_FULL_ROWS` scans `BOARD_ROWS` for `0xFF`. Full rows are recorded in `CLEAR_MASK`.
 
-During the hold, the renderer draws rows in `CLEAR_MASK` as solid white, overriding their stored colours. `LOGIC_TICK` routes to `HANDLE_LINE_CLEAR_STATE`, which decrements the timer once per logical frame (at `LOGIC_SLICE == 0`). When the timer reaches zero, `COLLAPSE_FULL_ROWS` runs.
+If no row is full, TETRO plays the lock sound and immediately spawns the next piece.
 
-The collapse uses two pointers walking down the board: `D` reads, `E` writes. A read row found in `CLEAR_MASK` is skipped — not copied. All other rows are copied to the write position, and the write pointer advances. After the pass, rows above the new top are zeroed. Occupancy and colour are moved together.
+If one or more rows are full, TETRO plays the clear sound, sets `CLEAR_PENDING`, loads `CLEAR_TIMER`, and disables the active piece. Rendering draws rows in `CLEAR_MASK` as white while the timer counts down. When the timer expires, `COLLAPSE_FULL_ROWS` removes the rows, `APPLY_CLEAR_SCORE` updates score and gravity speed, and the next piece spawns.
 
-`APPLY_CLEAR_SCORE` counts the set bits in `CLEAR_MASK`, clamps at four, and adds the corresponding value from `CLEAR_SCORE_TABLE` — 100, 300, 500, or 800 — to the 16-bit `SCORE`. The total line count increments. If the score crosses the difficulty threshold, `CURRENT_GRAVITY_PERIOD` drops to `GRAVITY_PERIOD_STEP1`. The HUD updates and the next piece spawns.
+The score table is data-driven:
+
+```text
+1 row  = 100
+2 rows = 300
+3 rows = 500
+4+ rows = 800
+```
+
+When the score reaches the configured threshold, `CURRENT_GRAVITY_PERIOD` changes from `GRAVITY_PERIOD` to `GRAVITY_PERIOD_STEP1`.
 
 ---
 
 ## Rendering
 
-Rendering is divided between slices 2–6 and slice 7.
+Rendering is split between shared buffer helpers and TETRO-specific drawing.
 
-Slices 2 through 6 each blank one row of `FRAMEBUFFER_BACK`. By the time slice 7 runs, all but the last row are already zeroed. Slice 7 blanks the final row and draws the frame.
+`shared/framebuffer_core.asm` provides:
 
-`RENDER_BOARD_TO_BACK` walks each board row and copies the three colour bytes into the framebuffer. Two conditions alter this. When `CLEAR_PENDING` is set, rows in `CLEAR_MASK` are written as 0xFF on all three channels — the white flash. When `GAME_OVER` is set, colour data is ignored and all occupied cells are drawn red on one channel only.
+- `CLEAR_BACK_ALL`
+- `CLEAR_BACK_4`
+- `COPY_BACK_TO_FRONT`
 
-`RENDER_ACTIVE_TO_BACK` draws the falling piece on top. It steps through the four bitmap rows, shifts each by `PLAYER_X` using `SHIFT_ROW_MASK`, skips rows outside the field, and ORs the result into the framebuffer via `WRITE_COLORED_ROW_MASK`. Because collision has already confirmed the piece does not overlap any landed cell, the OR cannot corrupt existing board data.
+Those routines know only about the 8x8 RGB framebuffer layout.
 
-`COPY_BACK_TO_FRONT` is two `LD` setups and an `LDIR`. The next `SCAN_TICK` reads the new frame.
+`shared/framebuffer.asm` currently contains TETRO-aware rendering:
 
----
+- `REBUILD_FRAMEBUFFER`
+- `CLEAR_BOARD`
+- `RENDER_BOARD_TO_BACK`
+- `RENDER_ACTIVE_TO_BACK`
+- `WRITE_COLORED_ROW_MASK`
 
-## Pieces, rotations, randomness
+`RENDER_BOARD_TO_BACK` copies landed colour planes into the back buffer. During a line-clear hold, rows in `CLEAR_MASK` become white. During game over, occupied cells are rendered as a red silhouette.
 
-Piece data lives in `data.asm`. Each rotation is a 4×4 bitmap stored as four bytes; the I piece has two rotations, the O piece one, the rest four. Three parallel tables are indexed by piece × rotation:
+`RENDER_ACTIVE_TO_BACK` draws the falling piece on top. It shifts each bitmap row by `PLAYER_X`, skips rows outside the visible field, and ORs the row mask into the selected colour channels.
 
-- `PIECE_PTR_TABLE` — pointer to the bitmap
-- `PIECE_RIGHT_TABLE` — rightmost occupied column, for right-edge clamping
-- `PIECE_COLOR_TABLE` — colour byte for `WRITE_COLORED_ROW_MASK`
-
-`LOAD_CURRENT_ROTATION_STATE` reads all three and writes them into the live RAM fields. Adding a new piece means adding data, not changing code.
-
-The RNG is an 8-bit shift-register generator (`RNG_NEXT8`) that advances `RNG_SEED` on each call. `RNG_NEXT_PIECE` folds higher bits into the low bits, masks the mixed byte to three bits, discards 7, and retries. The output is uniform over indices 0–6 — the seven piece types — while avoiding the long `I` runs produced by taking the raw low three LFSR bits directly. The selected piece sits in `NEXT_PIECE_INDEX` until the next spawn moves it to `CURRENT_PIECE_INDEX`. The LCD reads `NEXT_PIECE_INDEX` through `PIECE_NAME_TABLE` to show the preview letter.
-
----
-
-## LCD and score readout
-
-The LCD is driven by script tables. Each screen — running, paused, splash, game-over — is a list of (set-cursor command, string pointer) pairs terminated by zero. `LCD_SHOW_SCRIPT` walks the list, sending each command and writing each string. The running and paused screens go through `LCD_SHOW_HUD`, which runs the script and appends the next-piece preview letter. Screen layout changes are data edits.
-
-`LCD_REFRESH_NEXT_PREVIEW_ROW` updates only the preview letter, used after each spawn to avoid a full LCD redraw.
-
-When the score changes, `UPDATE_SCORE_DISPLAY` extracts each digit by repeated subtraction (the Z80 has no division instruction) and writes six segment patterns into `HUD_SEG_BUFFER`. Each scan tick, `SCAN_SCORE_DIGIT` lights one digit by reading one byte from that buffer. The digit calculation runs once per line clear; the display update runs once per matrix row.
+The active piece is rendered after the board. Collision has already ensured it does not overlap landed cells, so the OR operation is safe.
 
 ---
 
-## A whole piece, beginning to end
+## LCD, HUD, and sound
 
-On boot, `INIT_STATE` clears everything, sets `SPLASH_TIMER`, draws the splash. The loop runs. `SCAN_TICK` keeps the matrix and score active. `FRAME_PHASE` increments.
+The LCD stack is split into shared primitives and TETRO screens.
 
-A key is pressed.
+`shared/lcd.asm` knows how to talk to the HD44780 and how to execute a simple script table. A script is a list of row-command bytes and string pointers, terminated by zero.
 
-`HANDLE_SPLASH_STATE` reads it. `RNG_SEED` is set to `FRAME_PHASE`. The first upcoming piece is generated and `INPUT_LOCKOUT` is set, so the keypress does not also register as a game input. `SPAWN_ACTIVE_PIECE` runs: it promotes `NEXT_PIECE_INDEX` to current, generates a new upcoming piece, positions the active piece at `(3, SPAWN_Y)` above the visible field, resets cooldowns, and runs collision at the spawn position. If the board is too full to place the piece, `ENTER_GAME_OVER` is called before the piece is displayed. Otherwise `ACTIVE_PIECE_ENABLED` is set and the LCD preview updates.
+TETRO screen scripts live in `games/tetro/data.asm`:
 
-The loop is now in regular play. Each iteration: one matrix row scanned, one score digit refreshed, one logic slice. Every eight iterations, one logical frame.
+- splash
+- running
+- paused
+- game over
 
-The player holds left. Slice 0 reads the keypress via `RST 0x10`, applies repeat throttling with `MOVE_COOLDOWN`, and calls `MOVE_LEFT`, which writes `PENDING_X` and runs the collision probe. At the wall, the test fails and `PLAYER_X` does not change. Otherwise the candidate is committed.
+`games/tetro/ui.asm` selects those scripts. Running and paused screens go through `LCD_SHOW_HUD`, which appends the next-piece letter after the `NEXT: ` label. `LCD_REFRESH_NEXT_PREVIEW_ROW` updates only that preview row after a successful spawn.
 
-In slice 1, when `GRAVITY_COOLDOWN` reaches zero, `STEP_ACTIVE_DOWN_ONE_CELL` runs. If the probe passes, `PLAYER_Y` increments. When the probe fails — a cell is directly below — `LOCK_ACTIVE_PIECE` runs.
+The seven-segment path is split the same way. `shared/hud.asm` scans one digit per `SCAN_TICK`. `games/tetro/hud.asm` updates `HUD_SEG_BUFFER` when the score changes.
 
-`CHECK_TOP_OUT_ON_LOCK` finds the piece in the field. `MERGE_ACTIVE_TO_BOARD` writes it to the board. `CHECK_FULL_ROWS` scans for 0xFF rows. Nothing full: lock sound, spawn, continue. Something full: clear sound, hold state, flash, collapse, score update, spawn.
+The sound path follows the same pattern. `shared/sound.asm` runs the speaker state machine. `games/tetro/sound.asm` names the TETRO events and loads their tuning constants.
 
-Eventually a piece locks with part of itself above the top of the field. `CHECK_TOP_OUT_ON_LOCK` returns carry. `LOCK_GAME_OVER` merges the piece so its final position is visible, then calls `ENTER_GAME_OVER`. The active piece is disabled, `GAME_OVER` is set, the game-over sound plays, the framebuffer is redrawn in red, and the LCD shows the game-over screen. The loop continues — `SCAN_TICK` still drives the display, the speaker finishes the sound, the score stays on the digits — but `LOGIC_TICK` is now in the game-over branch. After a short delay to prevent an accidental restart from a key still held at game end, `POLL_GAME_OVER_RESTART` waits for a new keypress. On one, `INIT_STATE_RESTART` clears the board without resetting the RNG, and play begins again.
+---
+
+## Shared versus TETRO-specific code
+
+Currently shared and generic:
+
+- `shared/inc/constants.asm`: hardware ports, MON-3 keys, colours, dimensions
+- `shared/scan_tick.asm`: matrix scanout and scan-state advance
+- `shared/framebuffer_core.asm`: back-buffer clear and copy
+- `shared/sound.asm`: speaker divider service
+- `shared/hud.asm`: seven-segment scan and blanking
+- `shared/lcd.asm`: HD44780 primitive operations and script renderer
+
+Currently TETRO-specific:
+
+- `games/tetro/constants.asm`: movement, gravity, scoring, spawn, and sound tuning
+- `games/tetro/game_init.asm`: cold start, restart, and state initialization
+- `games/tetro/logic_dispatch.asm`: TETRO state priority and 8-slice schedule
+- `games/tetro/piece_active.asm`: movement, gravity, rotation, RNG, and spawn
+- `games/tetro/collision.asm`: active-piece placement and top-out checks
+- `games/tetro/board_lock.asm`: merge, line clear, scoring, and game-over entry
+- `games/tetro/geometry_helpers.asm`: pending-position and row-mask helpers
+- `games/tetro/sound.asm`: TETRO sound event wrappers
+- `games/tetro/hud.asm`: TETRO score formatting
+- `games/tetro/ui.asm`: TETRO LCD screens and next-piece preview
+- `games/tetro/data.asm`: pieces, colours, LCD scripts, score tables, glyphs
+- `games/tetro/ram.asm`: TETRO state layout
+
+Likely future shared candidates are the decimal score formatter, the row-mask shifting convention, and the colour-row writing helper. They remain local because their labels and assumptions still differ between games. Promoting them too early would couple TETRO and Pacmo to accidental details instead of a stable shared contract.
+
+---
+
+## Data tables
+
+`games/tetro/data.asm` contains display tables and piece data.
+
+Most static TETRO data lives here: piece bitmaps, rotation lookup tables, colour tables, LCD text, LCD scripts, score values, row masks, digit masks, and seven-segment glyphs.
+
+The piece tables are parallel:
+
+- `PIECE_PTR_TABLE` points to the 4-row bitmap for each piece and rotation.
+- `PIECE_RIGHT_TABLE` stores the rightmost occupied column for bounds checks.
+- `PIECE_COLOR_TABLE` stores the RGB colour mask for each piece.
+
+Each bitmap row is an 8-bit mask. The occupied cells are in the high bits before shifting, and `SHIFT_ROW_MASK` moves them into the board position at runtime.
+
+The same file also contains:
+
+- seven-segment glyphs
+- digit select masks
+- row bit masks
+- line-clear score values
+- LCD strings
+- LCD script tables
+- piece preview letters
+
+Changing a message, score value, colour, piece bitmap, preview letter, or LCD screen is usually a data edit rather than a logic edit.
+
+---
+
+## A piece from spawn to lock
+
+On boot, `INIT_STATE` clears TETRO state, shows the splash, and rebuilds the framebuffer. The main loop starts immediately. `SCAN_TICK` keeps the matrix alive, score digits blank, and frame counter moving.
+
+When the player presses a key on the splash screen, `HANDLE_SPLASH_STATE` seeds the RNG, generates the first next-piece index, sets `INPUT_LOCKOUT`, spawns the first active piece, initializes the score display, shows the running LCD screen, and rebuilds the framebuffer.
+
+`SPAWN_ACTIVE_PIECE` promotes `NEXT_PIECE_INDEX` to `CURRENT_PIECE_INDEX`, generates a new upcoming piece, sets the spawn position, resets movement and gravity cooldowns, and tests collision at the spawn point. If spawn collides immediately, TETRO enters game over.
+
+During play, slice 0 polls input. The keypad mapping is handled in `shared/input.asm`; TETRO supplies the movement and rotation routines that the input code calls. Left and right key codes are intentionally mirrored to match the physical display orientation:
+
+```asm
+K_LEFT:         EQU     0x11
+K_RIGHT:        EQU     0x10
+```
+
+Slice 1 applies gravity. If the downward probe succeeds, the piece moves down. If it fails, `LOCK_ACTIVE_PIECE` merges or ends the game.
+
+Slices 2 through 6 clear rows of the back buffer. Slice 7 finishes the clear, renders board and active piece, and copies the back buffer to the live framebuffer.
+
+When a piece locks, TETRO checks top-out, merges into the board, checks full rows, and either spawns immediately or enters the line-clear hold. Completed rows flash white, collapse, update the score, and then the next piece spawns.
+
+Game over leaves the loop running. The matrix, score display, LCD, and speaker are still serviced. After the key gate expires, a new key press calls `INIT_STATE_RESTART`.
 
 ---
 
 ## Map
 
-```
-SCAN_TICK         drives matrix row, sound divider, score digit
-LOGIC_TICK        dispatches by mode flag, then slices
+```text
+target
+  src/tetro.asm
+    ORG, START, MAIN_LOOP, include order
 
-slice 0           POLL_INPUT_AND_UPDATE
-slice 1           APPLY_GRAVITY → STEP_ACTIVE_DOWN_ONE_CELL → CHECK_COLLISION_AT_DE
-slices 2-6        CLEAR_BACK_4 (one row each)
-slice 7           CLEAR_BACK_4, RENDER_BOARD_TO_BACK,
-                  RENDER_ACTIVE_TO_BACK, COPY_BACK_TO_FRONT
+shared hardware helpers
+  shared/scan_tick.asm
+    SCAN_TICK -> SERVICE_SOUND, SCAN_SCORE_DIGIT, ADVANCE_SCAN_STATE
+  shared/sound.asm
+    SOUND_START, SERVICE_SOUND
+  shared/hud.asm
+    SCAN_SCORE_DIGIT, BLANK_HUD_SCORE_DIGITS
+  shared/lcd.asm
+    LCD_BUSY, LCD_COMMAND, LCD_STRING, LCD_SHOW_SCRIPT, LCD_PUTC
+  shared/framebuffer_core.asm
+    CLEAR_BACK_ALL, CLEAR_BACK_4, COPY_BACK_TO_FRONT
 
-movement / rotation pattern
-  PENDING_* = candidate
-  CHECK_COLLISION_AT_DE
-  on success, PLAYER_* = PENDING_*
+TETRO wrappers and presentation
+  games/tetro/sound.asm
+    SOUND_TRIGGER_ROTATE, LOCK, CLEAR, GAME_OVER
+  games/tetro/hud.asm
+    UPDATE_SCORE_DISPLAY
+  games/tetro/ui.asm
+    LCD_SHOW_SPLASH, RUNNING, PAUSED, GAME_OVER, NEXT preview
 
-lock chain
-  CHECK_TOP_OUT_ON_LOCK → MERGE_ACTIVE_TO_BOARD → CHECK_FULL_ROWS
-  → SPAWN_ACTIVE_PIECE | enter line-clear hold
-  → ENTER_GAME_OVER on top-out
+TETRO rules
+  games/tetro/game_init.asm
+    cold start, restart, and state initialization
+  games/tetro/logic_dispatch.asm
+    LOGIC_TICK and 8-slice scheduler
+  games/tetro/piece_active.asm
+    movement, gravity, rotation, RNG, spawn
+  games/tetro/collision.asm
+    CHECK_COLLISION_AT_DE, CHECK_TOP_OUT_ON_LOCK
+  games/tetro/board_lock.asm
+    lock, merge, line clear, score, game over
+  games/tetro/geometry_helpers.asm
+    pending-position loading and row-mask shifting
+  shared/framebuffer.asm
+    TETRO board/active rendering over shared framebuffer core
+
+state and data
+  games/tetro/ram.asm
+    all mutable TETRO state
+  games/tetro/data.asm
+    pieces, colours, score table, LCD scripts, glyph tables
 ```
