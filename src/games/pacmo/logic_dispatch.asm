@@ -95,10 +95,10 @@ TICK_POWER_TIMER:
 ; Input:
 ;   ENEMY_X, ENEMY_DIR, ENEMY_TIMER, ENEMY_RESPAWN_TIMER
 ; Output:
-;   enemy patrol advances one world cell when ENEMY_TIMER reaches zero;
+;   enemy roams to an open adjacent cell when ENEMY_TIMER reaches zero;
 ;   respawning enemy counts down, then returns to the patrol start
 ; Clobbers:
-;   A, DE, HL
+;   A, BC, DE, HL
 TICK_ENEMY:
         LD      A,(PACMO_SPLASH_ACTIVE)
         OR      A
@@ -118,37 +118,148 @@ TICK_ENEMY:
         RET     NZ
         LD      A,(ENEMY_PERIOD_CURRENT)
         LD      (HL),A
+        JP      ENEMY_ROAM_STEP
 
+; ENEMY_ROAM_STEP
+; Input:
+;   ENEMY_X/Y, ENEMY_DIR, PACMO_LEVEL
+; Output:
+;   ENEMY_X/Y updated to one open adjacent cell; ENEMY_DIR set to movement
+;   direction. Immediate reversal is used only when no other direction is open.
+; Clobbers:
+;   A, BC, DE, HL
+ENEMY_ROAM_STEP:
+        LD      A,(ENEMY_X)
+        LD      B,A
+        LD      A,(ENEMY_Y)
+        LD      C,A
         LD      A,(ENEMY_DIR)
+        CALL    ENEMY_OPPOSITE_DIR
+        LD      D,A                     ; D = reverse direction fallback
+        LD      A,B
+        ADD     A,C
+        LD      E,A
+        LD      A,(PACMO_LEVEL)
+        ADD     A,E
+        LD      E,A
+        LD      A,(ENEMY_DIR)
+        ADD     A,E
+        AND     0x03
+        INC     A                       ; A = first candidate direction, 1..4
+        LD      E,A
+        LD      H,4
+ENEMY_ROAM_TRY_LOOP:
+        LD      A,E
+        CP      D
+        JR      Z,ENEMY_ROAM_NEXT_CANDIDATE
+        PUSH    DE
+        PUSH    HL
+        CALL    ENEMY_TRY_MOVE_DIR
+        POP     HL
+        POP     DE
+        RET     C
+ENEMY_ROAM_NEXT_CANDIDATE:
+        INC     E
+        LD      A,E
+        CP      5
+        JR      C,ENEMY_ROAM_CANDIDATE_READY
+        LD      E,1
+ENEMY_ROAM_CANDIDATE_READY:
+        DEC     H
+        JR      NZ,ENEMY_ROAM_TRY_LOOP
+        LD      A,D
+        CALL    ENEMY_TRY_MOVE_DIR
+        RET
+
+; ENEMY_OPPOSITE_DIR
+; Input:
+;   A = PACMO_DIR_*
+; Output:
+;   A = opposite PACMO_DIR_*
+; Clobbers:
+;   A
+ENEMY_OPPOSITE_DIR:
+        CP      PACMO_DIR_UP
+        JR      Z,ENEMY_OPPOSITE_DOWN
+        CP      PACMO_DIR_DOWN
+        JR      Z,ENEMY_OPPOSITE_UP
+        CP      PACMO_DIR_LEFT
+        JR      Z,ENEMY_OPPOSITE_RIGHT
+        LD      A,PACMO_DIR_LEFT
+        RET
+ENEMY_OPPOSITE_DOWN:
+        LD      A,PACMO_DIR_DOWN
+        RET
+ENEMY_OPPOSITE_UP:
+        LD      A,PACMO_DIR_UP
+        RET
+ENEMY_OPPOSITE_RIGHT:
+        LD      A,PACMO_DIR_RIGHT
+        RET
+
+; ENEMY_TRY_MOVE_DIR
+; Input:
+;   A = PACMO_DIR_* candidate
+; Output:
+;   Carry set when move succeeds; ENEMY_X/Y and ENEMY_DIR committed.
+;   Carry clear when candidate is out of bounds or a wall.
+; Clobbers:
+;   A, BC, DE, HL
+ENEMY_TRY_MOVE_DIR:
+        LD      E,A
+        LD      A,(ENEMY_X)
+        LD      B,A
+        LD      A,(ENEMY_Y)
+        LD      C,A
+        LD      A,E
+        CP      PACMO_DIR_LEFT
+        JR      Z,ENEMY_TRY_LEFT
+        CP      PACMO_DIR_RIGHT
+        JR      Z,ENEMY_TRY_RIGHT
+        CP      PACMO_DIR_UP
+        JR      Z,ENEMY_TRY_UP
+        CP      PACMO_DIR_DOWN
+        JR      Z,ENEMY_TRY_DOWN
         OR      A
-        JR      NZ,TICK_ENEMY_LEFT
-TICK_ENEMY_RIGHT:
-        LD      A,(ENEMY_X)
-        CP      PACMO_ENEMY_MAX_X
-        JR      NC,TICK_ENEMY_TURN_LEFT
-        INC     A
-        LD      (ENEMY_X),A
         RET
-TICK_ENEMY_TURN_LEFT:
-        LD      A,PACMO_ENEMY_DIR_LEFT
+ENEMY_TRY_LEFT:
+        LD      A,B
+        CP      PACMO_WORLD_MAX
+        JR      NC,ENEMY_TRY_BLOCKED
+        INC     B
+        JR      ENEMY_TRY_COMMIT_IF_OPEN
+ENEMY_TRY_RIGHT:
+        LD      A,B
+        OR      A
+        JR      Z,ENEMY_TRY_BLOCKED
+        DEC     B
+        JR      ENEMY_TRY_COMMIT_IF_OPEN
+ENEMY_TRY_UP:
+        LD      A,C
+        OR      A
+        JR      Z,ENEMY_TRY_BLOCKED
+        DEC     C
+        JR      ENEMY_TRY_COMMIT_IF_OPEN
+ENEMY_TRY_DOWN:
+        LD      A,C
+        CP      PACMO_WORLD_MAX
+        JR      NC,ENEMY_TRY_BLOCKED
+        INC     C
+ENEMY_TRY_COMMIT_IF_OPEN:
+        PUSH    DE
+        CALL    PACMO_IS_WALL_AT_BC
+        POP     DE
+        JR      C,ENEMY_TRY_BLOCKED
+        LD      A,B
+        LD      (ENEMY_X),A
+        LD      A,C
+        LD      (ENEMY_Y),A
+        LD      A,E
         LD      (ENEMY_DIR),A
-        LD      A,(ENEMY_X)
-        DEC     A
-        LD      (ENEMY_X),A
+        SCF
         RET
-TICK_ENEMY_LEFT:
-        LD      A,(ENEMY_X)
-        CP      PACMO_ENEMY_MIN_X
-        JR      Z,TICK_ENEMY_TURN_RIGHT
-        DEC     A
-        LD      (ENEMY_X),A
-        RET
-TICK_ENEMY_TURN_RIGHT:
-        LD      A,PACMO_ENEMY_DIR_RIGHT
-        LD      (ENEMY_DIR),A
-        LD      A,(ENEMY_X)
-        INC     A
-        LD      (ENEMY_X),A
+ENEMY_TRY_BLOCKED:
+        OR      A
         RET
 
 ; TICK_ENEMY_RESPAWN
@@ -174,7 +285,7 @@ TICK_ENEMY_RESPAWN_DONE:
         LD      (ENEMY_X),A
         LD      A,PACMO_ENEMY_Y
         LD      (ENEMY_Y),A
-        LD      A,PACMO_ENEMY_DIR_RIGHT
+        LD      A,PACMO_DIR_RIGHT
         LD      (ENEMY_DIR),A
         LD      A,(ENEMY_PERIOD_CURRENT)
         LD      (ENEMY_TIMER),A

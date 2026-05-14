@@ -33,7 +33,7 @@ INIT_LEVEL_STATE:
         LD      (ENEMY_X),A
         LD      A,PACMO_ENEMY_Y
         LD      (ENEMY_Y),A
-        LD      A,PACMO_ENEMY_DIR_RIGHT
+        LD      A,PACMO_DIR_RIGHT
         LD      (ENEMY_DIR),A
         LD      A,(ENEMY_PERIOD_CURRENT)
         LD      (ENEMY_TIMER),A
