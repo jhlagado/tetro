@@ -438,10 +438,12 @@ TICK_ENEMY_RESPAWN_DONE:
 
 ; ENEMY_SELECT_RESPAWN
 ; Input:
-;   PLAYER_X/Y, PACMO_ENEMY_SPAWNS
+;   IX = respawning monster record base
+;   PLAYER_X/Y, PACMO_ENEMY_SPAWNS, MONSTERS
 ; Output:
-;   ENEMY_X/Y set to the spawn candidate with the greatest Manhattan distance
-;   from the player.  Ties keep the earlier table entry.
+;   monster X/Y set to the spawn candidate with the highest score:
+;   distance from player plus distance from the other active monster.
+;   Ties keep the earlier table entry.
 ; Clobbers:
 ;   A, BC, DE, HL
 ENEMY_SELECT_RESPAWN:
@@ -459,7 +461,7 @@ ENEMY_SELECT_RESPAWN_LOOP:
         PUSH    HL
         LD      H,A                     ; H = candidate y
         LD      L,C                     ; L = candidate x
-        CALL    ENEMY_DISTANCE_LH_TO_PLAYER
+        CALL    ENEMY_RESPAWN_SCORE_LH
         LD      C,A                     ; C = candidate distance
         LD      A,B
         CP      0xFF
@@ -482,6 +484,66 @@ ENEMY_SELECT_RESPAWN_COMMIT:
         LD      (IX+MONSTER_Y),A
         RET
 
+; ENEMY_RESPAWN_SCORE_LH
+; Input:
+;   L = candidate x
+;   H = candidate y
+;   IX = respawning monster record base
+; Output:
+;   A = candidate score.  Higher is better.
+; Clobbers:
+;   A, C
+ENEMY_RESPAWN_SCORE_LH:
+        PUSH    DE
+        CALL    ENEMY_DISTANCE_LH_TO_PLAYER
+        LD      C,A
+        PUSH    BC
+        CALL    ENEMY_DISTANCE_LH_TO_OTHER_MONSTER
+        POP     BC
+        ADD     A,C
+        POP     DE
+        RET
+
+; ENEMY_DISTANCE_LH_TO_OTHER_MONSTER
+; Input:
+;   L = candidate x
+;   H = candidate y
+;   IX = respawning monster record base
+; Output:
+;   A = distance to the other active monster, or 0 when the other monster is
+;   also respawning.  With two monsters, IX selects which record to ignore.
+; Clobbers:
+;   A, C
+ENEMY_DISTANCE_LH_TO_OTHER_MONSTER:
+        PUSH    HL
+        PUSH    IX
+        POP     DE
+        LD      HL,MONSTER0
+        OR      A
+        SBC     HL,DE
+        JR      Z,ENEMY_DISTANCE_TO_MONSTER1
+        LD      HL,MONSTER0
+        JR      ENEMY_DISTANCE_TO_MONSTER_HL
+ENEMY_DISTANCE_TO_MONSTER1:
+        LD      HL,MONSTER1
+ENEMY_DISTANCE_TO_MONSTER_HL:
+        LD      A,(HL)
+        LD      E,A
+        INC     HL
+        LD      A,(HL)
+        LD      D,A
+        INC     HL
+        INC     HL
+        INC     HL
+        LD      A,(HL)                  ; other monster respawn timer
+        POP     HL
+        OR      A
+        JR      NZ,ENEMY_DISTANCE_OTHER_RESPAWNING
+        JP      ENEMY_DISTANCE_LH_TO_DE
+ENEMY_DISTANCE_OTHER_RESPAWNING:
+        XOR     A
+        RET
+
 ; ENEMY_DISTANCE_LH_TO_PLAYER
 ; Input:
 ;   L = candidate x
@@ -491,14 +553,34 @@ ENEMY_SELECT_RESPAWN_COMMIT:
 ; Clobbers:
 ;   A, C
 ENEMY_DISTANCE_LH_TO_PLAYER:
+        PUSH    DE
+        LD      A,(PLAYER_X)
+        LD      E,A
+        LD      A,(PLAYER_Y)
+        LD      D,A
+        CALL    ENEMY_DISTANCE_LH_TO_DE
+        POP     DE
+        RET
+
+; ENEMY_DISTANCE_LH_TO_DE
+; Input:
+;   L = candidate x
+;   H = candidate y
+;   E = target x
+;   D = target y
+; Output:
+;   A = |candidate x - target x| + |candidate y - target y|
+; Clobbers:
+;   A, C
+ENEMY_DISTANCE_LH_TO_DE:
         LD      A,L
         LD      C,A
-        LD      A,(PLAYER_X)
+        LD      A,E
         CP      C
         JR      NC,ENEMY_DISTANCE_X_PLAYER_HIGHER
         LD      A,C
         LD      C,A
-        LD      A,(PLAYER_X)
+        LD      A,E
         SUB     C
         NEG
         LD      C,A
@@ -510,12 +592,12 @@ ENEMY_DISTANCE_Y:
         LD      A,H
         PUSH    BC
         LD      C,A
-        LD      A,(PLAYER_Y)
+        LD      A,D
         CP      C
         JR      NC,ENEMY_DISTANCE_Y_PLAYER_HIGHER
         LD      A,C
         LD      C,A
-        LD      A,(PLAYER_Y)
+        LD      A,D
         SUB     C
         NEG
         JR      ENEMY_DISTANCE_SUM
