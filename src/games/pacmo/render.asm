@@ -238,7 +238,7 @@ RENDER_POWER_PILL_BC:
 ; Input:
 ;   ENEMY_X/Y, VIEW_X/Y
 ; Output:
-;   enemy pixel ORed into red framebuffer plane
+;   enemy pixel rendered red, replacing any path color at that cell
 ; Clobbers:
 ;   A, B, C, DE, HL
 RENDER_ENEMY_TO_BACK:
@@ -271,6 +271,17 @@ RENDER_ENEMY_TO_BACK:
         LD      A,(HL)
         OR      C
         LD      (HL),A                  ; red
+        LD      A,C
+        CPL
+        LD      C,A
+        INC     HL
+        LD      A,(HL)
+        AND     C
+        LD      (HL),A                  ; green off
+        INC     HL
+        LD      A,(HL)
+        AND     C
+        LD      (HL),A                  ; blue off
         RET
 
 ; RENDER_PLAYER_TO_BACK
