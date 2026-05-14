@@ -409,8 +409,18 @@ RENDER_ENEMY_TO_BACK:
         LD      HL,(PACMO_POWER_TIMER_LO)
         LD      A,H
         OR      L
+        JR      Z,RENDER_ENEMY_TIMER_ATTACK
+        LD      A,H
+        OR      A
+        JR      NZ,RENDER_ENEMY_TIMER_FLEE
+        LD      A,L
+        AND     PACMO_POWER_WARNING_BLINK_MASK
+        JR      Z,RENDER_ENEMY_TIMER_ATTACK
+RENDER_ENEMY_TIMER_FLEE:
         POP     HL
-        JR      NZ,RENDER_ENEMY_FLEE
+        JR      RENDER_ENEMY_FLEE
+RENDER_ENEMY_TIMER_ATTACK:
+        POP     HL
         LD      A,PACMO_COLOR_ENEMY_ATTACK
         JP      WRITE_CELL_COLOR_C_A
 RENDER_ENEMY_FLEE:
