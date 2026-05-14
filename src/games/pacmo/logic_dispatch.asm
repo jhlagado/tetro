@@ -32,10 +32,20 @@ LOGIC_SL1:
         CALL    TICK_ENEMY
         LD      IX,MONSTER1
         CALL    TICK_ENEMY
+        CALL    PACMO_IS_LEVEL2_PLUS
+        JR      C,LOGIC_SL1_TICK_DONE
+        LD      IX,MONSTER2
+        CALL    TICK_ENEMY
+LOGIC_SL1_TICK_DONE:
         LD      IX,MONSTER0
         CALL    PACMO_CHECK_PLAYER_CAUGHT
         LD      IX,MONSTER1
         CALL    PACMO_CHECK_PLAYER_CAUGHT
+        CALL    PACMO_IS_LEVEL2_PLUS
+        JR      C,LOGIC_SL1_COLLISION_DONE
+        LD      IX,MONSTER2
+        CALL    PACMO_CHECK_PLAYER_CAUGHT
+LOGIC_SL1_COLLISION_DONE:
         LD      A,4
         CALL    CLEAR_BACK_4
         JR      LOGIC_SLICE_NEXT
@@ -49,6 +59,11 @@ LOGIC_SL7:
         CALL    RENDER_ENEMY_TO_BACK
         LD      IX,MONSTER1
         CALL    RENDER_ENEMY_TO_BACK
+        CALL    PACMO_IS_LEVEL2_PLUS
+        JR      C,LOGIC_SL7_MONSTERS_DONE
+        LD      IX,MONSTER2
+        CALL    RENDER_ENEMY_TO_BACK
+LOGIC_SL7_MONSTERS_DONE:
         CALL    RENDER_PLAYER_TO_BACK
         CALL    COPY_BACK_TO_FRONT
         JR      LOGIC_SLICE_NEXT
@@ -101,7 +116,20 @@ TICK_POWER_TIMER:
         LD      A,PACMO_ENEMY_STATE_ATTACK
         LD      (ENEMY_STATE),A
         LD      (ENEMY2_STATE),A
+        LD      (ENEMY3_STATE),A
         JP      LCD_SHOW_PACMO_RUNNING
+
+; PACMO_IS_LEVEL2_PLUS
+; Input:
+;   PACMO_LEVEL
+; Output:
+;   carry clear when level >= 2, carry set when level < 2
+; Clobbers:
+;   A
+PACMO_IS_LEVEL2_PLUS:
+        LD      A,(PACMO_LEVEL)
+        CP      2
+        RET
 
 ; TICK_ENEMY
 ; Input:
@@ -461,7 +489,9 @@ ENEMY_SELECT_RESPAWN_LOOP:
         PUSH    HL
         LD      H,A                     ; H = candidate y
         LD      L,C                     ; L = candidate x
+        PUSH    BC
         CALL    ENEMY_RESPAWN_SCORE_LH
+        POP     BC
         LD      C,A                     ; C = candidate distance
         LD      A,B
         CP      0xFF
@@ -492,15 +522,13 @@ ENEMY_SELECT_RESPAWN_COMMIT:
 ; Output:
 ;   A = candidate score.  Higher is better.
 ; Clobbers:
-;   A, C
+;   A, B, C
 ENEMY_RESPAWN_SCORE_LH:
         PUSH    DE
         CALL    ENEMY_DISTANCE_LH_TO_PLAYER
-        LD      C,A
-        PUSH    BC
+        LD      B,A
         CALL    ENEMY_DISTANCE_LH_TO_OTHER_MONSTER
-        POP     BC
-        ADD     A,C
+        ADD     A,B
         POP     DE
         RET
 
@@ -510,38 +538,68 @@ ENEMY_RESPAWN_SCORE_LH:
 ;   H = candidate y
 ;   IX = respawning monster record base
 ; Output:
-;   A = distance to the other active monster, or 0 when the other monster is
-;   also respawning.  With two monsters, IX selects which record to ignore.
+;   A = summed distance to other active monsters.  Respawning monsters, the
+;   current IX monster, and level-2 monster before level 2 are ignored.
 ; Clobbers:
-;   A, C
+;   A, BC, DE
 ENEMY_DISTANCE_LH_TO_OTHER_MONSTER:
+        LD      B,0                     ; B = accumulated distance score
+        LD      DE,MONSTER0
+        CALL    ENEMY_ADD_DISTANCE_TO_MONSTER_DE
+        LD      DE,MONSTER1
+        CALL    ENEMY_ADD_DISTANCE_TO_MONSTER_DE
+        LD      A,B
+        LD      C,A
+        CALL    PACMO_IS_LEVEL2_PLUS
+        LD      B,C
+        LD      A,B
+        RET     C
+        LD      DE,MONSTER2
+        CALL    ENEMY_ADD_DISTANCE_TO_MONSTER_DE
+        LD      A,B
+        RET
+
+; ENEMY_ADD_DISTANCE_TO_MONSTER_DE
+; Input:
+;   B = accumulated distance score
+;   L = candidate x
+;   H = candidate y
+;   DE = monster record pointer
+;   IX = respawning monster record base
+; Output:
+;   B = updated accumulated distance score
+; Clobbers:
+;   A, C, DE
+ENEMY_ADD_DISTANCE_TO_MONSTER_DE:
         PUSH    HL
+        PUSH    DE
         PUSH    IX
-        POP     DE
-        LD      HL,MONSTER0
-        OR      A
-        SBC     HL,DE
-        JR      Z,ENEMY_DISTANCE_TO_MONSTER1
-        LD      HL,MONSTER0
-        JR      ENEMY_DISTANCE_TO_MONSTER_HL
-ENEMY_DISTANCE_TO_MONSTER1:
-        LD      HL,MONSTER1
-ENEMY_DISTANCE_TO_MONSTER_HL:
-        LD      A,(HL)
-        LD      E,A
-        INC     HL
-        LD      A,(HL)
-        LD      D,A
-        INC     HL
-        INC     HL
-        INC     HL
-        LD      A,(HL)                  ; other monster respawn timer
         POP     HL
         OR      A
-        JR      NZ,ENEMY_DISTANCE_OTHER_RESPAWNING
-        JP      ENEMY_DISTANCE_LH_TO_DE
-ENEMY_DISTANCE_OTHER_RESPAWNING:
-        XOR     A
+        SBC     HL,DE
+        POP     DE
+        POP     HL
+        RET     Z
+        PUSH    HL
+        LD      H,D
+        LD      L,E
+        INC     HL
+        INC     HL
+        INC     HL
+        INC     HL
+        LD      A,(HL)
+        POP     HL
+        OR      A
+        RET     NZ
+        LD      A,(DE)
+        LD      C,A
+        INC     DE
+        LD      A,(DE)
+        LD      D,A
+        LD      E,C
+        CALL    ENEMY_DISTANCE_LH_TO_DE
+        ADD     A,B
+        LD      B,A
         RET
 
 ; ENEMY_DISTANCE_LH_TO_PLAYER
