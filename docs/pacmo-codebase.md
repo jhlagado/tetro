@@ -4,7 +4,7 @@ Pacmo is a maze game for the TEC-1G 8x8 RGB matrix. The visible display is not t
 
 The implementation follows the same hard constraint as TETRO: there are no interrupts and no background thread. Matrix scanout, speaker timing, score display, input, enemy movement, collision, and rendering all share one loop. Pacmo therefore uses the same scan/slice architecture, but its game logic is about a scrolling world, consumable paths, power mode, and monster records rather than falling pieces.
 
-This document describes the current code layout, including the split between Pacmo-specific logic and the generic shared routines now used by both games.
+This document describes the current Pacmo code. The shared loop, scan tick, LCD, HUD, sound, and framebuffer contracts are covered in [shared-runtime.md](shared-runtime.md).
 
 ---
 
@@ -55,29 +55,7 @@ This is still a careful harmonisation, not a large engine abstraction. Shared fi
 
 ---
 
-## Shared code and game code
-
-The shared layer is deliberately low-level.
-
-`shared/inc/constants.asm` defines hardware ports, MON-3 API constants, keypad codes, matrix dimensions, colour bits, and the speaker bit. These are facts about the machine, not about Pacmo.
-
-`shared/scan_tick.asm` is the hardware heartbeat. It outputs one matrix row, services sound, scans one score digit, and advances the scan pointer.
-
-`shared/sound.asm` owns the generic speaker divider state machine. It knows how to turn a duration and divider into a square wave on `SPEAKER_PORT_STATE`, but it does not decide what a power-pill sound or caught sound should be.
-
-`games/pacmo/sound.asm` supplies those game meanings. `PACMO_SOUND_POWER`, `PACMO_SOUND_EAT_ENEMY`, `PACMO_SOUND_CAUGHT`, and `PACMO_SOUND_LEVEL_COMPLETE` load Pacmo's durations and dividers, then tail-call the shared `SOUND_START`.
-
-`shared/hud.asm` scans the seven-segment display and blanks its six-byte segment buffer. It does not know what Pacmo score means. `games/pacmo/hud.asm` converts Pacmo's 16-bit score into digit patterns by repeated subtraction.
-
-`shared/lcd.asm` contains the HD44780 primitives: wait for busy, send a command, write a string, print one character, and run a simple `(row command, string pointer)` script. `games/pacmo/ui.asm` uses those primitives to show the Pacmo splash, running, power, enemy-eaten, caught, and level-complete screens.
-
-`shared/framebuffer_core.asm` has generic double-buffer helpers: clear the back buffer, clear one row, and copy back to front. Pacmo owns `games/pacmo/render.asm`, which understands the scrolling maze, eaten paths, power pills, player, monsters, and state-dependent wall colours.
-
-That boundary is useful: hardware helpers move toward `shared`; game semantics stay under `games/pacmo`.
-
----
-
-## The main loop
+## Runtime model
 
 ```asm
 MAIN_LOOP:
@@ -86,37 +64,9 @@ MAIN_LOOP:
     JR      MAIN_LOOP
 ```
 
-Those three instructions in `src/pacmo.asm` are the whole runtime. `SCAN_TICK` keeps the hardware alive: one matrix row, one sound-service step, one seven-segment digit, then the scan pointer advances. `LOGIC_TICK` does one slice of game work. The loop repeats forever.
-
-`SCAN_TICK` must run often enough to keep the RGB matrix steady. The matrix is row-multiplexed: only one row is driven at a time, and the image exists because all eight rows are refreshed quickly. If game logic takes too long between scan ticks, brightness becomes uneven or the panel flickers.
-
-`LOGIC_TICK` does not compute a whole game frame. It computes one slice. Pacmo spreads one logical frame across eight passes through the main loop, matching the eight scan rows.
+Those three instructions in `src/pacmo.asm` are the whole runtime. Pacmo uses the shared cooperative loop described in [shared-runtime.md](shared-runtime.md): `SCAN_TICK` keeps the hardware alive, and `LOGIC_TICK` performs one slice of game work.
 
 This means the display, score digits, speaker, keypad, scrolling, monster movement, rendering, and level timing all share the same cooperative clock.
-
----
-
-## Scan tick
-
-`SCAN_TICK` lives in `shared/scan_tick.asm`.
-
-Each call:
-
-1. Clears the active row select.
-2. Reads three bytes from `FRAMEBUFFER` through `SCAN_PTR`.
-3. Writes those bytes to the red, green, and blue matrix ports.
-4. Enables the row selected by `SCAN_MASK`.
-5. Calls `SERVICE_SOUND`.
-6. Calls `SCAN_SCORE_DIGIT`.
-7. Calls `ADVANCE_SCAN_STATE`.
-
-Clearing the row before changing colour data matters. If the row stayed enabled while new colour bytes were written, the previous row would briefly show the next row's data.
-
-`SERVICE_SOUND` is now the generic speaker divider in `src/shared/sound.asm`. A sound event loads `SOUND_TIMER`, `SOUND_DIVIDER_RELOAD`, and `SOUND_DIVIDER_COUNT`; each scan tick decrements the timer and toggles `SPEAKER_PORT_STATE` whenever the divider expires. The sound bit is ORed into the digit latch by the HUD scanner, so speaker and seven-segment multiplexing share the same output path.
-
-`SCAN_SCORE_DIGIT` is in `src/shared/hud.asm`. It reads one byte from `HUD_SEG_BUFFER`, writes the segment pattern, ORs the selected digit mask with `SPEAKER_PORT_STATE`, and advances `HUD_SCAN_INDEX` modulo six.
-
-`ADVANCE_SCAN_STATE` rotates `SCAN_MASK` and moves `SCAN_PTR` to the next framebuffer row. When the scan wraps back to row zero, `FRAME_PHASE` increments. Pacmo does not use `FRAME_PHASE` for randomness the way TETRO does, but the counter remains part of the shared scan state.
 
 ---
 
