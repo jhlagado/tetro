@@ -1,6 +1,6 @@
 ; Pacmo-specific LCD status screens.
-; Generic Pacmo-local sound, HUD, and LCD primitives live in sound.asm,
-; hud.asm, and lcd.asm until they are ready to promote to shared code.
+; Shared LCD primitives live in src/shared/lcd.asm; this file selects Pacmo
+; status scripts and writes Pacmo-specific dynamic LCD rows.
 
 ; LCD_SHOW_PACMO_SPLASH
 ; Input:

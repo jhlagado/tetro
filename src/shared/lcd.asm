@@ -1,6 +1,4 @@
-; Pacmo-local LCD primitives.
-; These are intentionally game-neutral within Pacmo and can be promoted once
-; the equivalent TETRO routines are split away from TETRO-specific HUD code.
+; Generic HD44780 LCD primitives for the TEC-1G MON-3 hardware mapping.
 
 ; LCD_BUSY
 ; Input:
@@ -64,26 +62,26 @@ LCD_STRING:
 ; Input:
 ;   HL = pointer to script table (DB row_cmd, DW text_ptr, ..., DB 0)
 ; Output:
-;   LCD cleared, then each row/text pair rendered
+;   LCD cleared, then each (row_cmd, text_ptr) pair rendered in order
 ; Clobbers:
-;   A, HL (BC, DE pushed/popped)
+;   A  (BC, DE, HL pushed/popped)
 LCD_SHOW_SCRIPT:
         PUSH    BC
         PUSH    DE
         PUSH    HL
-        EX      DE,HL
+        EX      DE,HL                   ; DE = script cursor
         CALL    LCD_CLEAR_DISPLAY
 LCD_SCRIPT_LOOP:
-        LD      A,(DE)
+        LD      A,(DE)                  ; row cmd (0 = end of script)
         OR      A
         JR      Z,LCD_SCRIPT_DONE
         LD      B,A
         INC     DE
         CALL    LCD_COMMAND
-        LD      A,(DE)
+        LD      A,(DE)                  ; text ptr lo
         LD      L,A
         INC     DE
-        LD      A,(DE)
+        LD      A,(DE)                  ; text ptr hi
         LD      H,A
         INC     DE
         CALL    LCD_STRING
