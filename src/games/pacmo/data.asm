@@ -178,3 +178,15 @@ PACMO_POWER_PILLS:
         DB      1,11
         DB      13,11
         DB      0xFF
+
+; Enemy respawn candidates, stored as x,y pairs and terminated by 0xFF.
+; All entries must be open maze cells.  The respawn routine picks the entry
+; with the largest Manhattan distance from the current player position.
+PACMO_ENEMY_SPAWNS:
+        DB      1,3
+        DB      13,3
+        DB      1,11
+        DB      13,11
+        DB      7,1
+        DB      7,13
+        DB      0xFF

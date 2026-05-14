@@ -419,16 +419,103 @@ TICK_ENEMY_RESPAWN:
 TICK_ENEMY_RESPAWN_DONE:
         LD      A,PACMO_ENEMY_STATE_ATTACK
         LD      (ENEMY_STATE),A
-        LD      A,PACMO_ENEMY_MAX_X
-        LD      (ENEMY_X),A
-        LD      A,PACMO_ENEMY_Y
-        LD      (ENEMY_Y),A
+        CALL    ENEMY_SELECT_RESPAWN
         LD      A,PACMO_DIR_RIGHT
         LD      (ENEMY_DIR),A
         LD      A,(ENEMY_PERIOD_CURRENT)
         LD      (ENEMY_TIMER),A
         CALL    LCD_SHOW_PACMO_RUNNING
         OR      A
+        RET
+
+; ENEMY_SELECT_RESPAWN
+; Input:
+;   PLAYER_X/Y, PACMO_ENEMY_SPAWNS
+; Output:
+;   ENEMY_X/Y set to the spawn candidate with the greatest Manhattan distance
+;   from the player.  Ties keep the earlier table entry.
+; Clobbers:
+;   A, BC, DE, HL
+ENEMY_SELECT_RESPAWN:
+        LD      HL,PACMO_ENEMY_SPAWNS
+        LD      B,0xFF                  ; B = best distance; 0xFF means no best yet
+        LD      DE,0                    ; D = best x, E = best y
+ENEMY_SELECT_RESPAWN_LOOP:
+        LD      A,(HL)
+        CP      0xFF
+        JR      Z,ENEMY_SELECT_RESPAWN_COMMIT
+        LD      C,A                     ; C = candidate x
+        INC     HL
+        LD      A,(HL)                  ; A = candidate y
+        INC     HL
+        PUSH    HL
+        LD      H,A                     ; H = candidate y
+        LD      L,C                     ; L = candidate x
+        CALL    ENEMY_DISTANCE_LH_TO_PLAYER
+        LD      C,A                     ; C = candidate distance
+        LD      A,B
+        CP      0xFF
+        JR      Z,ENEMY_SELECT_RESPAWN_NEW_BEST
+        LD      A,C
+        CP      B
+        JR      Z,ENEMY_SELECT_RESPAWN_KEEP_BEST
+        JR      C,ENEMY_SELECT_RESPAWN_KEEP_BEST
+ENEMY_SELECT_RESPAWN_NEW_BEST:
+        LD      B,C
+        LD      D,L
+        LD      E,H
+ENEMY_SELECT_RESPAWN_KEEP_BEST:
+        POP     HL
+        JR      ENEMY_SELECT_RESPAWN_LOOP
+ENEMY_SELECT_RESPAWN_COMMIT:
+        LD      A,D
+        LD      (ENEMY_X),A
+        LD      A,E
+        LD      (ENEMY_Y),A
+        RET
+
+; ENEMY_DISTANCE_LH_TO_PLAYER
+; Input:
+;   L = candidate x
+;   H = candidate y
+; Output:
+;   A = |candidate x - PLAYER_X| + |candidate y - PLAYER_Y|
+; Clobbers:
+;   A, C
+ENEMY_DISTANCE_LH_TO_PLAYER:
+        LD      A,L
+        LD      C,A
+        LD      A,(PLAYER_X)
+        CP      C
+        JR      NC,ENEMY_DISTANCE_X_PLAYER_HIGHER
+        LD      A,C
+        LD      C,A
+        LD      A,(PLAYER_X)
+        SUB     C
+        NEG
+        LD      C,A
+        JR      ENEMY_DISTANCE_Y
+ENEMY_DISTANCE_X_PLAYER_HIGHER:
+        SUB     C
+        LD      C,A
+ENEMY_DISTANCE_Y:
+        LD      A,H
+        PUSH    BC
+        LD      C,A
+        LD      A,(PLAYER_Y)
+        CP      C
+        JR      NC,ENEMY_DISTANCE_Y_PLAYER_HIGHER
+        LD      A,C
+        LD      C,A
+        LD      A,(PLAYER_Y)
+        SUB     C
+        NEG
+        JR      ENEMY_DISTANCE_SUM
+ENEMY_DISTANCE_Y_PLAYER_HIGHER:
+        SUB     C
+ENEMY_DISTANCE_SUM:
+        POP     BC
+        ADD     A,C
         RET
 
 ; PACMO_ADVANCE_LEVEL
