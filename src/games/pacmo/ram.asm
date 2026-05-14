@@ -42,6 +42,8 @@ PACMO_POWER_TIMER:
         DS      1
 PACMO_ROUND_COMPLETE:
         DS      1
+PACMO_PLAYER_CAUGHT:
+        DS      1
 SCAN_MASK:
         DS      1
 SCAN_PTR:
