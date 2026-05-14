@@ -6,6 +6,23 @@
 ; Clobbers:
 ;   A, BC, DE, HL
 INIT_STATE:
+        XOR     A
+        LD      (PACMO_SCORE),A
+        LD      (PACMO_SCORE+1),A
+        LD      A,1
+        LD      (PACMO_LEVEL),A
+        LD      A,PACMO_ENEMY_PERIOD
+        LD      (ENEMY_PERIOD_CURRENT),A
+        JP      INIT_LEVEL_STATE
+
+; INIT_LEVEL_STATE
+; Input:
+;   PACMO_SCORE, PACMO_LEVEL, ENEMY_PERIOD_CURRENT
+; Output:
+;   initializes one Pacmo level without resetting score or level
+; Clobbers:
+;   A, BC, DE, HL
+INIT_LEVEL_STATE:
         LD      A,7
         LD      (PLAYER_X),A
         LD      (PLAYER_Y),A
@@ -15,7 +32,7 @@ INIT_STATE:
         LD      (ENEMY_Y),A
         LD      A,PACMO_ENEMY_DIR_RIGHT
         LD      (ENEMY_DIR),A
-        LD      A,PACMO_ENEMY_PERIOD
+        LD      A,(ENEMY_PERIOD_CURRENT)
         LD      (ENEMY_TIMER),A
 
         LD      A,3
@@ -33,14 +50,14 @@ INIT_STATE:
         LD      (HUD_SCAN_INDEX),A
         LD      (SPEAKER_PORT_STATE),A
         LD      (SOUND_TIMER),A
-        LD      (PACMO_SCORE),A
-        LD      (PACMO_SCORE+1),A
         LD      (PACMO_POWER_PILLS_EATEN),A
         LD      (PACMO_POWER_TIMER_LO),A
         LD      (PACMO_POWER_TIMER_HI),A
         LD      (ENEMY_RESPAWN_TIMER),A
         LD      (PACMO_ROUND_COMPLETE),A
         LD      (PACMO_PLAYER_CAUGHT),A
+        LD      (PACMO_LEVEL_COMPLETE_GATE_LO),A
+        LD      (PACMO_LEVEL_COMPLETE_GATE_HI),A
         LD      (PACMO_GAME_OVER_GATE_LO),A
         LD      (PACMO_GAME_OVER_GATE_HI),A
 
@@ -51,14 +68,15 @@ INIT_STATE:
 
         CALL    CLEAR_FRONT_AND_BACK
         CALL    CLEAR_EATEN_PATHS
+        LD      HL,(PACMO_SCORE)
+        PUSH    HL
         LD      A,(PLAYER_X)
         LD      B,A
         LD      A,(PLAYER_Y)
         LD      C,A
         CALL    PACMO_MARK_EATEN_AT_BC
-        XOR     A
-        LD      (PACMO_SCORE),A
-        LD      (PACMO_SCORE+1),A
+        POP     HL
+        LD      (PACMO_SCORE),HL
         CALL    UPDATE_SCORE_DISPLAY
         JP      REBUILD_FRAMEBUFFER
 

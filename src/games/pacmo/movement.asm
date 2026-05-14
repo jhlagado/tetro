@@ -23,6 +23,9 @@ POLL_INPUT_AND_UPDATE:
         LD      A,(PACMO_PLAYER_CAUGHT)
         OR      A
         JP      NZ,POLL_CAUGHT_RESTART
+        LD      A,(PACMO_ROUND_COMPLETE)
+        OR      A
+        RET     NZ
         LD      C,API_SCANKEYS
         RST     0x10
         JP      NZ,CLEAR_INPUT_REPEAT_STATE
@@ -404,6 +407,9 @@ PACMO_ADD_SCORE_A:
 ; Clobbers:
 ;   A, B, DE, HL
 PACMO_CHECK_ROUND_COMPLETE:
+        LD      A,(PACMO_ROUND_COMPLETE)
+        OR      A
+        RET     NZ
         LD      B,ROW_COUNT+7
         LD      DE,PACMO_WORLD_ROWS
         LD      HL,PACMO_EATEN_ROWS
@@ -424,6 +430,8 @@ PACMO_CHECK_ROUND_ROW:
         DJNZ    PACMO_CHECK_ROUND_ROW
         LD      A,1
         LD      (PACMO_ROUND_COMPLETE),A
+        LD      HL,PACMO_LEVEL_COMPLETE_GATE_TICKS
+        LD      (PACMO_LEVEL_COMPLETE_GATE_LO),HL
         RET
 
 ; PACMO_IS_WALL_AT_BC
