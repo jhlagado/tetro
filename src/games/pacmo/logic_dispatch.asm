@@ -28,10 +28,14 @@ LOGIC_SL0:
         JR      LOGIC_SLICE_NEXT
 
 LOGIC_SL1:
+        LD      IX,MONSTER0
         CALL    TICK_ENEMY
-        CALL    TICK_ENEMY2
+        LD      IX,MONSTER1
+        CALL    TICK_ENEMY
+        LD      IX,MONSTER0
         CALL    PACMO_CHECK_PLAYER_CAUGHT
-        CALL    PACMO_CHECK_PLAYER_CAUGHT_ENEMY2
+        LD      IX,MONSTER1
+        CALL    PACMO_CHECK_PLAYER_CAUGHT
         LD      A,4
         CALL    CLEAR_BACK_4
         JR      LOGIC_SLICE_NEXT
@@ -41,8 +45,10 @@ LOGIC_SL7:
         CALL    CLEAR_BACK_4
         CALL    RENDER_WORLD_TO_BACK
         CALL    RENDER_POWER_PILLS_TO_BACK
+        LD      IX,MONSTER0
         CALL    RENDER_ENEMY_TO_BACK
-        CALL    RENDER_ENEMY2_TO_BACK
+        LD      IX,MONSTER1
+        CALL    RENDER_ENEMY_TO_BACK
         CALL    RENDER_PLAYER_TO_BACK
         CALL    COPY_BACK_TO_FRONT
         JR      LOGIC_SLICE_NEXT
@@ -117,73 +123,16 @@ TICK_ENEMY:
         RET     NZ
         CALL    TICK_ENEMY_RESPAWN
         RET     C
-        LD      HL,ENEMY_TIMER
-        LD      A,(HL)
+        LD      A,(IX+MONSTER_TIMER)
         DEC     A
-        LD      (HL),A
+        LD      (IX+MONSTER_TIMER),A
         RET     NZ
         LD      A,(ENEMY_PERIOD_CURRENT)
-        LD      (HL),A
-        LD      A,(ENEMY_STATE)
+        LD      (IX+MONSTER_TIMER),A
+        LD      A,(IX+MONSTER_STATE)
         CP      PACMO_ENEMY_STATE_ATTACK
         JP      Z,ENEMY_ATTACK_STEP
         JP      ENEMY_ROAM_STEP
-
-; TICK_ENEMY2
-; Input:
-;   ENEMY2_* state
-; Output:
-;   second enemy advanced using the same active-enemy logic as enemy 1
-; Clobbers:
-;   A, BC, DE, HL
-TICK_ENEMY2:
-        CALL    ENEMY2_SWAP_ACTIVE
-        CALL    TICK_ENEMY
-        JP      ENEMY2_SWAP_ACTIVE
-
-; ENEMY2_SWAP_ACTIVE
-; Input:
-;   ENEMY_* and ENEMY2_* state
-; Output:
-;   active enemy slot exchanged with enemy 2 slot
-; Clobbers:
-;   A, C, DE, HL
-ENEMY2_SWAP_ACTIVE:
-        LD      HL,ENEMY_X
-        LD      DE,ENEMY2_X
-        CALL    SWAP_BYTE_HL_DE
-        LD      HL,ENEMY_Y
-        LD      DE,ENEMY2_Y
-        CALL    SWAP_BYTE_HL_DE
-        LD      HL,ENEMY_DIR
-        LD      DE,ENEMY2_DIR
-        CALL    SWAP_BYTE_HL_DE
-        LD      HL,ENEMY_TIMER
-        LD      DE,ENEMY2_TIMER
-        CALL    SWAP_BYTE_HL_DE
-        LD      HL,ENEMY_RESPAWN_TIMER
-        LD      DE,ENEMY2_RESPAWN_TIMER
-        CALL    SWAP_BYTE_HL_DE
-        LD      HL,ENEMY_STATE
-        LD      DE,ENEMY2_STATE
-        JP      SWAP_BYTE_HL_DE
-
-; SWAP_BYTE_HL_DE
-; Input:
-;   HL = address of first byte
-;   DE = address of second byte
-; Output:
-;   bytes at HL and DE exchanged
-; Clobbers:
-;   A, C
-SWAP_BYTE_HL_DE:
-        LD      A,(DE)
-        LD      C,A
-        LD      A,(HL)
-        LD      (DE),A
-        LD      A,C
-        LD      (HL),A
-        RET
 
 ; ENEMY_ATTACK_STEP
 ; Input:
@@ -195,7 +144,7 @@ SWAP_BYTE_HL_DE:
 ;   A, BC, DE, HL
 ENEMY_ATTACK_STEP:
         CALL    ENEMY_CHASE_DIRS
-        LD      A,(ENEMY_DIR)
+        LD      A,(IX+MONSTER_DIR)
         CALL    ENEMY_OPPOSITE_DIR
         LD      L,A                     ; L = immediate reverse direction
         LD      A,D
@@ -261,7 +210,7 @@ ENEMY_CHASE_DIRS:
 ; Clobbers:
 ;   A, B, C
 ENEMY_GET_HORIZONTAL_CHASE:
-        LD      A,(ENEMY_X)
+        LD      A,(IX+MONSTER_X)
         LD      C,A
         LD      A,(PLAYER_X)
         CP      C
@@ -293,7 +242,7 @@ ENEMY_GET_HORIZONTAL_ALIGNED:
 ; Clobbers:
 ;   A, B, C
 ENEMY_GET_VERTICAL_CHASE:
-        LD      A,(ENEMY_Y)
+        LD      A,(IX+MONSTER_Y)
         LD      C,A
         LD      A,(PLAYER_Y)
         CP      C
@@ -325,11 +274,11 @@ ENEMY_GET_VERTICAL_ALIGNED:
 ; Clobbers:
 ;   A, BC, DE, HL
 ENEMY_ROAM_STEP:
-        LD      A,(ENEMY_X)
+        LD      A,(IX+MONSTER_X)
         LD      B,A
-        LD      A,(ENEMY_Y)
+        LD      A,(IX+MONSTER_Y)
         LD      C,A
-        LD      A,(ENEMY_DIR)
+        LD      A,(IX+MONSTER_DIR)
         CALL    ENEMY_OPPOSITE_DIR
         LD      D,A                     ; D = reverse direction fallback
         LD      A,B
@@ -338,7 +287,7 @@ ENEMY_ROAM_STEP:
         LD      A,(PACMO_LEVEL)
         ADD     A,E
         LD      E,A
-        LD      A,(ENEMY_DIR)
+        LD      A,(IX+MONSTER_DIR)
         ADD     A,E
         AND     0x03
         INC     A                       ; A = first candidate direction, 1..4
@@ -403,9 +352,9 @@ ENEMY_OPPOSITE_RIGHT:
 ;   A, BC, DE, HL
 ENEMY_TRY_MOVE_DIR:
         LD      E,A
-        LD      A,(ENEMY_X)
+        LD      A,(IX+MONSTER_X)
         LD      B,A
-        LD      A,(ENEMY_Y)
+        LD      A,(IX+MONSTER_Y)
         LD      C,A
         LD      A,E
         CP      PACMO_DIR_LEFT
@@ -447,11 +396,11 @@ ENEMY_TRY_COMMIT_IF_OPEN:
         POP     DE
         JR      C,ENEMY_TRY_BLOCKED
         LD      A,B
-        LD      (ENEMY_X),A
+        LD      (IX+MONSTER_X),A
         LD      A,C
-        LD      (ENEMY_Y),A
+        LD      (IX+MONSTER_Y),A
         LD      A,E
-        LD      (ENEMY_DIR),A
+        LD      (IX+MONSTER_DIR),A
         SCF
         RET
 ENEMY_TRY_BLOCKED:
@@ -460,30 +409,29 @@ ENEMY_TRY_BLOCKED:
 
 ; TICK_ENEMY_RESPAWN
 ; Input:
-;   ENEMY_RESPAWN_TIMER
+;   IX = monster record base
 ; Output:
 ;   Carry set while enemy is respawning; when the timer reaches zero,
 ;   enemy position and direction are reset and carry is cleared
 ; Clobbers:
 ;   A, DE, HL
 TICK_ENEMY_RESPAWN:
-        LD      HL,ENEMY_RESPAWN_TIMER
-        LD      A,(HL)
+        LD      A,(IX+MONSTER_RESPAWN_TIMER)
         OR      A
         RET     Z
         DEC     A
-        LD      (HL),A
+        LD      (IX+MONSTER_RESPAWN_TIMER),A
         JR      Z,TICK_ENEMY_RESPAWN_DONE
         SCF
         RET
 TICK_ENEMY_RESPAWN_DONE:
         LD      A,PACMO_ENEMY_STATE_ATTACK
-        LD      (ENEMY_STATE),A
+        LD      (IX+MONSTER_STATE),A
         CALL    ENEMY_SELECT_RESPAWN
         LD      A,PACMO_DIR_RIGHT
-        LD      (ENEMY_DIR),A
+        LD      (IX+MONSTER_DIR),A
         LD      A,(ENEMY_PERIOD_CURRENT)
-        LD      (ENEMY_TIMER),A
+        LD      (IX+MONSTER_TIMER),A
         CALL    LCD_SHOW_PACMO_RUNNING
         OR      A
         RET
@@ -529,9 +477,9 @@ ENEMY_SELECT_RESPAWN_KEEP_BEST:
         JR      ENEMY_SELECT_RESPAWN_LOOP
 ENEMY_SELECT_RESPAWN_COMMIT:
         LD      A,D
-        LD      (ENEMY_X),A
+        LD      (IX+MONSTER_X),A
         LD      A,E
-        LD      (ENEMY_Y),A
+        LD      (IX+MONSTER_Y),A
         RET
 
 ; ENEMY_DISTANCE_LH_TO_PLAYER

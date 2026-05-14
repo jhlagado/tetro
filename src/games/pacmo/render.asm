@@ -9,6 +9,9 @@ REBUILD_FRAMEBUFFER:
         CALL    CLEAR_BACK_ALL
         CALL    RENDER_WORLD_TO_BACK
         CALL    RENDER_POWER_PILLS_TO_BACK
+        LD      IX,MONSTER0
+        CALL    RENDER_ENEMY_TO_BACK
+        LD      IX,MONSTER1
         CALL    RENDER_ENEMY_TO_BACK
         CALL    RENDER_PLAYER_TO_BACK
         JP      COPY_BACK_TO_FRONT
@@ -395,10 +398,10 @@ RENDER_POWER_PILL_BC:
 ; Clobbers:
 ;   A, B, C, DE, HL
 RENDER_ENEMY_TO_BACK:
-        LD      A,(ENEMY_RESPAWN_TIMER)
+        LD      A,(IX+MONSTER_RESPAWN_TIMER)
         OR      A
         RET     NZ
-        LD      A,(ENEMY_Y)
+        LD      A,(IX+MONSTER_Y)
         LD      B,A
         LD      A,(VIEW_Y)
         LD      C,A
@@ -413,7 +416,7 @@ RENDER_ENEMY_TO_BACK:
         LD      HL,FRAMEBUFFER_BACK
         ADD     HL,DE
 
-        LD      A,(ENEMY_X)
+        LD      A,(IX+MONSTER_X)
         LD      B,A
         LD      A,(VIEW_X)
         LD      C,A
@@ -425,7 +428,7 @@ RENDER_ENEMY_TO_BACK:
         LD      C,A
 
         PUSH    HL
-        LD      A,(ENEMY_STATE)
+        LD      A,(IX+MONSTER_STATE)
         CP      PACMO_ENEMY_STATE_FLEE
         JR      NZ,RENDER_ENEMY_TIMER_ATTACK
         LD      HL,(PACMO_POWER_TIMER_LO)
@@ -448,18 +451,6 @@ RENDER_ENEMY_TIMER_ATTACK:
 RENDER_ENEMY_FLEE:
         LD      A,PACMO_COLOR_ENEMY_FLEE
         JP      WRITE_CELL_COLOR_C_A
-
-; RENDER_ENEMY2_TO_BACK
-; Input:
-;   ENEMY2_* state
-; Output:
-;   second enemy rendered using the same active-enemy renderer
-; Clobbers:
-;   A, BC, DE, HL
-RENDER_ENEMY2_TO_BACK:
-        CALL    ENEMY2_SWAP_ACTIVE
-        CALL    RENDER_ENEMY_TO_BACK
-        JP      ENEMY2_SWAP_ACTIVE
 
 ; RENDER_PLAYER_TO_BACK
 ; Input:

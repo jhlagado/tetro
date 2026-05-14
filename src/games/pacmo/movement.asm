@@ -247,6 +247,9 @@ TRY_MOVE_PLAYER_TO_BC:
         CALL    PACMO_CONSUME_POWER_PILL_AT_BC
         CALL    PACMO_MARK_EATEN_AT_BC
         CALL    PACMO_CHECK_ROUND_COMPLETE
+        LD      IX,MONSTER0
+        CALL    PACMO_CHECK_PLAYER_CAUGHT
+        LD      IX,MONSTER1
         CALL    PACMO_CHECK_PLAYER_CAUGHT
         JP      UPDATE_VIEWPORT_FOR_PLAYER
 
@@ -263,68 +266,23 @@ PACMO_CHECK_PLAYER_CAUGHT:
         LD      A,(PACMO_PLAYER_CAUGHT)
         OR      A
         RET     NZ
-        LD      A,(ENEMY_RESPAWN_TIMER)
+        LD      A,(IX+MONSTER_RESPAWN_TIMER)
         OR      A
         RET     NZ
         LD      A,(PLAYER_X)
         LD      B,A
-        LD      A,(ENEMY_X)
+        LD      A,(IX+MONSTER_X)
         CP      B
         RET     NZ
         LD      A,(PLAYER_Y)
         LD      B,A
-        LD      A,(ENEMY_Y)
+        LD      A,(IX+MONSTER_Y)
         CP      B
         RET     NZ
-        LD      A,(ENEMY_STATE)
+        LD      A,(IX+MONSTER_STATE)
         CP      PACMO_ENEMY_STATE_FLEE
         JR      Z,PACMO_CONSUME_ENEMY
         JP      PACMO_ENTER_GAME_OVER
-
-; PACMO_CHECK_PLAYER_CAUGHT_ENEMY2
-; Input:
-;   PLAYER_X/Y, ENEMY2_* state
-; Output:
-;   same collision/eat/caught behavior as PACMO_CHECK_PLAYER_CAUGHT for enemy 2
-; Clobbers:
-;   A, BC, DE, HL
-PACMO_CHECK_PLAYER_CAUGHT_ENEMY2:
-        LD      A,(PACMO_PLAYER_CAUGHT)
-        OR      A
-        RET     NZ
-        LD      A,(ENEMY2_RESPAWN_TIMER)
-        OR      A
-        RET     NZ
-        LD      A,(PLAYER_X)
-        LD      B,A
-        LD      A,(ENEMY2_X)
-        CP      B
-        RET     NZ
-        LD      A,(PLAYER_Y)
-        LD      B,A
-        LD      A,(ENEMY2_Y)
-        CP      B
-        RET     NZ
-        LD      A,(ENEMY2_STATE)
-        CP      PACMO_ENEMY_STATE_FLEE
-        JR      Z,PACMO_CONSUME_ENEMY2
-        JP      PACMO_ENTER_GAME_OVER
-
-; PACMO_CONSUME_ENEMY2
-; Input:
-;   player and enemy 2 occupy the same world cell while enemy 2 is fleeing
-; Output:
-;   enemy 2 hidden until respawn; score increased
-; Clobbers:
-;   A, BC, DE, HL
-PACMO_CONSUME_ENEMY2:
-        LD      A,PACMO_ENEMY_STATE_RESPAWN
-        LD      (ENEMY2_STATE),A
-        LD      A,PACMO_ENEMY_RESPAWN_PERIOD
-        LD      (ENEMY2_RESPAWN_TIMER),A
-        CALL    LCD_SHOW_PACMO_ENEMY_EATEN
-        LD      A,PACMO_SCORE_ENEMY
-        JP      PACMO_ADD_SCORE_A
 
 ; PACMO_ENTER_GAME_OVER
 ; Input:
@@ -350,9 +308,9 @@ PACMO_ENTER_GAME_OVER:
 ;   A, BC, DE, HL
 PACMO_CONSUME_ENEMY:
         LD      A,PACMO_ENEMY_STATE_RESPAWN
-        LD      (ENEMY_STATE),A
+        LD      (IX+MONSTER_STATE),A
         LD      A,PACMO_ENEMY_RESPAWN_PERIOD
-        LD      (ENEMY_RESPAWN_TIMER),A
+        LD      (IX+MONSTER_RESPAWN_TIMER),A
         CALL    LCD_SHOW_PACMO_ENEMY_EATEN
         LD      A,PACMO_SCORE_ENEMY
         JP      PACMO_ADD_SCORE_A
