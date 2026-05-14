@@ -38,6 +38,65 @@ PACMO_KEY_5: EQU 0x05
 PACMO_KEY_8: EQU 0x08
 PACMO_KEY_0: EQU 0x00
 
+LCD_TEXT_PACMO_TITLE:
+        DB      "PACMO",0
+
+LCD_TEXT_PACMO_START:
+        DB      "PRESS ANY KEY",0
+
+LCD_TEXT_PACMO_KEYS1:
+        DB      "ARROWS OR 8/5/0",0
+
+LCD_TEXT_PACMO_KEYS2:
+        DB      "ADD UP  GO DOWN",0
+
+LCD_TEXT_PACMO_RUNNING:
+        DB      "PACMO RUNNING",0
+
+LCD_TEXT_PACMO_LEVEL:
+        DB      "LEVEL ON DISPLAY",0
+
+LCD_TEXT_PACMO_CAUGHT:
+        DB      "PACMO CAUGHT",0
+
+LCD_TEXT_PACMO_COMPLETE:
+        DB      "LEVEL COMPLETE",0
+
+LCD_TEXT_PACMO_WAIT:
+        DB      "WAIT...",0
+
+SCRIPT_PACMO_SPLASH:
+        DB      LCD_ROW1
+        DW      LCD_TEXT_PACMO_TITLE
+        DB      LCD_ROW2
+        DW      LCD_TEXT_PACMO_START
+        DB      LCD_ROW3
+        DW      LCD_TEXT_PACMO_KEYS1
+        DB      LCD_ROW4
+        DW      LCD_TEXT_PACMO_KEYS2
+        DB      0
+
+SCRIPT_PACMO_RUNNING:
+        DB      LCD_ROW1
+        DW      LCD_TEXT_PACMO_RUNNING
+        DB      LCD_ROW2
+        DW      LCD_TEXT_PACMO_LEVEL
+        DB      0
+
+SCRIPT_PACMO_CAUGHT:
+        DB      LCD_ROW1
+        DW      LCD_TEXT_PACMO_CAUGHT
+        DB      LCD_ROW2
+        DW      LCD_TEXT_PACMO_START
+        DB      0
+
+SCRIPT_PACMO_COMPLETE:
+        DB      LCD_ROW1
+        DW      LCD_TEXT_PACMO_COMPLETE
+        DB      LCD_ROW2
+        DW      LCD_TEXT_PACMO_WAIT
+        DB      0
+
 DIGIT_MASK_TABLE:
         DB      0x20
         DB      0x10
