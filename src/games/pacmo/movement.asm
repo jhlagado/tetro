@@ -35,10 +35,19 @@ POLL_INPUT_AND_UPDATE:
 ; Input:
 ;   PACMO_PLAYER_CAUGHT is nonzero
 ; Output:
-;   restarts Pacmo through INIT_STATE when any key is pressed
+;   waits for PACMO_GAME_OVER_GATE, then restarts Pacmo through INIT_STATE
+;   when any key is pressed
 ; Clobbers:
-;   A, BC, DE, HL when restarting; A, C otherwise
+;   A, BC, DE, HL when restarting; A, C, HL otherwise
 POLL_CAUGHT_RESTART:
+        LD      HL,(PACMO_GAME_OVER_GATE_LO)
+        LD      A,H
+        OR      L
+        JR      Z,POLL_CAUGHT_RESTART_KEY
+        DEC     HL
+        LD      (PACMO_GAME_OVER_GATE_LO),HL
+        RET
+POLL_CAUGHT_RESTART_KEY:
         LD      C,API_SCANKEYS
         RST     0x10
         RET     NZ
@@ -227,8 +236,12 @@ TRY_MOVE_PLAYER_TO_BC:
 ;   PACMO_PLAYER_CAUGHT = 1 when player and active enemy occupy the same world cell
 ;   outside power mode; in power mode, enemy is consumed and starts respawning
 ; Clobbers:
-;   A, B, BC, DE, HL when the enemy is consumed; A, B otherwise
+;   A, BC, DE, HL when the enemy is consumed or game-over is entered;
+;   A, B otherwise
 PACMO_CHECK_PLAYER_CAUGHT:
+        LD      A,(PACMO_PLAYER_CAUGHT)
+        OR      A
+        RET     NZ
         LD      A,(ENEMY_RESPAWN_TIMER)
         OR      A
         RET     NZ
@@ -245,9 +258,21 @@ PACMO_CHECK_PLAYER_CAUGHT:
         LD      A,(PACMO_POWER_TIMER)
         OR      A
         JR      NZ,PACMO_CONSUME_ENEMY
+        JP      PACMO_ENTER_GAME_OVER
+
+; PACMO_ENTER_GAME_OVER
+; Input:
+;   none
+; Output:
+;   PACMO_PLAYER_CAUGHT latched; restart gate loaded; framebuffer rebuilt
+; Clobbers:
+;   A, BC, DE, HL
+PACMO_ENTER_GAME_OVER:
         LD      A,1
         LD      (PACMO_PLAYER_CAUGHT),A
-        RET
+        LD      HL,PACMO_GAME_OVER_GATE_TICKS
+        LD      (PACMO_GAME_OVER_GATE_LO),HL
+        JP      REBUILD_FRAMEBUFFER
 
 ; PACMO_CONSUME_ENEMY
 ; Input:

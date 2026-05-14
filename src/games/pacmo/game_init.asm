@@ -40,6 +40,8 @@ INIT_STATE:
         LD      (ENEMY_RESPAWN_TIMER),A
         LD      (PACMO_ROUND_COMPLETE),A
         LD      (PACMO_PLAYER_CAUGHT),A
+        LD      (PACMO_GAME_OVER_GATE_LO),A
+        LD      (PACMO_GAME_OVER_GATE_HI),A
 
         LD      A,SCAN_MASK_START
         LD      (SCAN_MASK),A
