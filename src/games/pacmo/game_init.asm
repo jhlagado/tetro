@@ -36,7 +36,8 @@ INIT_STATE:
         LD      (PACMO_SCORE),A
         LD      (PACMO_SCORE+1),A
         LD      (PACMO_POWER_PILLS_EATEN),A
-        LD      (PACMO_POWER_TIMER),A
+        LD      (PACMO_POWER_TIMER_LO),A
+        LD      (PACMO_POWER_TIMER_HI),A
         LD      (ENEMY_RESPAWN_TIMER),A
         LD      (PACMO_ROUND_COMPLETE),A
         LD      (PACMO_PLAYER_CAUGHT),A
