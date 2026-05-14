@@ -7,10 +7,16 @@
 ;   A, BC, DE, HL
 REBUILD_FRAMEBUFFER:
         CALL    CLEAR_BACK_ALL
+        LD      A,(PACMO_PLAYER_CAUGHT)
+        OR      A
+        JR      NZ,REBUILD_FRAMEBUFFER_GAME_OVER
         CALL    RENDER_WORLD_TO_BACK
         CALL    RENDER_POWER_PILLS_TO_BACK
         CALL    RENDER_ENEMY_TO_BACK
         CALL    RENDER_PLAYER_TO_BACK
+        JP      COPY_BACK_TO_FRONT
+REBUILD_FRAMEBUFFER_GAME_OVER:
+        CALL    RENDER_GAME_OVER_TO_BACK
         JP      COPY_BACK_TO_FRONT
 
 ; CLEAR_BACK_ALL
@@ -28,6 +34,30 @@ CLEAR_BACK_ALL_LOOP:
         LD      (HL),A
         INC     HL
         DJNZ    CLEAR_BACK_ALL_LOOP
+        RET
+
+; RENDER_GAME_OVER_TO_BACK
+; Input:
+;   none
+; Output:
+;   FRAMEBUFFER_BACK filled solid red as a dramatic Pacmo game-over cue
+; Clobbers:
+;   A, B, HL
+RENDER_GAME_OVER_TO_BACK:
+        LD      HL,FRAMEBUFFER_BACK
+        LD      B,ROW_COUNT
+RENDER_GAME_OVER_ROW:
+        LD      A,0xFF
+        LD      (HL),A                  ; red on
+        INC     HL
+        XOR     A
+        LD      (HL),A                  ; green off
+        INC     HL
+        LD      (HL),A                  ; blue off
+        INC     HL
+        LD      (HL),A                  ; aux off
+        INC     HL
+        DJNZ    RENDER_GAME_OVER_ROW
         RET
 
 ; Clear 4 bytes at FRAMEBUFFER_BACK + A.
