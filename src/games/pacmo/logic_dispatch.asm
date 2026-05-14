@@ -29,7 +29,9 @@ LOGIC_SL0:
 
 LOGIC_SL1:
         CALL    TICK_ENEMY
+        CALL    TICK_ENEMY2
         CALL    PACMO_CHECK_PLAYER_CAUGHT
+        CALL    PACMO_CHECK_PLAYER_CAUGHT_ENEMY2
         LD      A,4
         CALL    CLEAR_BACK_4
         JR      LOGIC_SLICE_NEXT
@@ -40,6 +42,7 @@ LOGIC_SL7:
         CALL    RENDER_WORLD_TO_BACK
         CALL    RENDER_POWER_PILLS_TO_BACK
         CALL    RENDER_ENEMY_TO_BACK
+        CALL    RENDER_ENEMY2_TO_BACK
         CALL    RENDER_PLAYER_TO_BACK
         CALL    COPY_BACK_TO_FRONT
         JR      LOGIC_SLICE_NEXT
@@ -91,6 +94,7 @@ TICK_POWER_TIMER:
         RET     NZ
         LD      A,PACMO_ENEMY_STATE_ATTACK
         LD      (ENEMY_STATE),A
+        LD      (ENEMY2_STATE),A
         JP      LCD_SHOW_PACMO_RUNNING
 
 ; TICK_ENEMY
@@ -124,6 +128,41 @@ TICK_ENEMY:
         CP      PACMO_ENEMY_STATE_ATTACK
         JP      Z,ENEMY_ATTACK_STEP
         JP      ENEMY_ROAM_STEP
+
+; TICK_ENEMY2
+; Input:
+;   ENEMY2_* state
+; Output:
+;   second enemy advanced using the same active-enemy logic as enemy 1
+; Clobbers:
+;   A, BC, DE, HL
+TICK_ENEMY2:
+        CALL    ENEMY2_SWAP_ACTIVE
+        CALL    TICK_ENEMY
+        JP      ENEMY2_SWAP_ACTIVE
+
+; ENEMY2_SWAP_ACTIVE
+; Input:
+;   ENEMY_* and ENEMY2_* state
+; Output:
+;   active enemy slot exchanged with enemy 2 slot
+; Clobbers:
+;   A, BC, DE, HL
+ENEMY2_SWAP_ACTIVE:
+        LD      HL,ENEMY_X
+        LD      DE,ENEMY2_X
+        LD      B,6
+ENEMY2_SWAP_ACTIVE_LOOP:
+        LD      A,(DE)
+        LD      C,A
+        LD      A,(HL)
+        LD      (DE),A
+        LD      A,C
+        LD      (HL),A
+        INC     HL
+        INC     DE
+        DJNZ    ENEMY2_SWAP_ACTIVE_LOOP
+        RET
 
 ; ENEMY_ATTACK_STEP
 ; Input:

@@ -449,6 +449,18 @@ RENDER_ENEMY_FLEE:
         LD      A,PACMO_COLOR_ENEMY_FLEE
         JP      WRITE_CELL_COLOR_C_A
 
+; RENDER_ENEMY2_TO_BACK
+; Input:
+;   ENEMY2_* state
+; Output:
+;   second enemy rendered using the same active-enemy renderer
+; Clobbers:
+;   A, BC, DE, HL
+RENDER_ENEMY2_TO_BACK:
+        CALL    ENEMY2_SWAP_ACTIVE
+        CALL    RENDER_ENEMY_TO_BACK
+        JP      ENEMY2_SWAP_ACTIVE
+
 ; RENDER_PLAYER_TO_BACK
 ; Input:
 ;   PLAYER_X/Y, VIEW_X/Y

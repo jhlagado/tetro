@@ -281,6 +281,51 @@ PACMO_CHECK_PLAYER_CAUGHT:
         JR      Z,PACMO_CONSUME_ENEMY
         JP      PACMO_ENTER_GAME_OVER
 
+; PACMO_CHECK_PLAYER_CAUGHT_ENEMY2
+; Input:
+;   PLAYER_X/Y, ENEMY2_* state
+; Output:
+;   same collision/eat/caught behavior as PACMO_CHECK_PLAYER_CAUGHT for enemy 2
+; Clobbers:
+;   A, BC, DE, HL
+PACMO_CHECK_PLAYER_CAUGHT_ENEMY2:
+        LD      A,(PACMO_PLAYER_CAUGHT)
+        OR      A
+        RET     NZ
+        LD      A,(ENEMY2_RESPAWN_TIMER)
+        OR      A
+        RET     NZ
+        LD      A,(PLAYER_X)
+        LD      B,A
+        LD      A,(ENEMY2_X)
+        CP      B
+        RET     NZ
+        LD      A,(PLAYER_Y)
+        LD      B,A
+        LD      A,(ENEMY2_Y)
+        CP      B
+        RET     NZ
+        LD      A,(ENEMY2_STATE)
+        CP      PACMO_ENEMY_STATE_FLEE
+        JR      Z,PACMO_CONSUME_ENEMY2
+        JP      PACMO_ENTER_GAME_OVER
+
+; PACMO_CONSUME_ENEMY2
+; Input:
+;   player and enemy 2 occupy the same world cell while enemy 2 is fleeing
+; Output:
+;   enemy 2 hidden until respawn; score increased
+; Clobbers:
+;   A, BC, DE, HL
+PACMO_CONSUME_ENEMY2:
+        LD      A,PACMO_ENEMY_STATE_RESPAWN
+        LD      (ENEMY2_STATE),A
+        LD      A,PACMO_ENEMY_RESPAWN_PERIOD
+        LD      (ENEMY2_RESPAWN_TIMER),A
+        CALL    LCD_SHOW_PACMO_ENEMY_EATEN
+        LD      A,PACMO_SCORE_ENEMY
+        JP      PACMO_ADD_SCORE_A
+
 ; PACMO_ENTER_GAME_OVER
 ; Input:
 ;   none
@@ -347,6 +392,7 @@ PACMO_CONSUME_POWER_PILL_LOOP:
         LD      (PACMO_POWER_TIMER_LO),HL
         LD      A,PACMO_ENEMY_STATE_FLEE
         LD      (ENEMY_STATE),A
+        LD      (ENEMY2_STATE),A
         CALL    LCD_SHOW_PACMO_POWER
         RET
 PACMO_CONSUME_POWER_PILL_NEXT:

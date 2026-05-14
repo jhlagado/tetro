@@ -18,6 +18,18 @@ ENEMY_RESPAWN_TIMER:
         DS      1
 ENEMY_STATE:
         DS      1
+ENEMY2_X:
+        DS      1
+ENEMY2_Y:
+        DS      1
+ENEMY2_DIR:
+        DS      1
+ENEMY2_TIMER:
+        DS      1
+ENEMY2_RESPAWN_TIMER:
+        DS      1
+ENEMY2_STATE:
+        DS      1
 VIEW_X:
         DS      1
 VIEW_Y:
