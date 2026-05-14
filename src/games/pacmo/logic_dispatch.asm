@@ -120,7 +120,141 @@ TICK_ENEMY:
         RET     NZ
         LD      A,(ENEMY_PERIOD_CURRENT)
         LD      (HL),A
+        LD      A,(ENEMY_STATE)
+        CP      PACMO_ENEMY_STATE_ATTACK
+        JP      Z,ENEMY_ATTACK_STEP
         JP      ENEMY_ROAM_STEP
+
+; ENEMY_ATTACK_STEP
+; Input:
+;   ENEMY_X/Y, PLAYER_X/Y, ENEMY_DIR
+; Output:
+;   enemy tries a greedy move that reduces distance to the player, then falls
+;   back to roaming if both chase directions are blocked or reverse-only.
+; Clobbers:
+;   A, BC, DE, HL
+ENEMY_ATTACK_STEP:
+        CALL    ENEMY_CHASE_DIRS
+        LD      A,(ENEMY_DIR)
+        CALL    ENEMY_OPPOSITE_DIR
+        LD      L,A                     ; L = immediate reverse direction
+        LD      A,D
+        PUSH    DE
+        PUSH    HL
+        CALL    ENEMY_TRY_CHASE_DIR
+        POP     HL
+        POP     DE
+        RET     C
+        LD      A,E
+        CALL    ENEMY_TRY_CHASE_DIR
+        RET     C
+        JP      ENEMY_ROAM_STEP
+
+; ENEMY_TRY_CHASE_DIR
+; Input:
+;   A = candidate PACMO_DIR_* or 0
+;   L = immediate reverse direction to avoid
+; Output:
+;   Carry set when candidate moves the enemy; carry clear otherwise
+; Clobbers:
+;   A, BC, DE, HL
+ENEMY_TRY_CHASE_DIR:
+        OR      A
+        RET     Z
+        CP      L
+        JR      Z,ENEMY_TRY_CHASE_BLOCKED
+        CALL    ENEMY_TRY_MOVE_DIR
+        RET
+ENEMY_TRY_CHASE_BLOCKED:
+        OR      A
+        RET
+
+; ENEMY_CHASE_DIRS
+; Input:
+;   ENEMY_X/Y, PLAYER_X/Y
+; Output:
+;   D = preferred direction on the larger distance axis, or 0 when aligned
+;   E = secondary reducing direction, or 0 when aligned
+; Clobbers:
+;   A, B, C, H, L
+ENEMY_CHASE_DIRS:
+        CALL    ENEMY_GET_HORIZONTAL_CHASE
+        LD      H,A                     ; H = horizontal distance
+        LD      D,B                     ; D = horizontal reducing direction
+        CALL    ENEMY_GET_VERTICAL_CHASE
+        LD      L,A                     ; L = vertical distance
+        LD      E,B                     ; E = vertical reducing direction
+        LD      A,H
+        CP      L
+        RET     NC
+        LD      A,D
+        LD      D,E
+        LD      E,A
+        RET
+
+; ENEMY_GET_HORIZONTAL_CHASE
+; Input:
+;   ENEMY_X, PLAYER_X
+; Output:
+;   A = absolute horizontal distance
+;   B = PACMO_DIR_LEFT/RIGHT reducing that distance, or 0 when aligned
+; Clobbers:
+;   A, B, C
+ENEMY_GET_HORIZONTAL_CHASE:
+        LD      A,(ENEMY_X)
+        LD      C,A
+        LD      A,(PLAYER_X)
+        CP      C
+        JR      Z,ENEMY_GET_HORIZONTAL_ALIGNED
+        JR      C,ENEMY_GET_HORIZONTAL_RIGHT
+        SUB     C
+        LD      B,PACMO_DIR_LEFT
+        RET
+ENEMY_GET_HORIZONTAL_RIGHT:
+        LD      A,C
+        LD      B,A
+        LD      A,(PLAYER_X)
+        LD      C,A
+        LD      A,B
+        SUB     C
+        LD      B,PACMO_DIR_RIGHT
+        RET
+ENEMY_GET_HORIZONTAL_ALIGNED:
+        LD      B,0
+        XOR     A
+        RET
+
+; ENEMY_GET_VERTICAL_CHASE
+; Input:
+;   ENEMY_Y, PLAYER_Y
+; Output:
+;   A = absolute vertical distance
+;   B = PACMO_DIR_UP/DOWN reducing that distance, or 0 when aligned
+; Clobbers:
+;   A, B, C
+ENEMY_GET_VERTICAL_CHASE:
+        LD      A,(ENEMY_Y)
+        LD      C,A
+        LD      A,(PLAYER_Y)
+        CP      C
+        JR      Z,ENEMY_GET_VERTICAL_ALIGNED
+        JR      C,ENEMY_GET_VERTICAL_UP
+        SUB     C
+        LD      B,PACMO_DIR_DOWN
+        RET
+ENEMY_GET_VERTICAL_UP:
+        LD      A,C
+        LD      B,A
+        LD      A,(PLAYER_Y)
+        LD      C,A
+        LD      A,B
+        SUB     C
+        LD      B,PACMO_DIR_UP
+        RET
+ENEMY_GET_VERTICAL_ALIGNED:
+        LD      B,0
+        XOR     A
+        RET
 
 ; ENEMY_ROAM_STEP
 ; Input:
