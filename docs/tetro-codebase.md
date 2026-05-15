@@ -35,7 +35,8 @@ MAIN_LOOP:
 .include "games/tetro/geometry_helpers.asm"
 .include "games/tetro/collision.asm"
 .include "shared/framebuffer_core.asm"
-.include "shared/framebuffer.asm"
+.include "shared/framebuffer_draw.asm"
+.include "games/tetro/render.asm"
 .include "games/tetro/piece_active.asm"
 .include "games/tetro/board_lock.asm"
 .include "games/tetro/game_init.asm"
@@ -47,7 +48,7 @@ MAIN_LOOP:
 .include "shared/lcd.asm"
 .include "games/tetro/ui.asm"
 .include "games/tetro/logic_dispatch.asm"
-.include "shared/input.asm"
+.include "games/tetro/input.asm"
 .include "games/tetro/data.asm"
 .include "games/tetro/ram.asm"
 ```
@@ -244,7 +245,7 @@ When the score reaches the configured threshold, `CURRENT_GRAVITY_PERIOD` change
 
 ## Rendering
 
-Rendering is split between shared buffer helpers and TETRO-specific drawing.
+Rendering is split between shared buffer helpers, shared draw primitives, and TETRO-specific drawing.
 
 `shared/framebuffer_core.asm` provides:
 
@@ -254,17 +255,22 @@ Rendering is split between shared buffer helpers and TETRO-specific drawing.
 
 Those routines know only about the 8x8 RGB framebuffer layout.
 
-`shared/framebuffer.asm` currently contains TETRO-aware rendering:
+`shared/framebuffer_draw.asm` provides game-neutral RGB draw primitives:
+
+- `MATRIX_X_TO_MASK`
+- `FB_SET_CELL_COLOR`
+- `FB_OR_ROW_COLOR_MASK`
+
+`games/tetro/render.asm` contains TETRO-aware rendering:
 
 - `REBUILD_FRAMEBUFFER`
 - `CLEAR_BOARD`
 - `RENDER_BOARD_TO_BACK`
 - `RENDER_ACTIVE_TO_BACK`
-- `WRITE_COLORED_ROW_MASK`
 
 `RENDER_BOARD_TO_BACK` copies landed colour planes into the back buffer. During a line-clear hold, rows in `CLEAR_MASK` become white. During game over, occupied cells are rendered as a red silhouette.
 
-`RENDER_ACTIVE_TO_BACK` draws the falling piece on top. It shifts each bitmap row by `PLAYER_X`, skips rows outside the visible field, and ORs the row mask into the selected colour channels.
+`RENDER_ACTIVE_TO_BACK` draws the falling piece on top. It shifts each bitmap row by `PLAYER_X`, skips rows outside the visible field, and calls `FB_OR_ROW_COLOR_MASK` to OR the row mask into the selected colour channels.
 
 The active piece is rendered after the board. Collision has already ensured it does not overlap landed cells, so the OR operation is safe.
 
@@ -274,7 +280,7 @@ The active piece is rendered after the board. Collision has already ensured it d
 
 The LCD stack is split into shared primitives and TETRO screens.
 
-`shared/lcd.asm` knows how to talk to the HD44780 and how to execute a simple script table. A script is a list of row-command bytes and string pointers, terminated by zero.
+`shared/lcd.asm` knows how to talk to the HD44780, execute a simple script table, write a string at a row command, and append a table-indexed character. A script is a list of row-command bytes and string pointers, terminated by zero.
 
 TETRO screen scripts live in `games/tetro/data.asm`:
 
@@ -283,9 +289,9 @@ TETRO screen scripts live in `games/tetro/data.asm`:
 - paused
 - game over
 
-`games/tetro/ui.asm` selects those scripts. Running and paused screens go through `LCD_SHOW_HUD`, which appends the next-piece letter after the `NEXT: ` label. `LCD_REFRESH_NEXT_PREVIEW_ROW` updates only that preview row after a successful spawn.
+`games/tetro/ui.asm` selects those scripts. Running and paused screens go through `LCD_SHOW_HUD`, which uses the shared LCD primitives to append the next-piece letter after the `NEXT: ` label. `LCD_REFRESH_NEXT_PREVIEW_ROW` updates only that preview row after a successful spawn.
 
-The seven-segment path is split the same way. `shared/hud.asm` scans one digit per `SCAN_TICK`. `games/tetro/hud.asm` updates `HUD_SEG_BUFFER` when the score changes.
+The seven-segment path is split the same way. `shared/hud.asm` scans one digit per `SCAN_TICK` and owns the shared decimal formatter. `games/tetro/hud.asm` wraps that formatter for TETRO's score variable and updates `HUD_SEG_BUFFER` when the score changes.
 
 The sound path follows the same pattern. `shared/sound.asm` runs the speaker state machine. `games/tetro/sound.asm` names the TETRO events and loads their tuning constants.
 
@@ -298,9 +304,10 @@ Currently shared and generic:
 - `shared/inc/constants.asm`: hardware ports, MON-3 keys, colours, dimensions
 - `shared/scan_tick.asm`: matrix scanout and scan-state advance
 - `shared/framebuffer_core.asm`: back-buffer clear and copy
+- `shared/framebuffer_draw.asm`: matrix x-to-mask conversion and RGB framebuffer draw primitives
 - `shared/sound.asm`: speaker divider service
-- `shared/hud.asm`: seven-segment scan and blanking
-- `shared/lcd.asm`: HD44780 primitive operations and script renderer
+- `shared/hud.asm`: seven-segment scan, blanking, digit/glyph tables, and decimal formatting
+- `shared/lcd.asm`: HD44780 primitive operations, script renderer, row string writer, and table-character writer
 
 Currently TETRO-specific:
 
@@ -311,13 +318,15 @@ Currently TETRO-specific:
 - `games/tetro/collision.asm`: active-piece placement and top-out checks
 - `games/tetro/board_lock.asm`: merge, line clear, scoring, and game-over entry
 - `games/tetro/geometry_helpers.asm`: pending-position and row-mask helpers
+- `games/tetro/render.asm`: board and active-piece rendering
+- `games/tetro/input.asm`: TETRO keypad mapping, repeat handling, pause, start, and restart gates
 - `games/tetro/sound.asm`: TETRO sound event wrappers
-- `games/tetro/hud.asm`: TETRO score formatting
+- `games/tetro/hud.asm`: TETRO score display wrapper for the shared HUD formatter
 - `games/tetro/ui.asm`: TETRO LCD screens and next-piece preview
-- `games/tetro/data.asm`: pieces, colours, LCD scripts, score tables, glyphs
+- `games/tetro/data.asm`: pieces, colours, LCD scripts, score tables, and preview letters
 - `games/tetro/ram.asm`: TETRO state layout
 
-Likely future shared candidates are the decimal score formatter, the row-mask shifting convention, and the colour-row writing helper. They remain local because their labels and assumptions still differ between games. Promoting them too early would couple TETRO and Pacmo to accidental details instead of a stable shared contract.
+TETRO now uses shared HUD formatting, LCD row/table primitives, and framebuffer draw primitives. The game still owns its input meanings, board rendering, active-piece rendering, scoring events, and LCD screen choices.
 
 ---
 
@@ -325,7 +334,7 @@ Likely future shared candidates are the decimal score formatter, the row-mask sh
 
 `games/tetro/data.asm` contains display tables and piece data.
 
-Most static TETRO data lives here: piece bitmaps, rotation lookup tables, colour tables, LCD text, LCD scripts, score values, row masks, digit masks, and seven-segment glyphs.
+Most static TETRO data lives here: piece bitmaps, rotation lookup tables, colour tables, LCD text, LCD scripts, score values, and row masks.
 
 The piece tables are parallel:
 
@@ -337,8 +346,6 @@ Each bitmap row is an 8-bit mask. The occupied cells are in the high bits before
 
 The same file also contains:
 
-- seven-segment glyphs
-- digit select masks
 - row bit masks
 - line-clear score values
 - LCD strings
@@ -357,7 +364,7 @@ When the player presses a key on the splash screen, `HANDLE_SPLASH_STATE` seeds 
 
 `SPAWN_ACTIVE_PIECE` promotes `NEXT_PIECE_INDEX` to `CURRENT_PIECE_INDEX`, generates a new upcoming piece, sets the spawn position, resets movement and gravity cooldowns, and tests collision at the spawn point. If spawn collides immediately, TETRO enters game over.
 
-During play, slice 0 polls input. The keypad mapping is handled in `shared/input.asm`; TETRO supplies the movement and rotation routines that the input code calls. Left and right key codes are intentionally mirrored to match the physical display orientation:
+During play, slice 0 polls input. The keypad mapping is handled locally in `games/tetro/input.asm`; that file calls TETRO movement and rotation routines directly. Left and right key codes are intentionally mirrored to match the physical display orientation:
 
 ```asm
 K_LEFT:         EQU     0x11
@@ -389,9 +396,11 @@ shared hardware helpers
   shared/hud.asm
     SCAN_SCORE_DIGIT, BLANK_HUD_SCORE_DIGITS
   shared/lcd.asm
-    LCD_BUSY, LCD_COMMAND, LCD_STRING, LCD_SHOW_SCRIPT, LCD_PUTC
+    LCD_BUSY, LCD_COMMAND, LCD_STRING, LCD_SHOW_SCRIPT, LCD_PUTC, LCD_WRITE_ROW_STRING, LCD_PUTC_FROM_TABLE
   shared/framebuffer_core.asm
     CLEAR_BACK_ALL, CLEAR_BACK_4, COPY_BACK_TO_FRONT
+  shared/framebuffer_draw.asm
+    MATRIX_X_TO_MASK, FB_SET_CELL_COLOR, FB_OR_ROW_COLOR_MASK
 
 TETRO wrappers and presentation
   games/tetro/sound.asm
@@ -400,6 +409,8 @@ TETRO wrappers and presentation
     UPDATE_SCORE_DISPLAY
   games/tetro/ui.asm
     LCD_SHOW_SPLASH, RUNNING, PAUSED, GAME_OVER, NEXT preview
+  games/tetro/input.asm
+    keypad mapping, repeat handling, pause/start/restart gates
 
 TETRO rules
   games/tetro/game_init.asm
@@ -414,12 +425,12 @@ TETRO rules
     lock, merge, line clear, score, game over
   games/tetro/geometry_helpers.asm
     pending-position loading and row-mask shifting
-  shared/framebuffer.asm
+  games/tetro/render.asm
     TETRO board/active rendering over shared framebuffer core
 
 state and data
   games/tetro/ram.asm
     all mutable TETRO state
   games/tetro/data.asm
-    pieces, colours, score table, LCD scripts, glyph tables
+    pieces, colours, score table, LCD scripts, preview letters
 ```
