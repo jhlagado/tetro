@@ -179,7 +179,7 @@ The shared HUD file also owns:
 - `HUD_WRITE_U16_DECIMAL`
 - `HUD_WRITE_DECIMAL_DIGIT`
 
-Game-local score wrappers load their game score into `HL`, point `BC` at `HUD_SEG_BUFFER`, and tail-call the shared formatter. This keeps scoring events local while sharing the decimal-to-seven-segment conversion.
+Game-local score wrappers load their game score into `HL` and tail-call the shared formatter. The shared formatter owns the `HUD_SEG_BUFFER` destination, including the leading zero glyph and the five decimal digits. This keeps scoring events local while sharing the decimal-to-seven-segment conversion.
 
 ---
 
