@@ -43,16 +43,17 @@ The shared layer is deliberately low-level. It contains hardware facts and buffe
 
 Currently shared and generic:
 
-- `shared/inc/constants.asm`: hardware ports, MON-3 API constants, key codes, matrix dimensions, colour bits, and speaker bit
-- `shared/scan_tick.asm`: matrix row scanout and scan-state advance
-- `shared/framebuffer_core.asm`: back-buffer clear and copy helpers
-- `shared/sound.asm`: speaker divider state machine
-- `shared/hud.asm`: seven-segment digit scan and blanking
-- `shared/lcd.asm`: HD44780 primitive operations and script renderer
+- `src/shared/inc/constants.asm`: hardware ports, MON-3 API constants, key codes, matrix dimensions, colour bits, composite colour names, and speaker bit
+- `src/shared/scan_tick.asm`: matrix row scanout and scan-state advance
+- `src/shared/framebuffer_core.asm`: back-buffer clear and copy helpers
+- `src/shared/framebuffer_draw.asm`: matrix x-to-mask conversion and RGB framebuffer drawing primitives
+- `src/shared/sound.asm`: speaker divider state machine
+- `src/shared/hud.asm`: seven-segment digit scan, blanking, shared digit/glyph tables, and decimal score formatting
+- `src/shared/lcd.asm`: HD44780 primitive operations, script renderer, row string writer, and table-character writer
 
 The games keep their own rules, state, tuning, display text, score events, and presentation wrappers. A routine belongs in `src/shared` only when its contract is hardware-shaped or buffer-shaped rather than game-shaped.
 
-Some files are still transitional. `shared/framebuffer.asm` contains TETRO-aware rendering, and `shared/input.asm` still calls TETRO movement labels. They are shared in location, but their contracts are not yet generic enough to treat as runtime APIs for every game.
+There are no transitional TETRO-shaped input or rendering files in `src/shared`. TETRO input lives in `src/games/tetro/input.asm`, and TETRO rendering lives in `src/games/tetro/render.asm`.
 
 ---
 
@@ -132,6 +133,14 @@ The scanout emits only the red, green, and blue bytes. The fourth byte keeps row
 
 Those routines know the buffer shape, but not the game meaning of the pixels.
 
+`src/shared/framebuffer_draw.asm` provides small drawing primitives over the same RGB row layout:
+
+- `MATRIX_X_TO_MASK`
+- `FB_SET_CELL_COLOR`
+- `FB_OR_ROW_COLOR_MASK`
+
+`MATRIX_X_TO_MASK` converts a screen x coordinate to the matrix bit convention where x 0 maps to the most significant bit. `FB_SET_CELL_COLOR` writes one RGB cell to an exact colour, clearing planes that are not part of that colour. `FB_OR_ROW_COLOR_MASK` ORs a row mask into the selected colour planes. Game renderers decide what to draw; these helpers only implement the shared framebuffer mechanics.
+
 ---
 
 ## Speaker service
@@ -155,7 +164,7 @@ The shared service does not know what a sound means. TETRO and Pacmo keep local 
 
 ## Seven-segment HUD
 
-`shared/hud.asm` owns multiplexing for the six seven-segment digits.
+`src/shared/hud.asm` owns multiplexing and common formatting for the six seven-segment digits.
 
 `SCAN_SCORE_DIGIT` reads one byte from `HUD_SEG_BUFFER`, writes it to `PORT_SEGS`, combines the selected digit mask with `SPEAKER_PORT_STATE`, and writes the result to `PORT_DIGITS`. This is why the speaker and digit display share timing: both use the digit latch.
 
@@ -163,7 +172,14 @@ The shared service does not know what a sound means. TETRO and Pacmo keep local 
 
 `BLANK_HUD_SCORE_DIGITS` clears the six-byte segment buffer.
 
-Score formatting stays game-local. Both games currently use repeated subtraction to convert a 16-bit score to decimal segment bytes, but the source labels and table names differ. That code can be shared later if the games gain a small common formatting contract.
+The shared HUD file also owns:
+
+- `HUD_DIGIT_MASK_TABLE`
+- `HUD_SEG_GLYPH_TABLE`
+- `HUD_WRITE_U16_DECIMAL`
+- `HUD_WRITE_DECIMAL_DIGIT`
+
+Game-local score wrappers load their game score into `HL` and tail-call the shared formatter. The shared formatter owns the `HUD_SEG_BUFFER` destination, including the leading zero glyph and the five decimal digits. This keeps scoring events local while sharing the decimal-to-seven-segment conversion.
 
 ---
 
@@ -177,6 +193,8 @@ Score formatting stays game-local. Both games currently use repeated subtraction
 - `LCD_STRING`
 - `LCD_SHOW_SCRIPT`
 - `LCD_PUTC`
+- `LCD_WRITE_ROW_STRING`
+- `LCD_PUTC_FROM_TABLE`
 
 `LCD_SHOW_SCRIPT` reads a simple table:
 
@@ -187,7 +205,7 @@ DW text_pointer
 DB 0
 ```
 
-The shared LCD layer knows how to execute that table, but it does not decide which screens exist. TETRO and Pacmo keep their own LCD text, script tables, and wrapper routines.
+The shared LCD layer knows how to execute that table, position a row before writing a string, and append a table-indexed character. It does not decide which screens exist. TETRO and Pacmo keep their own LCD text, script tables, and wrapper routines.
 
 ---
 

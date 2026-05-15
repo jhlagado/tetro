@@ -36,6 +36,7 @@ MAIN_LOOP:
 .include "games/pacmo/logic_dispatch.asm"
 .include "games/pacmo/movement.asm"
 .include "shared/framebuffer_core.asm"
+.include "shared/framebuffer_draw.asm"
 .include "games/pacmo/render.asm"
 .include "shared/sound.asm"
 .include "games/pacmo/sound.asm"
@@ -178,7 +179,7 @@ Scores are 16-bit and displayed on the six seven-segment digits. The event value
 
 `PACMO_ADD_SCORE_A` adds an 8-bit event value to `PACMO_SCORE`, then calls `UPDATE_SCORE_DISPLAY`.
 
-`src/shared/hud.asm` handles scanning the six digits. `src/games/pacmo/hud.asm` still owns formatting `PACMO_SCORE` into decimal digits because it depends on Pacmo's score label and segment table. That score-formatting routine is a good future harmonisation candidate once TETRO and Pacmo agree on label conventions or wrappers.
+`src/shared/hud.asm` handles scanning the six digits and owns the decimal formatter. `src/games/pacmo/hud.asm` is a local wrapper: it loads `PACMO_SCORE` into `HL` and tail-calls the shared HUD formatter, which owns the `HUD_SEG_BUFFER` destination.
 
 ---
 
@@ -261,7 +262,7 @@ Difficulty currently rises in two ways:
 
 ## Rendering
 
-Pacmo uses the shared double-buffer core, but owns its renderers.
+Pacmo uses the shared double-buffer core and shared framebuffer draw primitives, but owns its renderers.
 
 `REBUILD_FRAMEBUFFER` is a full redraw path used during initialization and state changes. The sliced render path in `LOGIC_TICK` is the normal steady-state path.
 
@@ -279,17 +280,17 @@ Wall colour is state-dependent:
 
 `RENDER_PLAYER_TO_BACK` draws the player last so it appears over paths, pills, and monsters. It is normally yellow. When the round is complete it is white. When caught it is red.
 
-`WRITE_CELL_COLOR_C_A` is the single-cell overlay helper. It receives a framebuffer row pointer, a cell bit mask, and a colour bitfield. It clears that bit from each RGB plane not present in the colour and sets it in each plane that is present. This matters because an enemy over a green path should render as red, not yellow from red plus green.
+Single-cell overlays go through `FB_SET_CELL_COLOR`. The render path converts screen x coordinates with `MATRIX_X_TO_MASK`, then passes the framebuffer row pointer, cell bit mask, and colour bitfield to the shared cell writer. `FB_SET_CELL_COLOR` clears that bit from each RGB plane not present in the colour and sets it in each plane that is present. This matters because an enemy over a green path should render as red, not yellow from red plus green.
 
 ---
 
 ## LCD, score, and sound
 
-LCD primitives are now shared in `src/shared/lcd.asm`: busy wait, command write, string write, script runner, and single-character output. Pacmo-specific screens remain in `src/games/pacmo/ui.asm`.
+LCD primitives are shared in `src/shared/lcd.asm`: busy wait, command write, string write, script runner, single-character output, row string writer, and table-character output. Pacmo-specific screens remain in `src/games/pacmo/ui.asm`.
 
 The LCD screens are script tables in `data.asm`. Each script is a sequence of row command plus text pointer, terminated by zero. The running, power, and enemy-eaten screens call `LCD_REFRESH_LEVEL_ROW` after the script so row 2 shows the current level.
 
-The score display is split. Shared `SCAN_SCORE_DIGIT` handles multiplexing. Pacmo-local `UPDATE_SCORE_DISPLAY` converts `PACMO_SCORE` to segment patterns using repeated subtraction because the Z80 has no division instruction.
+The score display is split. Shared `SCAN_SCORE_DIGIT` handles multiplexing, and shared `HUD_WRITE_U16_DECIMAL` converts the 16-bit score to segment patterns using repeated subtraction because the Z80 has no division instruction. Pacmo-local `UPDATE_SCORE_DISPLAY` is only the wrapper for `PACMO_SCORE`.
 
 Sound is split the same way. Shared `SOUND_START` and `SERVICE_SOUND` implement the square-wave state machine. Pacmo-local sound wrappers in `src/games/pacmo/sound.asm` load event-specific duration and divider values:
 
@@ -304,9 +305,9 @@ There is no movement sound now; it was removed because it made the game noisier 
 
 ## Data layout
 
-`data.asm` contains constants, LCD text, segment tables, the world bitmap, power-pill positions, and respawn candidates. Most game tuning is here: move period, power timer, scoring, palette, monster speed, respawn delay, and level difficulty steps.
+`data.asm` contains constants, LCD text, the world bitmap, power-pill positions, and respawn candidates. Most game tuning is here: move period, power timer, scoring, palette, monster speed, respawn delay, and level difficulty steps.
 
-Most static Pacmo data lives here: the 15-row maze bitmap, power-pill table, enemy respawn table, colour constants, score values, sound durations, LCD strings, LCD scripts, digit masks, and seven-segment glyphs. Changing a message, palette entry, score value, or respawn candidate is usually a data edit rather than a logic edit.
+Most static Pacmo data lives here: the 15-row maze bitmap, power-pill table, enemy respawn table, colour constants, score values, sound durations, LCD strings, and LCD scripts. Changing a message, palette entry, score value, or respawn candidate is usually a data edit rather than a logic edit.
 
 `ram.asm` is arranged around the systems that mutate it:
 
@@ -338,23 +339,24 @@ Currently shared and generic:
 - `shared/inc/constants.asm`: hardware ports, MON-3 keys, colours, dimensions
 - `shared/scan_tick.asm`: matrix scanout and scan-state advance
 - `shared/framebuffer_core.asm`: back-buffer clear and copy
+- `shared/framebuffer_draw.asm`: matrix x-to-mask conversion and RGB framebuffer draw primitives
 - `shared/sound.asm`: speaker divider service
-- `shared/hud.asm`: seven-segment scan and blanking
-- `shared/lcd.asm`: HD44780 primitive operations and script renderer
+- `shared/hud.asm`: seven-segment scan, blanking, digit/glyph tables, and decimal formatting
+- `shared/lcd.asm`: HD44780 primitive operations, script renderer, row string writer, and table-character writer
 
 Currently Pacmo-specific:
 
 - `game_init.asm`: level/player/monster initialization
 - `logic_dispatch.asm`: Pacmo slice schedule, power timer, monster AI, respawn, level progression
 - `movement.asm`: input normalization, player movement, path/power consumption, game-over entry
-- `render.asm`: maze, pills, monsters, player, and Pacmo cell-colour rules
+- `render.asm`: maze, pills, monsters, player, and calls into shared cell-colour primitives
 - `sound.asm`: Pacmo event sound names and durations
-- `hud.asm`: Pacmo score variable formatting
+- `hud.asm`: Pacmo score display wrapper for the shared HUD formatter
 - `ui.asm`: Pacmo LCD status screens
 - `data.asm`: maze, palette, text, scoring, tuning, spawn tables
 - `ram.asm`: Pacmo state layout
 
-The likely future shared candidates are `SCREEN_X_TO_MASK`, the decimal score formatter, and perhaps `WRITE_CELL_COLOR_C_A`. They remain local because their names, data labels, and exact semantics still need to be checked against TETRO's decomposed code before promotion.
+Pacmo score formatting goes through the shared HUD formatter via its local wrapper. Pacmo cell rendering uses `FB_SET_CELL_COLOR`, and Pacmo x-to-mask conversion uses `MATRIX_X_TO_MASK`.
 
 ---
 
@@ -391,9 +393,11 @@ shared hardware helpers
   shared/hud.asm
     SCAN_SCORE_DIGIT, BLANK_HUD_SCORE_DIGITS
   shared/lcd.asm
-    LCD_BUSY, LCD_COMMAND, LCD_STRING, LCD_SHOW_SCRIPT, LCD_PUTC
+    LCD_BUSY, LCD_COMMAND, LCD_STRING, LCD_SHOW_SCRIPT, LCD_PUTC, LCD_WRITE_ROW_STRING, LCD_PUTC_FROM_TABLE
   shared/framebuffer_core.asm
     CLEAR_BACK_ALL, CLEAR_BACK_4, COPY_BACK_TO_FRONT
+  shared/framebuffer_draw.asm
+    MATRIX_X_TO_MASK, FB_SET_CELL_COLOR, FB_OR_ROW_COLOR_MASK
 
 Pacmo wrappers and presentation
   games/pacmo/sound.asm
@@ -417,5 +421,5 @@ state and data
   games/pacmo/ram.asm
     all mutable Pacmo state
   games/pacmo/data.asm
-    maze, palette, score values, LCD scripts, glyph tables, spawn tables
+    maze, palette, score values, LCD scripts, spawn tables
 ```

@@ -1,29 +1,3 @@
-DIAG_SEG_TABLE:
-        DB      0xEB
-        DB      0x28
-        DB      0xCD
-        DB      0xAD
-        DB      0x2E
-        DB      0xA7
-        DB      0xE7
-        DB      0x29
-        DB      0xEF
-        DB      0x2F
-        DB      0x6F
-        DB      0xE6
-        DB      0xC3
-        DB      0xEC
-        DB      0xC7
-        DB      0x47
-
-DIGIT_MASK_TABLE:
-        DB      0x20
-        DB      0x10
-        DB      0x08
-        DB      0x04
-        DB      0x02
-        DB      0x01
-
 ; Score delta per line-clear count. Index 0 unused (early-exit on count=0);
 ; counts >=4 clamp to entry 4 ('tetris').
 CLEAR_SCORE_TABLE:
@@ -247,10 +221,10 @@ PIECE_RIGHT_TABLE:
         DB      2,1,2,1
 
 PIECE_COLOR_TABLE:
-        DB      COLOR_GREEN+COLOR_BLUE              ; I = cyan
-        DB      COLOR_RED+COLOR_GREEN+COLOR_BLUE   ; O  = white
-        DB      COLOR_RED+COLOR_BLUE               ; T  = magenta
+        DB      COLOR_CYAN                         ; I = cyan
+        DB      COLOR_WHITE                        ; O  = white
+        DB      COLOR_MAGENTA                      ; T  = magenta
         DB      COLOR_GREEN                        ; S  = green
         DB      COLOR_RED                          ; Z  = red
         DB      COLOR_BLUE                         ; J  = blue
-        DB      COLOR_RED+COLOR_GREEN              ; L  = yellow
+        DB      COLOR_YELLOW                       ; L  = yellow

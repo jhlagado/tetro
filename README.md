@@ -70,22 +70,24 @@ src/
 |-- pacmo.asm                  ; Debug80 target entry point and include order
 |-- shared/
 |   |-- inc/
-|   |   `-- constants.asm      ; ports, key codes, shared tuning constants
+|   |   `-- constants.asm      ; ports, key codes, shared colour constants
 |   |-- framebuffer_core.asm   ; generic back-buffer clear/copy helpers
-|   |-- framebuffer.asm        ; TETRO board/active rendering helpers
-|   |-- hud.asm                ; seven-segment scan and blanking helpers
-|   |-- input.asm              ; keypad polling and repeat handling
+|   |-- framebuffer_draw.asm   ; matrix masks and RGB draw primitives
+|   |-- hud.asm                ; seven-segment scan and decimal formatting
 |   |-- lcd.asm                ; HD44780 primitive operations and scripts
 |   |-- scan_tick.asm          ; matrix row scan and scan-state advance
 |   `-- sound.asm              ; speaker divider service
 `-- games/
     |-- tetro/
+    |   |-- constants.asm       ; TETRO tuning constants
     |   |-- geometry_helpers.asm
     |   |-- collision.asm
+    |   |-- render.asm
     |   |-- piece_active.asm
     |   |-- board_lock.asm
     |   |-- game_init.asm
     |   |-- logic_dispatch.asm
+    |   |-- input.asm
     |   |-- sound.asm
     |   |-- hud.asm
     |   |-- ui.asm

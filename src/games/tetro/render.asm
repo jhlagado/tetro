@@ -154,7 +154,7 @@ RENDER_SHAPE_ROW:
         LD      A,(DE)
         CALL    SHIFT_ROW_MASK          ; returns A = shifted mask
         LD      C,A
-        OR      A                       ; test A; C retains mask for WRITE_COLORED_ROW_MASK
+        OR      A                       ; test A; C retains mask for FB_OR_ROW_COLOR_MASK
         JR      Z,RENDER_SHAPE_NEXT_ROW
         BIT     7,L
         JR      NZ,RENDER_SHAPE_NEXT_ROW
@@ -169,7 +169,8 @@ RENDER_SHAPE_ROW:
         LD      D,0
         LD      HL,FRAMEBUFFER_BACK
         ADD     HL,DE
-        CALL    WRITE_COLORED_ROW_MASK
+        LD      A,(CURRENT_PIECE_COLOR)
+        CALL    FB_OR_ROW_COLOR_MASK
         POP     DE
         POP     HL
 RENDER_SHAPE_NEXT_ROW:
@@ -179,36 +180,5 @@ RENDER_SHAPE_NEXT_ROW:
 RENDER_ACTIVE_TO_BACK_EXIT:
         POP     HL
         POP     DE
-        POP     BC
-        RET
-; OR mask C into the colour planes selected by CURRENT_PIECE_COLOR.
-; On exit, HL = this row's blue (aux byte 3 not used by scan, not written).
-; WRITE_COLORED_ROW_MASK
-; Input:
-;   HL = framebuffer row red-byte address
-;   C  = row mask
-; Output:
-;   mask ORed into enabled red, green, blue bytes
-;   HL = blue-byte address on return
-; Clobbers:
-;   A, HL
-WRITE_COLORED_ROW_MASK:
-        PUSH    BC                      ; caller's B is a DJNZ counter (RENDER_ACTIVE_TO_BACK)
-        LD      A,(CURRENT_PIECE_COLOR)
-        LD      B,3                     ; 3 planes: R, G, B
-WRITE_COLORED_ROW_LOOP:
-        RRCA                            ; low bit (red/green/blue per iter) -> carry
-        JR      NC,WRITE_COLORED_ROW_SKIP
-        PUSH    AF
-        LD      A,(HL)
-        OR      C
-        LD      (HL),A
-        POP     AF
-WRITE_COLORED_ROW_SKIP:
-        DEC     B
-        JR      Z,WRITE_COLORED_ROW_EXIT
-        INC     HL                      ; advance to next plane byte (between iters only)
-        JR      WRITE_COLORED_ROW_LOOP
-WRITE_COLORED_ROW_EXIT:
         POP     BC
         RET

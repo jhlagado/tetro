@@ -15,9 +15,10 @@ The shared codebase already provides the low-level runtime:
 - `shared/inc/constants.asm`: hardware ports, MON-3 API constants, matrix dimensions, colour bits, and speaker bit
 - `shared/scan_tick.asm`: matrix scanout and scan-state advance
 - `shared/framebuffer_core.asm`: generic back-buffer clear/copy helpers
+- `shared/framebuffer_draw.asm`: matrix x-to-mask conversion and RGB framebuffer drawing primitives
 - `shared/sound.asm`: speaker divider state machine
-- `shared/hud.asm`: seven-segment digit scan and blanking
-- `shared/lcd.asm`: HD44780 primitives and script renderer
+- `shared/hud.asm`: seven-segment digit scan, blanking, digit/glyph tables, and decimal formatting
+- `shared/lcd.asm`: HD44780 primitives, script renderer, row string writer, and table-character writer
 
 That split is working. The next step is to raise the shared layer slightly, but only where the contract remains game-neutral.
 
@@ -51,16 +52,16 @@ The shared layer should make common jobs quicker. It should not make either game
 
 ## Priority 1: HUD and score formatting
 
-This is the clearest duplication.
+This duplication has been removed.
 
-TETRO and Pacmo both format a 16-bit score into six seven-segment digits by repeated subtraction. The routines differ only in the score variable name and glyph table name. The digit mask table and seven-segment glyph table are also duplicated.
+TETRO and Pacmo both format a 16-bit score into six seven-segment digits by repeated subtraction. The shared HUD layer now owns the digit mask table, glyph table, and decimal writer.
 
-Design:
+Implemented shape:
 
-- Move the seven-segment glyph table and digit mask table into shared data.
-- Add a shared decimal formatter such as `HUD_WRITE_U16_DECIMAL`.
-- Keep game-local `UPDATE_SCORE_DISPLAY` wrappers.
-- Let each wrapper load the game score into `HL`, point `BC` at `HUD_SEG_BUFFER`, and tail-call the shared formatter.
+- `src/shared/hud.asm` owns `HUD_DIGIT_MASK_TABLE` and `HUD_SEG_GLYPH_TABLE`.
+- `src/shared/hud.asm` owns `HUD_WRITE_U16_DECIMAL` and `HUD_WRITE_DECIMAL_DIGIT`.
+- Game-local `UPDATE_SCORE_DISPLAY` wrappers remain in place.
+- Each wrapper loads the game score into `HL` and tail-calls the shared formatter. The shared formatter owns the `HUD_SEG_BUFFER` destination.
 
 The shared formatter should not know `SCORE_LO`, `PACMO_SCORE`, line clears, paths, pills, or enemies. It should only know how to turn a 16-bit value into segment bytes.
 
@@ -74,17 +75,16 @@ Expected result:
 
 ## Priority 2: Move TETRO-shaped files out of `shared`
 
-Two files are currently shared in location but not in contract.
+This boundary cleanup has been completed.
 
-`shared/input.asm` is TETRO-specific. It calls labels such as `MOVE_LEFT`, `MOVE_RIGHT`, `ROTATE_CW`, `ROTATE_LEFT`, and `SOFT_DROP`. Those are not reusable concepts for a third game.
+Before the move, the shared directory contained TETRO-specific input and rendering files. The input file called labels such as `MOVE_LEFT`, `MOVE_RIGHT`, `ROTATE_CW`, `ROTATE_LEFT`, and `SOFT_DROP`. The rendering file depended on labels such as `BOARD_ROWS`, `CURRENT_PIECE_PTR`, `CURRENT_PIECE_COLOR`, `CLEAR_MASK`, and `GAME_OVER`. Those were historical location problems, not reusable shared contracts.
 
-`shared/framebuffer.asm` is also TETRO-specific. It renders the TETRO board and active piece. It depends on TETRO labels such as `BOARD_ROWS`, `CURRENT_PIECE_PTR`, `CURRENT_PIECE_COLOR`, `CLEAR_MASK`, and `GAME_OVER`.
+Implemented shape:
 
-Design:
-
-- Move `shared/input.asm` to `games/tetro/input.asm`, or rename it so its TETRO contract is explicit.
-- Move `shared/framebuffer.asm` to `games/tetro/render.asm`, or split it so only genuine framebuffer primitives remain shared.
-- Keep `shared/framebuffer_core.asm` where it is.
+- TETRO input lives in `src/games/tetro/input.asm`.
+- TETRO rendering lives in `src/games/tetro/render.asm`.
+- `src/shared/framebuffer_core.asm` remains shared for generic clear/copy helpers.
+- `src/shared/framebuffer_draw.asm` contains only game-neutral framebuffer draw primitives.
 
 This does not reduce code size, but it improves the architecture. The `shared` directory should mean “usable by another game.”
 
@@ -102,11 +102,11 @@ Both games use the shared LCD script runner, then patch a dynamic row.
 
 TETRO writes `NEXT: ` and appends a piece letter. Pacmo writes `LEVEL ` and appends a level character. The screen names and dynamic data are game-specific, but the row positioning and table-character append pattern are generic.
 
-Design:
+Implemented shape:
 
-- Add a shared helper to position the LCD cursor and write a string, for example `LCD_WRITE_ROW_STRING`.
-- Add a small helper to append a table-indexed character, for example `LCD_PUTC_FROM_TABLE`.
-- Keep all screen-selection wrappers local.
+- `src/shared/lcd.asm` owns `LCD_WRITE_ROW_STRING`.
+- `src/shared/lcd.asm` owns `LCD_PUTC_FROM_TABLE`.
+- All screen-selection wrappers stay local.
 
 The shared helper should not know about `NEXT_PIECE_INDEX`, `PIECE_NAME_TABLE`, `PACMO_LEVEL`, or `PACMO_LEVEL_CHAR_TABLE`. Those values should be loaded by local wrappers.
 
@@ -121,12 +121,12 @@ Expected result:
 
 Pacmo has a useful generic cell writer. TETRO has useful row-mask colour writers. Both speak the same RGB framebuffer language, but they are still embedded in game files.
 
-Design:
+Implemented shape:
 
-- Add a shared `MATRIX_X_TO_MASK` helper for screen x coordinates, documenting that x 0 maps to the most significant bit.
-- Add a shared `FB_SET_CELL_COLOR` helper that sets one RGB cell to an exact colour, replacing previous colour bits.
-- Add a shared `FB_OR_ROW_COLOR_MASK` helper that ORs a row mask into selected RGB planes.
-- Keep Pacmo world rendering and TETRO piece rendering local.
+- `src/shared/framebuffer_draw.asm` owns `MATRIX_X_TO_MASK` for screen x coordinates, with x 0 mapped to the most significant bit.
+- `src/shared/framebuffer_draw.asm` owns `FB_SET_CELL_COLOR`, which sets one RGB cell to an exact colour, replacing previous colour bits.
+- `src/shared/framebuffer_draw.asm` owns `FB_OR_ROW_COLOR_MASK`, which ORs a row mask into selected RGB planes.
+- Pacmo world rendering and TETRO piece rendering remain local.
 
 This is a good place to standardise names around “matrix”, “framebuffer”, “cell”, “row mask”, and “colour.”
 
@@ -142,9 +142,9 @@ Expected result:
 
 The hardware constants already expose `COLOR_RED`, `COLOR_GREEN`, and `COLOR_BLUE`. Games then compose cyan, magenta, yellow, and white inline.
 
-Design:
+Implemented shape:
 
-- Add standard composite colour constants to `shared/inc/constants.asm`:
+- `src/shared/inc/constants.asm` owns standard composite colour constants:
   - `COLOR_BLACK`
   - `COLOR_YELLOW`
   - `COLOR_CYAN`
@@ -183,6 +183,8 @@ Design:
 
 Likewise, both games advance `LOGIC_SLICE` in the same way. A shared `ADVANCE_LOGIC_SLICE` helper may be useful, but a callback-based scheduler is not recommended.
 
+Implementation note: leave `LOGIC_SLICE_NEXT` local for now. Although the instruction sequence is duplicated, extracting it naively would either add a tail jump/call or move a `JR` target farther away. On this hardware, scan-loop timing and branch locality matter more than removing four duplicated instructions. Revisit only if a future assembler macro/include pattern can keep the emitted bytes and local branch shape equivalent.
+
 Expected result:
 
 - slightly less timer boilerplate
@@ -210,7 +212,7 @@ These areas may share design philosophy, but they do not yet share a clean game-
 
 1. Rename the shared codebase documentation and update links.
 2. Extract shared HUD segment tables and decimal score formatting.
-3. Move TETRO-shaped `input.asm` and `framebuffer.asm` out of `src/shared`, or split them so only generic pieces remain shared.
+3. Move TETRO-shaped input and rendering out of `src/shared`, keeping only generic framebuffer helpers shared.
 4. Add LCD row/table-character helpers.
 5. Add framebuffer colour and mask primitives.
 6. Add shared composite colour constants and update palettes to use them.

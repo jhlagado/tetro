@@ -22,6 +22,7 @@ MAIN_LOOP:
         .include "games/pacmo/logic_dispatch.asm"
         .include "games/pacmo/movement.asm"
         .include "shared/framebuffer_core.asm"
+        .include "shared/framebuffer_draw.asm"
         .include "games/pacmo/render.asm"
         .include "shared/sound.asm"
         .include "games/pacmo/sound.asm"

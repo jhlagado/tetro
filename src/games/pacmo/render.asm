@@ -335,11 +335,11 @@ RENDER_POWER_PILL_BC:
         SUB     E                       ; A = screenX
         CP      ROW_COUNT
         RET     NC
-        CALL    SCREEN_X_TO_MASK
+        CALL    MATRIX_X_TO_MASK
         LD      C,A
 
         LD      A,PACMO_COLOR_POWER_PILL
-        JP      WRITE_CELL_COLOR_C_A
+        JP      FB_SET_CELL_COLOR
 
 ; RENDER_ENEMY_TO_BACK
 ; Input:
@@ -377,7 +377,7 @@ RENDER_ENEMY_TO_BACK:
         SUB     C                       ; A = screenX
         CP      ROW_COUNT
         RET     NC
-        CALL    SCREEN_X_TO_MASK
+        CALL    MATRIX_X_TO_MASK
         LD      C,A
 
         PUSH    HL
@@ -400,10 +400,10 @@ RENDER_ENEMY_TIMER_FLEE:
 RENDER_ENEMY_TIMER_ATTACK:
         POP     HL
         LD      A,PACMO_COLOR_ENEMY_ATTACK
-        JP      WRITE_CELL_COLOR_C_A
+        JP      FB_SET_CELL_COLOR
 RENDER_ENEMY_FLEE:
         LD      A,PACMO_COLOR_ENEMY_FLEE
-        JP      WRITE_CELL_COLOR_C_A
+        JP      FB_SET_CELL_COLOR
 
 ; RENDER_PLAYER_TO_BACK
 ; Input:
@@ -437,7 +437,7 @@ RENDER_PLAYER_TO_BACK:
         SUB     C                       ; A = screenX
         CP      ROW_COUNT
         RET     NC
-        CALL    SCREEN_X_TO_MASK
+        CALL    MATRIX_X_TO_MASK
         LD      C,A
 
         LD      A,(PACMO_PLAYER_CAUGHT)
@@ -448,80 +448,10 @@ RENDER_PLAYER_TO_BACK:
         OR      A
         JR      NZ,RENDER_PLAYER_WHITE
         LD      A,PACMO_COLOR_PLAYER
-        JP      WRITE_CELL_COLOR_C_A
+        JP      FB_SET_CELL_COLOR
 RENDER_PLAYER_WHITE:
         LD      A,PACMO_COLOR_ROUND_COMPLETE
-        JP      WRITE_CELL_COLOR_C_A
+        JP      FB_SET_CELL_COLOR
 RENDER_PLAYER_CAUGHT:
         LD      A,PACMO_COLOR_ENEMY_ATTACK
-        JP      WRITE_CELL_COLOR_C_A
-
-; WRITE_CELL_COLOR_C_A
-; Input:
-;   HL = red plane byte for the target row
-;   C  = target cell bit mask
-;   A  = COLOR_* bitfield
-; Output:
-;   target cell set to the requested color, replacing previous RGB bits
-; Clobbers:
-;   A, B, D, HL
-WRITE_CELL_COLOR_C_A:
-        LD      B,A
-        LD      A,C
-        CPL
-        LD      D,A
-        LD      A,B
-        AND     COLOR_RED
-        JR      Z,WRITE_CELL_RED_OFF
-        LD      A,(HL)
-        OR      C
-        JR      WRITE_CELL_RED_STORE
-WRITE_CELL_RED_OFF:
-        LD      A,(HL)
-        AND     D
-WRITE_CELL_RED_STORE:
-        LD      (HL),A
-        INC     HL
-        LD      A,B
-        AND     COLOR_GREEN
-        JR      Z,WRITE_CELL_GREEN_OFF
-        LD      A,(HL)
-        OR      C
-        JR      WRITE_CELL_GREEN_STORE
-WRITE_CELL_GREEN_OFF:
-        LD      A,(HL)
-        AND     D
-WRITE_CELL_GREEN_STORE:
-        LD      (HL),A
-        INC     HL
-        LD      A,B
-        AND     COLOR_BLUE
-        JR      Z,WRITE_CELL_BLUE_OFF
-        LD      A,(HL)
-        OR      C
-        JR      WRITE_CELL_BLUE_STORE
-WRITE_CELL_BLUE_OFF:
-        LD      A,(HL)
-        AND     D
-WRITE_CELL_BLUE_STORE:
-        LD      (HL),A
-        RET
-
-; SCREEN_X_TO_MASK
-; Input:
-;   A = screen x coordinate, expected 0..7
-; Output:
-;   A = bit mask with column 0 as MSB
-; Clobbers:
-;   B, C
-SCREEN_X_TO_MASK:
-        LD      C,A
-        OR      A
-        LD      A,0x80
-        JR      Z,SCREEN_X_TO_MASK_DONE
-        LD      B,C
-SCREEN_X_TO_MASK_LOOP:
-        SRL     A
-        DJNZ    SCREEN_X_TO_MASK_LOOP
-SCREEN_X_TO_MASK_DONE:
-        RET
+        JP      FB_SET_CELL_COLOR
