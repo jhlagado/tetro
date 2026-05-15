@@ -387,7 +387,7 @@ PACMO_MARK_EATEN_AT_BC:
         LD      A,B
         CP      8
         JR      NC,PACMO_MARK_EATEN_LOW_BYTE
-        CALL    SCREEN_X_TO_MASK
+        CALL    MATRIX_X_TO_MASK
         LD      E,A
         LD      A,(HL)
         AND     E
@@ -405,7 +405,7 @@ PACMO_MARK_EATEN_AT_BC:
 PACMO_MARK_EATEN_LOW_BYTE:
         SUB     8
         INC     HL
-        CALL    SCREEN_X_TO_MASK
+        CALL    MATRIX_X_TO_MASK
         LD      E,A
         LD      A,(HL)
         AND     E

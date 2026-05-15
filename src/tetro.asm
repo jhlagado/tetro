@@ -45,6 +45,7 @@ MAIN_LOOP:
         .include "games/tetro/geometry_helpers.asm"
         .include "games/tetro/collision.asm"
         .include "shared/framebuffer_core.asm"
+        .include "shared/framebuffer_draw.asm"
         .include "games/tetro/render.asm"
         .include "games/tetro/piece_active.asm"
         .include "games/tetro/board_lock.asm"
