@@ -4,7 +4,7 @@ TETRO is a falling-block game for the TEC-1G single-board Z80 computer. It runs 
 
 The important constraint is that there are no interrupts. The matrix is visible only because the CPU keeps scanning it. Sound and score display only continue because the same loop keeps servicing them. Game logic has to fit around that hardware maintenance.
 
-This tour follows the TETRO code as it now stands. The shared loop, scan tick, LCD, HUD, sound, and framebuffer contracts are covered in [shared-runtime.md](shared-runtime.md).
+This tour follows the TETRO code as it now stands. The shared loop, scan tick, LCD, HUD, sound, and framebuffer contracts are covered in [shared-codebase.md](shared-codebase.md).
 
 ---
 
@@ -69,7 +69,7 @@ MAIN_LOOP:
     JR      MAIN_LOOP
 ```
 
-Those three instructions in `src/tetro.asm` are the whole runtime. TETRO uses the shared cooperative loop described in [shared-runtime.md](shared-runtime.md): `SCAN_TICK` keeps the hardware alive, and `LOGIC_TICK` performs one slice of game work.
+Those three instructions in `src/tetro.asm` are the whole runtime. TETRO uses the shared cooperative loop described in [shared-codebase.md](shared-codebase.md): `SCAN_TICK` keeps the hardware alive, and `LOGIC_TICK` performs one slice of game work.
 
 This means the display, score digits, speaker, keypad, gravity, rendering, and line-clear timing all share the same cooperative clock.
 
