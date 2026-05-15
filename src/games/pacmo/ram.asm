@@ -1,9 +1,9 @@
 ; RAM layout for the Pacmo scrolling experiment.
 RAM_START:
 PLAYER_X:
-        DS      1
+        DB      0
 PLAYER_Y:
-        DS      1
+        DB      0
 MONSTERS:
 MONSTER0:
         DS      MONSTER_SIZE
@@ -30,67 +30,67 @@ ENEMY3_TIMER EQU MONSTER2+MONSTER_TIMER
 ENEMY3_RESPAWN_TIMER EQU MONSTER2+MONSTER_RESPAWN_TIMER
 ENEMY3_STATE EQU MONSTER2+MONSTER_STATE
 ENEMY_PERIOD_CURRENT:
-        DS      1
+        DB      0
 VIEW_X:
-        DS      1
+        DB      0
 VIEW_Y:
-        DS      1
+        DB      0
 MOVE_COOLDOWN:
-        DS      1
+        DB      0
 LAST_KEY:
-        DS      1
+        DB      0
 PACMO_SPLASH_ACTIVE:
-        DS      1
+        DB      0
 PACMO_PAUSED:
-        DS      1
+        DB      0
 HUD_SCAN_INDEX:
-        DS      1
+        DB      0
 SPEAKER_PORT_STATE:
-        DS      1
+        DB      0
 SOUND_TIMER:
-        DS      1
+        DB      0
 SOUND_DIVIDER_RELOAD:
-        DS      1
+        DB      0
 SOUND_DIVIDER_COUNT:
-        DS      1
+        DB      0
 PACMO_SCORE:
-        DS      2
+        DW      0
 HUD_SEG_BUFFER:
         DS      6
 FRAME_PHASE:
-        DS      1
+        DB      0
 LOGIC_SLICE:
-        DS      1
+        DB      0
 RENDER_EATEN_PTR:
-        DS      2
+        DW      0
 PACMO_POWER_PILLS_EATEN:
-        DS      1
+        DB      0
 PACMO_POWER_TIMER:
-        DS      2
+        DW      0
 PACMO_POWER_TIMER_LO EQU PACMO_POWER_TIMER
 PACMO_POWER_TIMER_HI EQU PACMO_POWER_TIMER+1
 PACMO_ROUND_COMPLETE:
-        DS      1
+        DB      0
 PACMO_PLAYER_CAUGHT:
-        DS      1
+        DB      0
 PACMO_GAME_OVER:
-        DS      1
+        DB      0
 PACMO_LEVEL:
-        DS      1
+        DB      0
 PACMO_LIVES:
-        DS      1
+        DB      0
 PACMO_LEVEL_COMPLETE_GATE:
-        DS      2
+        DW      0
 PACMO_LEVEL_COMPLETE_GATE_LO EQU PACMO_LEVEL_COMPLETE_GATE
 PACMO_LEVEL_COMPLETE_GATE_HI EQU PACMO_LEVEL_COMPLETE_GATE+1
 PACMO_GAME_OVER_GATE:
-        DS      2
+        DW      0
 PACMO_GAME_OVER_GATE_LO EQU PACMO_GAME_OVER_GATE
 PACMO_GAME_OVER_GATE_HI EQU PACMO_GAME_OVER_GATE+1
 SCAN_MASK:
-        DS      1
+        DB      0
 SCAN_PTR:
-        DS      2
+        DW      0
 FRAMEBUFFER:
         DS      FRAMEBUFFER_BYTES
 FRAMEBUFFER_BACK:
