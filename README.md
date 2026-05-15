@@ -1,10 +1,15 @@
-# TETRO
+# TEC-1G Game Suite
 
-TETRO is a 7-piece falling-block game for the TEC-1G single-board Z80 computer, running under MON-3.
+This repository contains small 8x8 RGB matrix games for the TEC-1G single-board Z80 computer running under MON-3.
 
-The game draws an 8x8 RGB LED matrix, uses the MON-3 keypad for controls, shows status on an HD44780 LCD, and scans a six-digit seven-segment score display. All of that runs from one cooperative loop: one matrix row is emitted per pass, sound and score scan from the same tick, and game logic is spread across eight slices.
+The suite currently includes:
 
-The shared codebase is described in [docs/shared-codebase.md](docs/shared-codebase.md). The TETRO code tour is in [docs/tetro-codebase.md](docs/tetro-codebase.md).
+- **Tetro**: a 7-piece falling-block game.
+- **Pacmo**: a scrolling maze game with consumable paths, power pills, and monsters.
+
+Both games draw the 8x8 RGB LED matrix, use the MON-3 keypad for controls, show status on an HD44780 LCD, scan a six-digit seven-segment score display, and drive the speaker from the same cooperative loop. One matrix row is emitted per pass, sound and score scan from the same tick, and game logic is spread across eight slices.
+
+The shared codebase is described in [docs/shared-codebase.md](docs/shared-codebase.md). The game-specific tours are in [docs/tetro-codebase.md](docs/tetro-codebase.md) and [docs/pacmo-codebase.md](docs/pacmo-codebase.md).
 
 ## Hardware
 
@@ -16,7 +21,11 @@ The shared codebase is described in [docs/shared-codebase.md](docs/shared-codeba
 
 Port assignments and shared hardware/display constants live in [src/shared/inc/constants.asm](src/shared/inc/constants.asm).
 
-## Controls
+## Tetro
+
+Tetro is a compact falling-block game built around precomputed piece rotations, collision checks against an 8x8 landed board, row clears, scoring, gravity, pause, and restart flow.
+
+### Tetro Controls
 
 | Key | Code | Action |
 | --- | ---: | --- |
@@ -30,7 +39,7 @@ Port assignments and shared hardware/display constants live in [src/shared/inc/c
 
 Movement and soft drop repeat while held. Rotation is edge-triggered.
 
-## Gameplay
+### Tetro Gameplay
 
 - Pieces: `I`, `O`, `T`, `S`, `Z`, `J`, `L`.
 - Piece colours: `I` cyan, `O` white, `T` magenta, `S` green, `Z` red, `J` blue, `L` yellow.
@@ -40,6 +49,51 @@ Movement and soft drop repeat while held. Rotation is edge-triggered.
 - Gravity starts at `GRAVITY_PERIOD` and drops to `GRAVITY_PERIOD_STEP1` once the score reaches 2000.
 - Game over occurs when a spawn collides immediately or a locked piece still occupies rows above the visible field.
 
+## Pacmo
+
+Pacmo is an 8x8 window into a larger 15x15 maze. The player consumes open paths, collects power pills, avoids attacking monsters, and can eat fleeing monsters during power mode.
+
+### Pacmo Controls
+
+| Key | Code | Action |
+| --- | ---: | --- |
+| `<` | `0x11` | Move left |
+| `>` | `0x10` | Move right |
+| `AD` | `0x13` | Move up |
+| `GO` | `0x12` | Move down |
+| any key | | Start from splash, or restart after the caught gate opens |
+
+Alternative diamond controls:
+
+```text
+      8 = up
+< = left   5 = right
+      0 = down
+```
+
+Movement repeats while held, with a short repeat delay. The arrow keys and diamond keys normalize to the same Pacmo movement directions.
+
+### Pacmo Display Legend
+
+| Colour | Meaning |
+| --- | --- |
+| blue | Wall |
+| green | Uneaten path |
+| black | Eaten path |
+| yellow | Player |
+| white | Power pill, or round-complete state |
+| red | Attacking monster, caught state, or game-over cue |
+| magenta | Fleeing monster during power mode |
+
+### Pacmo Gameplay
+
+- The visible matrix is an 8x8 viewport into a 15x15 maze.
+- Eaten paths disappear to black.
+- Power pills turn monsters magenta and make them edible for a limited time.
+- Eating a fleeing monster hides it until a respawn timer places it away from the player and visible viewport.
+- Level 1 uses two monsters; level 2 and later add a third.
+- Completing all open paths advances the level and speeds up monsters down to a minimum period.
+
 ## Build
 
 Requires [asm80](https://www.npmjs.com/package/asm80). Assemble from `src/`, because `.include` paths are relative to the main source file.
@@ -48,19 +102,21 @@ Requires [asm80](https://www.npmjs.com/package/asm80). Assemble from `src/`, bec
 mkdir -p build
 (cd src && asm80 -m Z80 -t hex -o ../build/tetro.hex tetro.asm)
 (cd src && asm80 -m Z80 -t bin -o ../build/tetro.bin tetro.asm)
+(cd src && asm80 -m Z80 -t hex -o ../build/pacmo.hex pacmo.asm)
+(cd src && asm80 -m Z80 -t bin -o ../build/pacmo.bin pacmo.asm)
 ```
 
 The generated files under `build/` are outputs, not source.
 
 ## Run
 
-Load the assembled program at `$4000`, matching the `ORG` in [src/tetro.asm](src/tetro.asm), then run:
+Load the assembled program at `$4000`, matching the `ORG` in [src/tetro.asm](src/tetro.asm) or [src/pacmo.asm](src/pacmo.asm), then run:
 
 ```text
 GO 4000
 ```
 
-The LCD shows the splash screen. Press any key to start.
+The LCD shows the selected game's splash screen. Press any key to start.
 
 ## Source Layout
 
@@ -79,7 +135,7 @@ src/
 |   `-- sound.asm              ; speaker divider service
 `-- games/
     |-- tetro/
-    |   |-- constants.asm       ; TETRO tuning constants
+    |   |-- constants.asm       ; Tetro tuning constants
     |   |-- geometry_helpers.asm
     |   |-- collision.asm
     |   |-- render.asm
@@ -108,9 +164,9 @@ src/
 ## Documentation
 
 - [docs/shared-codebase.md](docs/shared-codebase.md) explains the cooperative loop, scan tick, shared LCD/HUD/sound helpers, framebuffer contract, and shared/local boundary.
-- [docs/tetro-codebase.md](docs/tetro-codebase.md) explains TETRO's state machine, collision path, movement, locking, rendering, pieces, LCD wrappers, score path, and game-over flow.
+- [docs/tetro-codebase.md](docs/tetro-codebase.md) explains Tetro's state machine, collision path, movement, locking, rendering, pieces, LCD wrappers, score path, and game-over flow.
 - [docs/pacmo-codebase.md](docs/pacmo-codebase.md) explains Pacmo's viewport, movement, maze consumption, power mode, monsters, rendering, scoring, and level progression.
-- [docs/shared-game-substrate-design.md](docs/shared-game-substrate-design.md) captures the next shared-codebase harmonisation design.
+- [docs/shared-game-substrate-design.md](docs/shared-game-substrate-design.md) captures the shared-codebase harmonisation design.
 
 ## License
 

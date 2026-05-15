@@ -2,7 +2,7 @@
 
 Pacmo is a maze game for the TEC-1G 8x8 RGB matrix. The visible display is not the whole world; it is an 8x8 window into a 15x15 maze. The player is a single bright pixel, the maze scrolls under that pixel where possible, and enemies move through the same world on their own timers.
 
-The implementation follows the same hard constraint as TETRO: there are no interrupts and no background thread. Matrix scanout, speaker timing, score display, input, enemy movement, collision, and rendering all share one loop. Pacmo therefore uses the same scan/slice architecture, but its game logic is about a scrolling world, consumable paths, power mode, and monster records rather than falling pieces.
+The implementation follows the same hard constraint as Tetro: there are no interrupts and no background thread. Matrix scanout, speaker timing, score display, input, enemy movement, collision, and rendering all share one loop. Pacmo therefore uses the same scan/slice architecture, but its game logic is about a scrolling world, consumable paths, power mode, and monster records rather than falling pieces.
 
 This document describes the current Pacmo code. The shared loop, scan tick, LCD, HUD, sound, and framebuffer contracts are covered in [shared-codebase.md](shared-codebase.md).
 
@@ -144,6 +144,23 @@ Pacmo normalizes raw keys into movement intents. The game logic does not care wh
 - GO / `K_ROTATE` -> `PACMO_DIR_DOWN`
 - key 0 -> `PACMO_DIR_DOWN`
 
+Player-facing controls are therefore:
+
+| Key | Action |
+| --- | --- |
+| `<` | move left |
+| `>` | move right |
+| `AD` | move up |
+| `GO` | move down |
+
+The alternative diamond layout is:
+
+```text
+      8 = up
+< = left   5 = right
+      0 = down
+```
+
 Held-key movement is throttled by `MOVE_COOLDOWN` and `LAST_KEY`. A new direction gets a one-tick cooldown so it moves promptly; a held direction reloads from `PACMO_MOVE_PERIOD`.
 
 Each move constructs a candidate coordinate in `B` and `C`, then calls `TRY_MOVE_PLAYER_TO_BC`. That routine rejects walls via `PACMO_IS_WALL_AT_BC`, commits `PLAYER_X/Y` on success, consumes a power pill if present, marks the path as eaten, checks for round completion, checks monster collision, and updates the viewport.
@@ -282,6 +299,18 @@ Wall colour is state-dependent:
 
 Single-cell overlays go through `FB_SET_CELL_COLOR`. The render path converts screen x coordinates with `MATRIX_X_TO_MASK`, then passes the framebuffer row pointer, cell bit mask, and colour bitfield to the shared cell writer. `FB_SET_CELL_COLOR` clears that bit from each RGB plane not present in the colour and sets it in each plane that is present. This matters because an enemy over a green path should render as red, not yellow from red plus green.
 
+The player-facing colour legend is:
+
+| Colour | Meaning |
+| --- | --- |
+| blue | wall |
+| green | uneaten path |
+| black | eaten path |
+| yellow | player |
+| white | power pill, or round-complete state |
+| red | attacking monster, caught state, or game-over cue |
+| magenta | fleeing monster during power mode |
+
 ---
 
 ## LCD, score, and sound
@@ -295,8 +324,8 @@ The score display is split. Shared `SCAN_SCORE_DIGIT` handles multiplexing, and 
 Sound is split the same way. Shared `SOUND_START` and `SERVICE_SOUND` implement the square-wave state machine. Pacmo-local sound wrappers in `src/games/pacmo/sound.asm` load event-specific duration and divider values:
 
 - power pill
-- fleeing monster eaten
-- player caught
+- fleeing monster eaten, now tuned as a longer confirmation cue
+- player caught, now tuned as a longer game-over cue
 - level complete
 
 There is no movement sound now; it was removed because it made the game noisier without adding useful information.
@@ -328,7 +357,7 @@ Most static Pacmo data lives here: the 15-row maze bitmap, power-pill table, ene
 
 `MONSTER0`, `MONSTER1`, and `MONSTER2` are contiguous records, and symbolic aliases such as `ENEMY_X` and `ENEMY2_TIMER` point into those records. New enemy code should prefer `IX` record access; the aliases exist mostly for initialization and readability.
 
-The framebuffer is the same shape used by TETRO and the shared scanout: eight rows, four bytes per row. The first three bytes are red, green, and blue. The fourth is aux/padding and is cleared but not emitted by scanout.
+The framebuffer is the same shape used by Tetro and the shared scanout: eight rows, four bytes per row. The first three bytes are red, green, and blue. The fourth is aux/padding and is cleared but not emitted by scanout.
 
 ---
 

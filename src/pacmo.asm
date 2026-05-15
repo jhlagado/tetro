@@ -2,7 +2,7 @@
 ; ------------------
 ; First Pacmo experiment: a yellow cursor moving through an 8x8 viewport
 ; over a larger 15x15 bitmap world.  This target is intentionally separate
-; from TETRO so the finished TETRO game remains stable while Pacmo evolves.
+; from Tetro so the finished Tetro game remains stable while Pacmo evolves.
 ; SPDX-License-Identifier: 0BSD
 
         ORG     0x4000

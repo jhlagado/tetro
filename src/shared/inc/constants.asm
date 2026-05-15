@@ -25,7 +25,7 @@ K_PAUSE:        EQU     0x00
 NO_KEY:         EQU     0xFF
 
 ; Matrix / display constants. ROW_COUNT is the 8x8 matrix dimension; the name
-; is historical from TETRO's original single-game source layout.
+; is historical from Tetro's original single-game source layout.
 ROW_COUNT:      EQU     8
 BYTES_PER_ROW:  EQU     4
 FRAMEBUFFER_BYTES: EQU  32

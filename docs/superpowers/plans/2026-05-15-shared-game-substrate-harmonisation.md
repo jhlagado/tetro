@@ -2,9 +2,9 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Extract game-neutral runtime helpers from TETRO and Pacmo while moving game-specific behaviour back to local game files and preserving both binaries' intended behaviour.
+**Goal:** Extract game-neutral runtime helpers from Tetro and Pacmo while moving game-specific behaviour back to local game files and preserving both binaries' intended behaviour.
 
-**Architecture:** Treat `src/shared` as a contract boundary, not a convenience folder. Promote only hardware-shaped, buffer-shaped, or small pure helpers with explicit Input / Output / Clobbers comments; keep TETRO piece/input rules and Pacmo maze/entity rules local. Each assembly refactor is a small commit with both games built immediately afterward, plus register-contract review before moving to the next step.
+**Architecture:** Treat `src/shared` as a contract boundary, not a convenience folder. Promote only hardware-shaped, buffer-shaped, or small pure helpers with explicit Input / Output / Clobbers comments; keep Tetro piece/input rules and Pacmo maze/entity rules local. Each assembly refactor is a small commit with both games built immediately afterward, plus register-contract review before moving to the next step.
 
 **Tech Stack:** Z80 assembly, `asm80`, TEC-1G MON-3 ports, Git/GitHub, documentation in Markdown.
 
@@ -16,7 +16,7 @@
 - Do not move labels such as `MOVE_LEFT`, `ROTATE_CW`, `SOFT_DROP`, `PACMO_POWER_TIMER`, `MONSTER0`, `CURRENT_PIECE_PTR`, or `BOARD_ROWS` into `src/shared`.
 - Every shared routine must have an explicit `Input`, `Output`, and `Clobbers` comment.
 - Keep game-local wrappers where variable names are game-specific, especially score variables and LCD dynamic rows.
-- Build TETRO and Pacmo after every meaningful assembly change.
+- Build Tetro and Pacmo after every meaningful assembly change.
 - Prefer subagents for read-only contract audits and post-change review. Avoid parallel code-writing subagents for Z80 assembly unless their write sets are completely disjoint.
 - If a helper needs a behaviour change, a callback framework, or a broad naming rewrite, stop and document the deferral instead of extracting it.
 
@@ -32,8 +32,8 @@ src/shared/hud.asm                    HUD scan, shared segment tables, decimal f
 src/shared/lcd.asm                    LCD primitives plus row/table-character helpers
 src/shared/framebuffer_core.asm       clear/copy buffer primitives
 src/shared/framebuffer_draw.asm       generic RGB matrix drawing primitives
-src/games/tetro/input.asm             TETRO keypad-to-action mapping
-src/games/tetro/render.asm            TETRO board and active-piece rendering
+src/games/tetro/input.asm             Tetro keypad-to-action mapping
+src/games/tetro/render.asm            Tetro board and active-piece rendering
 src/games/pacmo/render.asm            Pacmo world/entity rendering
 ```
 
@@ -77,17 +77,17 @@ Use parallel subagents for independent read-only reviews, not for overlapping as
 Recommended read-only subagents before coding:
 
 ```text
-Subagent A: Audit TETRO and Pacmo HUD routines. Confirm the score conversion loops, segment glyph tables, digit mask tables, RAM labels, and register clobber contracts are equivalent enough for a shared formatter plus game-local wrappers. Do not edit files. Report any contract mismatch with file/line references.
+Subagent A: Audit Tetro and Pacmo HUD routines. Confirm the score conversion loops, segment glyph tables, digit mask tables, RAM labels, and register clobber contracts are equivalent enough for a shared formatter plus game-local wrappers. Do not edit files. Report any contract mismatch with file/line references.
 
-Subagent B: Audit TETRO and Pacmo LCD UI wrappers. Confirm which row-writing and table-indexed character append logic is generic, and identify registers callers rely on being preserved. Do not edit files. Report exact helper contracts that would be safe.
+Subagent B: Audit Tetro and Pacmo LCD UI wrappers. Confirm which row-writing and table-indexed character append logic is generic, and identify registers callers rely on being preserved. Do not edit files. Report exact helper contracts that would be safe.
 
-Subagent C: Audit framebuffer colour and matrix bit-mask helpers. Confirm Pacmo's `SCREEN_X_TO_MASK` coordinate convention and `WRITE_CELL_COLOR_C_A` contract, and compare TETRO's `WRITE_COLORED_ROW_MASK` with a possible shared `FB_OR_ROW_COLOR_MASK`. Do not edit files. Report unsafe cases.
+Subagent C: Audit framebuffer colour and matrix bit-mask helpers. Confirm Pacmo's `SCREEN_X_TO_MASK` coordinate convention and `WRITE_CELL_COLOR_C_A` contract, and compare Tetro's `WRITE_COLORED_ROW_MASK` with a possible shared `FB_OR_ROW_COLOR_MASK`. Do not edit files. Report unsafe cases.
 ```
 
 Use post-task review subagents after each assembly commit:
 
 ```text
-Review only the last commit. Focus on Z80 register contracts, include order, label resolution, and behaviour preservation for TETRO and Pacmo. Do not suggest broad style refactors. Findings must include file/line references.
+Review only the last commit. Focus on Z80 register contracts, include order, label resolution, and behaviour preservation for Tetro and Pacmo. Do not suggest broad style refactors. Findings must include file/line references.
 ```
 
 Do not run two code-writing subagents against `src/tetro.asm`, `src/pacmo.asm`, `src/shared/*.asm`, or game data files at the same time. Those files are coupled by include order and shared labels.
@@ -266,7 +266,7 @@ HUD_SEG_GLYPH_TABLE:
 
 Expected: `SCAN_SCORE_DIGIT` no longer references game-local `DIGIT_MASK_TABLE`.
 
-- [ ] **Step 3: Replace TETRO score formatter with a wrapper**
+- [ ] **Step 3: Replace Tetro score formatter with a wrapper**
 
 Replace `src/games/tetro/hud.asm` with:
 
@@ -283,7 +283,7 @@ UPDATE_SCORE_DISPLAY:
         JP      HUD_WRITE_U16_DECIMAL
 ```
 
-Expected: TETRO keeps the public `UPDATE_SCORE_DISPLAY` label and game-local score variable names.
+Expected: Tetro keeps the public `UPDATE_SCORE_DISPLAY` label and game-local score variable names.
 
 - [ ] **Step 4: Replace Pacmo score formatter with a wrapper**
 
@@ -348,7 +348,7 @@ Expected: one focused commit.
 
 ---
 
-### Task 3: Move TETRO-Shaped Helpers Out Of `src/shared`
+### Task 3: Move Tetro-Shaped Helpers Out Of `src/shared`
 
 **Files:**
 - Move: `src/shared/input.asm` to `src/games/tetro/input.asm`
@@ -408,7 +408,7 @@ Expected: both `echo` lines are printed. This task is only a file relocation and
 
 ```bash
 git add src/tetro.asm src/games/tetro/input.asm src/games/tetro/render.asm src/shared/input.asm src/shared/framebuffer.asm
-git commit -m "refactor: keep TETRO-specific helpers local"
+git commit -m "refactor: keep Tetro-specific helpers local"
 ```
 
 Expected: one focused commit with two renames and one include-path edit.
@@ -464,9 +464,9 @@ LCD_PUTC_FROM_TABLE:
         JP      LCD_PUTC
 ```
 
-Expected: neither helper names TETRO or Pacmo state.
+Expected: neither helper names Tetro or Pacmo state.
 
-- [ ] **Step 3: Use the table helper in TETRO's preview letter wrapper**
+- [ ] **Step 3: Use the table helper in Tetro's preview letter wrapper**
 
 Change `LCD_APPEND_NEXT_PREVIEW_LETTER` in `src/games/tetro/ui.asm` to:
 
@@ -479,7 +479,7 @@ LCD_APPEND_NEXT_PREVIEW_LETTER:
 
 Expected: wrapper still owns `NEXT_PIECE_INDEX` and `PIECE_NAME_TABLE`.
 
-- [ ] **Step 4: Use the row helper in TETRO's preview row refresh**
+- [ ] **Step 4: Use the row helper in Tetro's preview row refresh**
 
 Change the row setup in `LCD_REFRESH_NEXT_PREVIEW_ROW` to:
 
@@ -690,7 +690,7 @@ In `src/pacmo.asm`, include the new file after `shared/framebuffer_core.asm`:
 
 Expected: Pacmo movement can still forward-reference `MATRIX_X_TO_MASK` because `asm80` resolves forward labels.
 
-- [ ] **Step 4: Update TETRO render to use `FB_OR_ROW_COLOR_MASK`**
+- [ ] **Step 4: Update Tetro render to use `FB_OR_ROW_COLOR_MASK`**
 
 In `src/games/tetro/render.asm`, replace:
 
@@ -739,7 +739,7 @@ Expected output: no matches.
 
 Run the Standard Verification Block.
 
-Expected: both games build. Binary identity is not required because helpers moved into a new include and TETRO's row-mask helper now takes the colour in `A`.
+Expected: both games build. Binary identity is not required because helpers moved into a new include and Tetro's row-mask helper now takes the colour in `A`.
 
 - [ ] **Step 7: Review register contracts at every new call site**
 
@@ -752,8 +752,8 @@ rg -n "MATRIX_X_TO_MASK|FB_SET_CELL_COLOR|FB_OR_ROW_COLOR_MASK" src
 Expected:
 - Pacmo callers tolerate `MATRIX_X_TO_MASK` clobbering `B, C`.
 - Pacmo callers pass `HL`, `C`, and `A` exactly as `FB_SET_CELL_COLOR` requires.
-- TETRO caller loads `CURRENT_PIECE_COLOR` into `A` after preserving row mask in `C`.
-- TETRO caller's `B` loop counter survives `FB_OR_ROW_COLOR_MASK`.
+- Tetro caller loads `CURRENT_PIECE_COLOR` into `A` after preserving row mask in `C`.
+- Tetro caller's `B` loop counter survives `FB_OR_ROW_COLOR_MASK`.
 
 - [ ] **Step 8: Commit**
 
@@ -799,7 +799,7 @@ COLOR_WHITE:    EQU     COLOR_RED+COLOR_GREEN+COLOR_BLUE
 
 Expected: existing primary colour values do not change.
 
-- [ ] **Step 3: Update TETRO palette language**
+- [ ] **Step 3: Update Tetro palette language**
 
 Change `PIECE_COLOR_TABLE` in `src/games/tetro/data.asm` to:
 
@@ -939,9 +939,9 @@ Expected: shared docs match source layout.
 
 In `docs/tetro-codebase.md`, document that:
 
-- TETRO input mapping is local in `src/games/tetro/input.asm`.
-- TETRO rendering is local in `src/games/tetro/render.asm`.
-- TETRO uses shared HUD formatting, LCD primitives, and framebuffer draw primitives.
+- Tetro input mapping is local in `src/games/tetro/input.asm`.
+- Tetro rendering is local in `src/games/tetro/render.asm`.
+- Tetro uses shared HUD formatting, LCD primitives, and framebuffer draw primitives.
 
 In `docs/pacmo-codebase.md`, document that:
 
@@ -949,7 +949,7 @@ In `docs/pacmo-codebase.md`, document that:
 - Pacmo cell rendering uses `FB_SET_CELL_COLOR`.
 - Pacmo x-to-mask conversion uses `MATRIX_X_TO_MASK`.
 
-Expected: no document describes game-specific TETRO action mapping as shared runtime.
+Expected: no document describes game-specific Tetro action mapping as shared runtime.
 
 - [ ] **Step 4: Validate docs and assembly one final time**
 
@@ -1000,7 +1000,7 @@ Expected: all commands exit 0.
 Use:
 
 ```text
-Review the shared game substrate harmonisation branch. Focus on behaviour preservation, Z80 register clobber contracts, include order, and whether any TETRO or Pacmo game-specific logic was accidentally moved into `src/shared`. Verify both games still build. Report findings first with file/line references. If there are no findings, say so explicitly and list any residual risks.
+Review the shared game substrate harmonisation branch. Focus on behaviour preservation, Z80 register clobber contracts, include order, and whether any Tetro or Pacmo game-specific logic was accidentally moved into `src/shared`. Verify both games still build. Report findings first with file/line references. If there are no findings, say so explicitly and list any residual risks.
 ```
 
 Expected: no findings before merge. If there are findings, fix them in a new commit, rerun final verification, then repeat this review step.
@@ -1017,7 +1017,7 @@ The PR body must include:
 ```markdown
 ## Summary
 - share HUD segment tables and decimal score formatting behind local wrappers
-- move TETRO-specific input/render helpers out of `src/shared`
+- move Tetro-specific input/render helpers out of `src/shared`
 - add shared LCD row/table-character helpers
 - add shared framebuffer draw primitives
 - standardise shared composite colour names
@@ -1034,9 +1034,9 @@ The PR body must include:
 ## Review Focus
 - No behaviour change intended.
 - Confirm all shared routines have correct Input / Output / Clobbers comments.
-- Confirm no TETRO piece/input rules or Pacmo maze/entity rules moved into `src/shared`.
+- Confirm no Tetro piece/input rules or Pacmo maze/entity rules moved into `src/shared`.
 - Confirm `SCAN_TICK` still resolves `SERVICE_SOUND` and `SCAN_SCORE_DIGIT`.
-- Confirm TETRO and Pacmo include orders remain valid for `asm80`.
+- Confirm Tetro and Pacmo include orders remain valid for `asm80`.
 ```
 
 Expected: PR opens against `main`.
@@ -1068,7 +1068,7 @@ Expected: PR merges and the remote branch is deleted.
 
 - No generic input intent system.
 - No generic entity framework.
-- No shared TETRO rotation/collision/gravity/line-clear logic.
+- No shared Tetro rotation/collision/gravity/line-clear logic.
 - No shared Pacmo maze, monster, pill, power-mode, or level progression logic.
 - No shared game-specific sound event names or durations.
 - No callback-based scheduler.
@@ -1079,7 +1079,7 @@ Expected: PR merges and the remote branch is deleted.
 - Both games build after each assembly task and at the end.
 - Shared helpers are documented with Input / Output / Clobbers.
 - `src/shared` contains only game-neutral routines and constants.
-- TETRO-specific input and rendering files live under `src/games/tetro`.
+- Tetro-specific input and rendering files live under `src/games/tetro`.
 - Pacmo game logic remains under `src/games/pacmo`.
 - Documentation matches actual source layout.
-- A third 8x8 game can use the shared codebase without inheriting TETRO or Pacmo terminology.
+- A third 8x8 game can use the shared codebase without inheriting Tetro or Pacmo terminology.

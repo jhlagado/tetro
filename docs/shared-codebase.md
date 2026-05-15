@@ -1,6 +1,6 @@
 # Shared codebase
 
-TETRO and Pacmo are different games, but they run on the same tight hardware loop.
+Tetro and Pacmo are different games, but they run on the same tight hardware loop.
 
 There are no interrupts and no background task. The CPU has to keep the RGB matrix visible, scan the six-digit seven-segment display, service the speaker, poll input, and run game logic from one cooperative loop. The shared codebase is the small set of routines that make that possible without turning either game into a generic engine.
 
@@ -39,7 +39,7 @@ The include order matters because `asm80` resolves forward references. `shared/s
 
 ## Shared and local code
 
-The shared layer is deliberately low-level. It contains hardware facts and buffer operations that are true for TETRO, Pacmo, and future 8x8 games.
+The shared layer is deliberately low-level. It contains hardware facts and buffer operations that are true for Tetro, Pacmo, and future 8x8 games.
 
 Currently shared and generic:
 
@@ -53,7 +53,7 @@ Currently shared and generic:
 
 The games keep their own rules, state, tuning, display text, score events, and presentation wrappers. A routine belongs in `src/shared` only when its contract is hardware-shaped or buffer-shaped rather than game-shaped.
 
-There are no transitional TETRO-shaped input or rendering files in `src/shared`. TETRO input lives in `src/games/tetro/input.asm`, and TETRO rendering lives in `src/games/tetro/render.asm`.
+There are no transitional Tetro-shaped input or rendering files in `src/shared`. Tetro input lives in `src/games/tetro/input.asm`, and Tetro rendering lives in `src/games/tetro/render.asm`.
 
 ---
 
@@ -75,7 +75,7 @@ Clearing the row before changing colour data matters. If the row stayed enabled 
 
 `ADVANCE_SCAN_STATE` rotates `SCAN_MASK` and moves `SCAN_PTR` to the next four-byte framebuffer row. When the scan wraps back to row zero, it resets the pointer and increments `FRAME_PHASE`.
 
-`FRAME_PHASE` is just a shared scan-state counter. TETRO uses it as splash-screen entropy. Pacmo currently does not use it for randomness, but it still gets the same counter because it uses the same scan state.
+`FRAME_PHASE` is just a shared scan-state counter. Tetro uses it as splash-screen entropy. Pacmo currently does not use it for randomness, but it still gets the same counter because it uses the same scan state.
 
 ---
 
@@ -87,7 +87,7 @@ That keeps scanout frequent enough to avoid visible flicker. If game logic monop
 
 The exact slice schedule is game-specific:
 
-- TETRO uses slices for input, gravity, row clearing, rendering, and line-clear timing.
+- Tetro uses slices for input, gravity, row clearing, rendering, and line-clear timing.
 - Pacmo uses slices for movement, power timing, monster updates, row clearing, rendering, and level gates.
 
 The shared codebase only provides the clocking pattern and buffer helpers. It does not decide what the slices mean.
@@ -158,7 +158,7 @@ It initializes `SOUND_TIMER`, `SOUND_DIVIDER_RELOAD`, `SOUND_DIVIDER_COUNT`, and
 
 `SERVICE_SOUND` runs once per scan tick. It decrements the sound timer and toggles `SPEAKER_PORT_STATE` whenever the divider expires. When the timer reaches zero, it silences the speaker state.
 
-The shared service does not know what a sound means. TETRO and Pacmo keep local event wrappers that load their own duration and divider constants, then tail-call `SOUND_START`.
+The shared service does not know what a sound means. Tetro and Pacmo keep local event wrappers that load their own duration and divider constants, then tail-call `SOUND_START`.
 
 ---
 
@@ -205,13 +205,13 @@ DW text_pointer
 DB 0
 ```
 
-The shared LCD layer knows how to execute that table, position a row before writing a string, and append a table-indexed character. It does not decide which screens exist. TETRO and Pacmo keep their own LCD text, script tables, and wrapper routines.
+The shared LCD layer knows how to execute that table, position a row before writing a string, and append a table-indexed character. It does not decide which screens exist. Tetro and Pacmo keep their own LCD text, script tables, and wrapper routines.
 
 ---
 
 ## Boundary rule
 
-A helper is a good shared candidate when it can be documented without naming TETRO pieces, Pacmo monsters, scores, levels, walls, pills, or LCD states.
+A helper is a good shared candidate when it can be documented without naming Tetro pieces, Pacmo monsters, scores, levels, walls, pills, or LCD states.
 
 Good shared candidates:
 
@@ -225,7 +225,7 @@ Good shared candidates:
 
 Code should stay game-local when it encodes:
 
-- TETRO piece, collision, gravity, rotation, lock, line-clear, or next-preview behaviour
+- Tetro piece, collision, gravity, rotation, lock, line-clear, or next-preview behaviour
 - Pacmo maze, viewport, player, monster, pill, power-mode, respawn, or level behaviour
 - game-specific sound event names and tuning
 - game-specific LCD screen names and text

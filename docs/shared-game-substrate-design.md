@@ -1,8 +1,8 @@
 # Shared game substrate design
 
-This document captures the next harmonisation pass for TETRO, Pacmo, and future 8x8 games.
+This document captures the next harmonisation pass for Tetro, Pacmo, and future 8x8 games.
 
-The goal is to make a third game easier to write on top of the shared codebase without turning the shared code into a brittle game engine. The shared layer should contain stable hardware, display, timing, and small utility contracts. It should not absorb TETRO piece rules, Pacmo monster rules, or input meanings such as rotate, drop, or power mode.
+The goal is to make a third game easier to write on top of the shared codebase without turning the shared code into a brittle game engine. The shared layer should contain stable hardware, display, timing, and small utility contracts. It should not absorb Tetro piece rules, Pacmo monster rules, or input meanings such as rotate, drop, or power mode.
 
 The guiding principle is practical reuse, not maximum DRY. Some repetition is acceptable when it keeps game logic clear.
 
@@ -26,7 +26,7 @@ That split is working. The next step is to raise the shared layer slightly, but 
 
 ## Boundary rule
 
-Shared code is appropriate when a future 8x8 game could use it without inheriting TETRO or Pacmo vocabulary.
+Shared code is appropriate when a future 8x8 game could use it without inheriting Tetro or Pacmo vocabulary.
 
 Good shared code:
 
@@ -41,7 +41,7 @@ Good shared code:
 Game-local code:
 
 - names game actions such as rotate, drop, lock, power, flee, caught, or line clear
-- encodes TETRO pieces, board collapse, gravity, rotation, collision, next preview, or scoring rules
+- encodes Tetro pieces, board collapse, gravity, rotation, collision, next preview, or scoring rules
 - encodes Pacmo maze, viewport, player, monster, pill, power mode, respawn, or level progression rules
 - maps keypad buttons directly to game-specific actions
 - selects game-specific LCD screens and sound events
@@ -54,7 +54,7 @@ The shared layer should make common jobs quicker. It should not make either game
 
 This duplication has been removed.
 
-TETRO and Pacmo both format a 16-bit score into six seven-segment digits by repeated subtraction. The shared HUD layer now owns the digit mask table, glyph table, and decimal writer.
+Tetro and Pacmo both format a 16-bit score into six seven-segment digits by repeated subtraction. The shared HUD layer now owns the digit mask table, glyph table, and decimal writer.
 
 Implemented shape:
 
@@ -73,16 +73,16 @@ Expected result:
 
 ---
 
-## Priority 2: Move TETRO-shaped files out of `shared`
+## Priority 2: Move Tetro-shaped files out of `shared`
 
 This boundary cleanup has been completed.
 
-Before the move, the shared directory contained TETRO-specific input and rendering files. The input file called labels such as `MOVE_LEFT`, `MOVE_RIGHT`, `ROTATE_CW`, `ROTATE_LEFT`, and `SOFT_DROP`. The rendering file depended on labels such as `BOARD_ROWS`, `CURRENT_PIECE_PTR`, `CURRENT_PIECE_COLOR`, `CLEAR_MASK`, and `GAME_OVER`. Those were historical location problems, not reusable shared contracts.
+Before the move, the shared directory contained Tetro-specific input and rendering files. The input file called labels such as `MOVE_LEFT`, `MOVE_RIGHT`, `ROTATE_CW`, `ROTATE_LEFT`, and `SOFT_DROP`. The rendering file depended on labels such as `BOARD_ROWS`, `CURRENT_PIECE_PTR`, `CURRENT_PIECE_COLOR`, `CLEAR_MASK`, and `GAME_OVER`. Those were historical location problems, not reusable shared contracts.
 
 Implemented shape:
 
-- TETRO input lives in `src/games/tetro/input.asm`.
-- TETRO rendering lives in `src/games/tetro/render.asm`.
+- Tetro input lives in `src/games/tetro/input.asm`.
+- Tetro rendering lives in `src/games/tetro/render.asm`.
 - `src/shared/framebuffer_core.asm` remains shared for generic clear/copy helpers.
 - `src/shared/framebuffer_draw.asm` contains only game-neutral framebuffer draw primitives.
 
@@ -100,7 +100,7 @@ Expected result:
 
 Both games use the shared LCD script runner, then patch a dynamic row.
 
-TETRO writes `NEXT: ` and appends a piece letter. Pacmo writes `LEVEL ` and appends a level character. The screen names and dynamic data are game-specific, but the row positioning and table-character append pattern are generic.
+Tetro writes `NEXT: ` and appends a piece letter. Pacmo writes `LEVEL ` and appends a level character. The screen names and dynamic data are game-specific, but the row positioning and table-character append pattern are generic.
 
 Implemented shape:
 
@@ -113,20 +113,20 @@ The shared helper should not know about `NEXT_PIECE_INDEX`, `PIECE_NAME_TABLE`, 
 Expected result:
 
 - less repeated LCD row-update code
-- no shared knowledge of TETRO preview or Pacmo level state
+- no shared knowledge of Tetro preview or Pacmo level state
 
 ---
 
 ## Priority 4: Framebuffer colour and mask primitives
 
-Pacmo has a useful generic cell writer. TETRO has useful row-mask colour writers. Both speak the same RGB framebuffer language, but they are still embedded in game files.
+Pacmo has a useful generic cell writer. Tetro has useful row-mask colour writers. Both speak the same RGB framebuffer language, but they are still embedded in game files.
 
 Implemented shape:
 
 - `src/shared/framebuffer_draw.asm` owns `MATRIX_X_TO_MASK` for screen x coordinates, with x 0 mapped to the most significant bit.
 - `src/shared/framebuffer_draw.asm` owns `FB_SET_CELL_COLOR`, which sets one RGB cell to an exact colour, replacing previous colour bits.
 - `src/shared/framebuffer_draw.asm` owns `FB_OR_ROW_COLOR_MASK`, which ORs a row mask into selected RGB planes.
-- Pacmo world rendering and TETRO piece rendering remain local.
+- Pacmo world rendering and Tetro piece rendering remain local.
 
 This is a good place to standardise names around “matrix”, “framebuffer”, “cell”, “row mask”, and “colour.”
 
@@ -166,8 +166,8 @@ Expected result:
 
 Both games use short countdowns and gates:
 
-- TETRO game-over restart gate
-- TETRO line-clear hold
+- Tetro game-over restart gate
+- Tetro line-clear hold
 - Pacmo game-over restart gate
 - Pacmo level-complete gate
 - Pacmo power timer
@@ -196,7 +196,7 @@ Expected result:
 
 Do not extract these in the next pass:
 
-- TETRO collision, rotation, gravity, lock, line clear, board collapse, piece RNG, or next-piece preview
+- Tetro collision, rotation, gravity, lock, line clear, board collapse, piece RNG, or next-piece preview
 - Pacmo maze probing, viewport scrolling, path consumption, power mode, monster AI, respawn scoring, or level progression
 - game-specific input action mapping
 - game-specific LCD screen names and scripts
@@ -212,7 +212,7 @@ These areas may share design philosophy, but they do not yet share a clean game-
 
 1. Rename the shared codebase documentation and update links.
 2. Extract shared HUD segment tables and decimal score formatting.
-3. Move TETRO-shaped input and rendering out of `src/shared`, keeping only generic framebuffer helpers shared.
+3. Move Tetro-shaped input and rendering out of `src/shared`, keeping only generic framebuffer helpers shared.
 4. Add LCD row/table-character helpers.
 5. Add framebuffer colour and mask primitives.
 6. Add shared composite colour constants and update palettes to use them.
@@ -226,10 +226,10 @@ Each step should be small, build both games, and preserve behavior.
 
 A future harmonisation step is successful when:
 
-- TETRO and Pacmo both build after the change.
+- Tetro and Pacmo both build after the change.
 - No game-specific rule is moved into `src/shared`.
 - Shared routines have clear input, output, and clobber contracts.
 - The shared codebase documentation matches the actual source layout.
-- A third 8x8 game could reasonably use the shared routine without adopting TETRO or Pacmo terminology.
+- A third 8x8 game could reasonably use the shared routine without adopting Tetro or Pacmo terminology.
 
 The goal is a shared substrate that makes new games quicker to start, not an abstraction layer that hides how the games work.
