@@ -168,7 +168,6 @@ src/
 - [docs/shared-codebase.md](docs/shared-codebase.md) explains the cooperative loop, scan tick, shared LCD/HUD/sound helpers, framebuffer contract, and shared/local boundary.
 - [docs/tetro-codebase.md](docs/tetro-codebase.md) explains Tetro's state machine, collision path, movement, locking, rendering, pieces, LCD wrappers, score path, and game-over flow.
 - [docs/pacmo-codebase.md](docs/pacmo-codebase.md) explains Pacmo's viewport, movement, maze consumption, power mode, monsters, rendering, scoring, and level progression.
-- [docs/shared-game-substrate-design.md](docs/shared-game-substrate-design.md) captures the shared-codebase harmonisation design.
 
 ## License
 
