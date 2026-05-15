@@ -17,17 +17,24 @@ LOGIC_TICK:
         ADD     A,A
         ADD     A,A
         CALL    CLEAR_BACK_4
-        JR      LOGIC_SLICE_NEXT
+        JP      LOGIC_SLICE_NEXT
 
 LOGIC_SL0:
         CALL    POLL_INPUT_AND_UPDATE
+        LD      A,(PACMO_PAUSED)
+        OR      A
+        JR      NZ,LOGIC_SL0_CLEAR
         CALL    TICK_LEVEL_COMPLETE_GATE
         CALL    TICK_POWER_TIMER
+LOGIC_SL0_CLEAR:
         XOR     A
         CALL    CLEAR_BACK_4
         JR      LOGIC_SLICE_NEXT
 
 LOGIC_SL1:
+        LD      A,(PACMO_PAUSED)
+        OR      A
+        JP      NZ,LOGIC_SL1_COLLISION_DONE
         LD      IX,MONSTER0
         CALL    TICK_ENEMY
         LD      IX,MONSTER1
@@ -449,11 +456,23 @@ ENEMY_TRY_BLOCKED:
 ;   Carry set while enemy is respawning; when the timer reaches zero,
 ;   enemy position and direction are reset and carry is cleared
 ; Clobbers:
-;   A, DE, HL
+;   A, BC, DE, HL
 TICK_ENEMY_RESPAWN:
         LD      A,(IX+MONSTER_RESPAWN_TIMER)
         OR      A
         RET     Z
+        LD      A,(IX+MONSTER_TIMER)
+        OR      A
+        JR      Z,TICK_ENEMY_RESPAWN_DEC_TIMER
+        DEC     A
+        LD      (IX+MONSTER_TIMER),A
+        JR      Z,TICK_ENEMY_RESPAWN_DEC_TIMER
+        SCF
+        RET
+TICK_ENEMY_RESPAWN_DEC_TIMER:
+        LD      A,PACMO_ENEMY_RESPAWN_DIV
+        LD      (IX+MONSTER_TIMER),A
+        LD      A,(IX+MONSTER_RESPAWN_TIMER)
         DEC     A
         LD      (IX+MONSTER_RESPAWN_TIMER),A
         JR      Z,TICK_ENEMY_RESPAWN_DONE
@@ -476,8 +495,8 @@ TICK_ENEMY_RESPAWN_DONE:
 ;   IX = respawning monster record base
 ;   PLAYER_X/Y, PACMO_ENEMY_SPAWNS, MONSTERS
 ; Output:
-;   monster X/Y set to the spawn candidate with the highest score:
-;   distance from player plus distance from the other active monster.
+;   monster X/Y set to the unoccupied spawn candidate with the highest score:
+;   distance from player plus distance from the other non-respawning monsters.
 ;   Ties keep the earlier table entry.
 ; Clobbers:
 ;   A, BC, DE, HL
@@ -496,6 +515,10 @@ ENEMY_SELECT_RESPAWN_LOOP:
         PUSH    HL
         LD      H,A                     ; H = candidate y
         LD      L,C                     ; L = candidate x
+        PUSH    DE
+        CALL    ENEMY_IS_LH_OCCUPIED_BY_OTHER_MONSTER
+        POP     DE
+        JR      C,ENEMY_SELECT_RESPAWN_KEEP_BEST
         PUSH    BC
         CALL    ENEMY_RESPAWN_SCORE_LH
         POP     BC
@@ -578,6 +601,74 @@ ENEMY_IS_LH_IN_VIEWPORT:
         SCF
         RET
 ENEMY_IS_LH_NOT_VISIBLE:
+        OR      A
+        RET
+
+; ENEMY_IS_LH_OCCUPIED_BY_OTHER_MONSTER
+; Input:
+;   L = candidate x
+;   H = candidate y
+;   IX = respawning monster record base
+; Output:
+;   carry set when another non-respawning monster already occupies candidate
+;   carry clear otherwise
+; Clobbers:
+;   A, DE
+ENEMY_IS_LH_OCCUPIED_BY_OTHER_MONSTER:
+        LD      DE,MONSTER0
+        CALL    ENEMY_IS_LH_OCCUPIED_BY_MONSTER_DE
+        RET     C
+        LD      DE,MONSTER1
+        CALL    ENEMY_IS_LH_OCCUPIED_BY_MONSTER_DE
+        RET     C
+        CALL    PACMO_IS_LEVEL2_PLUS
+        JR      C,ENEMY_OCCUPIED_NO
+        LD      DE,MONSTER2
+        JP      ENEMY_IS_LH_OCCUPIED_BY_MONSTER_DE
+
+; ENEMY_IS_LH_OCCUPIED_BY_MONSTER_DE
+; Input:
+;   L = candidate x
+;   H = candidate y
+;   DE = monster record pointer
+;   IX = respawning monster record base
+; Output:
+;   carry set when DE points to a different non-respawning monster at candidate
+;   carry clear otherwise
+; Clobbers:
+;   A, DE
+ENEMY_IS_LH_OCCUPIED_BY_MONSTER_DE:
+        PUSH    HL
+        PUSH    DE
+        PUSH    IX
+        POP     HL
+        OR      A
+        SBC     HL,DE
+        POP     DE
+        POP     HL
+        JR      Z,ENEMY_OCCUPIED_NO
+        PUSH    HL
+        LD      H,D
+        LD      L,E
+        INC     HL
+        INC     HL
+        INC     HL
+        INC     HL
+        INC     HL
+        LD      A,(HL)
+        POP     HL
+        CP      PACMO_ENEMY_STATE_RESPAWN
+        JR      Z,ENEMY_OCCUPIED_NO
+        LD      A,(DE)
+        CP      L
+        JR      NZ,ENEMY_OCCUPIED_NO
+        INC     DE
+        LD      A,(DE)
+        CP      H
+        JR      NZ,ENEMY_OCCUPIED_NO
+        SCF
+        RET
+ENEMY_OCCUPIED_NO:
         OR      A
         RET
 

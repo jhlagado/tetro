@@ -41,6 +41,8 @@ LAST_KEY:
         DS      1
 PACMO_SPLASH_ACTIVE:
         DS      1
+PACMO_PAUSED:
+        DS      1
 HUD_SCAN_INDEX:
         DS      1
 SPEAKER_PORT_STATE:
@@ -71,7 +73,11 @@ PACMO_ROUND_COMPLETE:
         DS      1
 PACMO_PLAYER_CAUGHT:
         DS      1
+PACMO_GAME_OVER:
+        DS      1
 PACMO_LEVEL:
+        DS      1
+PACMO_LIVES:
         DS      1
 PACMO_LEVEL_COMPLETE_GATE:
         DS      2
