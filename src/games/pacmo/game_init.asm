@@ -11,6 +11,8 @@ INIT_STATE:
         LD      (PACMO_SCORE+1),A
         LD      A,1
         LD      (PACMO_LEVEL),A
+        LD      A,PACMO_LIVES_START
+        LD      (PACMO_LIVES),A
         LD      A,PACMO_ENEMY_PERIOD
         LD      (ENEMY_PERIOD_CURRENT),A
         CALL    INIT_LEVEL_STATE
@@ -26,6 +28,62 @@ INIT_STATE:
 ; Clobbers:
 ;   A, BC, DE, HL
 INIT_LEVEL_STATE:
+        CALL    INIT_PLAYER_AND_MONSTERS
+
+        XOR     A
+        LD      (PACMO_SPLASH_ACTIVE),A
+        LD      (PACMO_PAUSED),A
+        LD      (LOGIC_SLICE),A
+        LD      (FRAME_PHASE),A
+        LD      (HUD_SCAN_INDEX),A
+        LD      (SPEAKER_PORT_STATE),A
+        LD      (SOUND_TIMER),A
+        LD      (SOUND_DIVIDER_RELOAD),A
+        LD      (SOUND_DIVIDER_COUNT),A
+        LD      (PACMO_POWER_PILLS_EATEN),A
+        LD      (PACMO_POWER_TIMER_LO),A
+        LD      (PACMO_POWER_TIMER_HI),A
+        LD      (ENEMY_RESPAWN_TIMER),A
+        LD      (ENEMY_STATE),A
+        LD      (ENEMY2_RESPAWN_TIMER),A
+        LD      (ENEMY2_STATE),A
+        LD      (ENEMY3_RESPAWN_TIMER),A
+        LD      (ENEMY3_STATE),A
+        LD      (PACMO_ROUND_COMPLETE),A
+        LD      (PACMO_PLAYER_CAUGHT),A
+        LD      (PACMO_GAME_OVER),A
+        LD      (PACMO_LEVEL_COMPLETE_GATE_LO),A
+        LD      (PACMO_LEVEL_COMPLETE_GATE_HI),A
+        LD      (PACMO_GAME_OVER_GATE_LO),A
+        LD      (PACMO_GAME_OVER_GATE_HI),A
+
+        LD      A,SCAN_MASK_START
+        LD      (SCAN_MASK),A
+        LD      HL,FRAMEBUFFER
+        LD      (SCAN_PTR),HL
+
+        CALL    CLEAR_FRONT_AND_BACK
+        CALL    CLEAR_EATEN_PATHS
+        LD      HL,(PACMO_SCORE)
+        PUSH    HL
+        LD      A,(PLAYER_X)
+        LD      B,A
+        LD      A,(PLAYER_Y)
+        LD      C,A
+        CALL    PACMO_MARK_EATEN_AT_BC
+        POP     HL
+        LD      (PACMO_SCORE),HL
+        CALL    UPDATE_SCORE_DISPLAY
+        JP      REBUILD_FRAMEBUFFER
+
+; INIT_PLAYER_AND_MONSTERS
+; Input:
+;   ENEMY_PERIOD_CURRENT
+; Output:
+;   player, monsters, viewport, input repeat, and transient play flags reset
+; Clobbers:
+;   A
+INIT_PLAYER_AND_MONSTERS:
         LD      A,7
         LD      (PLAYER_X),A
         LD      (PLAYER_Y),A
@@ -63,15 +121,11 @@ INIT_LEVEL_STATE:
         LD      (LAST_KEY),A
 
         XOR     A
-        LD      (PACMO_SPLASH_ACTIVE),A
-        LD      (LOGIC_SLICE),A
-        LD      (FRAME_PHASE),A
-        LD      (HUD_SCAN_INDEX),A
+        LD      (PACMO_PAUSED),A
         LD      (SPEAKER_PORT_STATE),A
         LD      (SOUND_TIMER),A
         LD      (SOUND_DIVIDER_RELOAD),A
         LD      (SOUND_DIVIDER_COUNT),A
-        LD      (PACMO_POWER_PILLS_EATEN),A
         LD      (PACMO_POWER_TIMER_LO),A
         LD      (PACMO_POWER_TIMER_HI),A
         LD      (ENEMY_RESPAWN_TIMER),A
@@ -80,31 +134,8 @@ INIT_LEVEL_STATE:
         LD      (ENEMY2_STATE),A
         LD      (ENEMY3_RESPAWN_TIMER),A
         LD      (ENEMY3_STATE),A
-        LD      (PACMO_ROUND_COMPLETE),A
         LD      (PACMO_PLAYER_CAUGHT),A
-        LD      (PACMO_LEVEL_COMPLETE_GATE_LO),A
-        LD      (PACMO_LEVEL_COMPLETE_GATE_HI),A
-        LD      (PACMO_GAME_OVER_GATE_LO),A
-        LD      (PACMO_GAME_OVER_GATE_HI),A
-
-        LD      A,SCAN_MASK_START
-        LD      (SCAN_MASK),A
-        LD      HL,FRAMEBUFFER
-        LD      (SCAN_PTR),HL
-
-        CALL    CLEAR_FRONT_AND_BACK
-        CALL    CLEAR_EATEN_PATHS
-        LD      HL,(PACMO_SCORE)
-        PUSH    HL
-        LD      A,(PLAYER_X)
-        LD      B,A
-        LD      A,(PLAYER_Y)
-        LD      C,A
-        CALL    PACMO_MARK_EATEN_AT_BC
-        POP     HL
-        LD      (PACMO_SCORE),HL
-        CALL    UPDATE_SCORE_DISPLAY
-        JP      REBUILD_FRAMEBUFFER
+        RET
 
 ; CLEAR_FRONT_AND_BACK
 ; Input:

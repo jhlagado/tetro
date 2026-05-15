@@ -134,15 +134,18 @@ LD      C,API_SCANKEYS
 RST     0x10
 ```
 
-Pacmo normalizes raw keys into movement intents. The game logic does not care whether "up" came from ADD or key 8. The current mappings are:
+Pacmo normalizes raw keys into movement intents. The game logic does not care whether "up" came from ADD or key A. The current mappings are:
 
 - `K_LEFT` -> `PACMO_DIR_LEFT`
 - `K_RIGHT` -> `PACMO_DIR_RIGHT`
-- key 5 -> `PACMO_DIR_RIGHT`
+- key 5 -> `PACMO_DIR_LEFT`
+- key 7 -> `PACMO_DIR_RIGHT`
 - ADD / `K_ROTATE_CCW` -> `PACMO_DIR_UP`
-- key 8 -> `PACMO_DIR_UP`
+- key A -> `PACMO_DIR_UP`
 - GO / `K_ROTATE` -> `PACMO_DIR_DOWN`
-- key 0 -> `PACMO_DIR_DOWN`
+- key 2 -> `PACMO_DIR_DOWN`
+- key 0 -> pause
+- any new key press while paused -> resume
 
 Player-facing controls are therefore:
 
@@ -152,16 +155,20 @@ Player-facing controls are therefore:
 | `>` | move right |
 | `AD` | move up |
 | `GO` | move down |
+| `0` | pause |
+| any key | resume from pause |
 
 The alternative diamond layout is:
 
 ```text
-      8 = up
-< = left   5 = right
-      0 = down
+      A = up
+5 = left   7 = right
+      2 = down
 ```
 
 Held-key movement is throttled by `MOVE_COOLDOWN` and `LAST_KEY`. A new direction gets a one-tick cooldown so it moves promptly; a held direction reloads from `PACMO_MOVE_PERIOD`.
+
+Pause follows the Tetro new-press pattern: `0` enters pause, and any new key press resumes. Holding a key does not repeatedly flip the state. While paused, scanout, rendering, the HUD, and speaker service continue, but movement, monster ticks, collision checks, level gates, and power-mode countdown stop.
 
 Each move constructs a candidate coordinate in `B` and `C`, then calls `TRY_MOVE_PLAYER_TO_BC`. That routine rejects walls via `PACMO_IS_WALL_AT_BC`, commits `PLAYER_X/Y` on success, consumes a power pill if present, marks the path as eaten, checks for round completion, checks monster collision, and updates the viewport.
 
@@ -248,7 +255,9 @@ Movement commits through `ENEMY_TRY_MOVE_DIR`, which checks bounds, probes walls
 
 Player/monster collision is checked by `PACMO_CHECK_PLAYER_CAUGHT`, again with the monster record in `IX`.
 
-If the monster is respawning, it cannot collide. If x and y differ, there is no collision. If the monster is in flee state, `PACMO_CONSUME_ENEMY` hides it, starts its respawn timer, plays the eaten sound, updates the LCD, and adds score. Otherwise `PACMO_ENTER_GAME_OVER` latches the caught state, loads the restart gate, plays the caught sound, updates the LCD, and rebuilds the framebuffer.
+If the monster is respawning, it cannot collide. If x and y differ, there is no collision. If the monster is in flee state, `PACMO_CONSUME_ENEMY` hides it, starts its respawn timer, plays the eaten sound, updates the LCD, and adds score. Otherwise `PACMO_ENTER_CAUGHT` decrements `PACMO_LIVES`, latches the caught state, loads the restart gate, plays the caught sound, updates the LCD, and rebuilds the framebuffer.
+
+Pacmo starts a new game with three lives. A caught state with lives remaining shows `PACMO CAUGHT` and `LIVES N` on the LCD. After the gate opens, any key resets the player and monsters while preserving the current level, score, eaten paths, and remaining pills. When the final life is lost, `PACMO_GAME_OVER` is set instead, and the LCD shows `GAME OVER` with the normal restart prompt. The next key after the gate restarts the whole game.
 
 Respawn is deliberately not "return to a fixed home cell." When a respawn timer expires, `ENEMY_SELECT_RESPAWN` scans `PACMO_ENEMY_SPAWNS`. Each candidate is scored. A candidate currently visible in the viewport scores zero. A candidate less than eight cells from the player scores zero. Otherwise the score is:
 
@@ -317,7 +326,7 @@ The player-facing colour legend is:
 
 LCD primitives are shared in `src/shared/lcd.asm`: busy wait, command write, string write, script runner, single-character output, row string writer, and table-character output. Pacmo-specific screens remain in `src/games/pacmo/ui.asm`.
 
-The LCD screens are script tables in `data.asm`. Each script is a sequence of row command plus text pointer, terminated by zero. The running, power, and enemy-eaten screens call `LCD_REFRESH_LEVEL_ROW` after the script so row 2 shows the current level.
+The LCD screens are script tables in `data.asm`. Each script is a sequence of row command plus text pointer, terminated by zero. The running, paused, power, and enemy-eaten screens call `LCD_REFRESH_STATUS_ROWS` after the script so row 2 shows the current level and row 3 shows `LIVES N`.
 
 The score display is split. Shared `SCAN_SCORE_DIGIT` handles multiplexing, and shared `HUD_WRITE_U16_DECIMAL` converts the 16-bit score to segment patterns using repeated subtraction because the Z80 has no division instruction. Pacmo-local `UPDATE_SCORE_DISPLAY` is only the wrapper for `PACMO_SCORE`.
 
@@ -351,6 +360,7 @@ Most static Pacmo data lives here: the 15-row maze bitmap, power-pill table, ene
 - render scratch
 - power-pill eaten mask and power timer
 - round-complete and caught flags
+- game-over flag and lives counter
 - level and delay gates
 - scan state and framebuffers
 - eaten-path bitmap
@@ -391,7 +401,7 @@ Pacmo score formatting goes through the shared HUD formatter via its local wrapp
 
 ## A complete play sequence
 
-On boot, `INIT_STATE` clears the score, starts level 1, sets the base monster period, calls `INIT_LEVEL_STATE`, marks the splash active, and shows the Pacmo splash on the LCD.
+On boot, `INIT_STATE` clears the score, starts level 1, gives the player three lives, sets the base monster period, calls `INIT_LEVEL_STATE`, marks the splash active, and shows the Pacmo splash on the LCD.
 
 `INIT_LEVEL_STATE` places the player at the centre of the 15x15 maze, initializes two or three monster records, sets the viewport origin to `(3,3)`, clears timers and flags, initializes scan state, clears the framebuffers and eaten-path map, marks the player's starting cell eaten without awarding score, updates the score display, and rebuilds the framebuffer.
 
@@ -399,7 +409,7 @@ The main loop runs. The matrix, HUD, and speaker are serviced continuously. Whil
 
 The player presses a movement key. `POLL_INPUT_AND_UPDATE` normalizes it into a direction and applies repeat timing. A move routine calculates a target cell. `TRY_MOVE_PLAYER_TO_BC` checks the wall map. If the target is a wall, nothing changes. If it is open, the player position is committed, power pills are consumed, the path is marked eaten, level completion is checked, monster collision is checked, and the viewport is adjusted.
 
-Every logic frame, monsters tick. In attack mode they try to reduce distance to the player. In flee mode they roam. If a monster reaches the player in attack mode, Pacmo enters caught state. The walls turn red, the LCD says `PACMO CAUGHT`, the caught sound plays, and a restart gate prevents an immediate accidental restart.
+Every logic frame, monsters tick. In attack mode they try to reduce distance to the player. In flee mode they roam. If a monster reaches the player in attack mode, Pacmo enters caught state. The walls turn red, the LCD says `PACMO CAUGHT` and shows the remaining lives, the caught sound plays, and a restart gate prevents an immediate accidental restart. If no lives remain, the LCD says `GAME OVER` and the next restart begins a fresh game.
 
 If the player eats a power pill, all active monsters enter flee state for the timer duration. If the player catches a fleeing monster, that monster disappears and respawns later at the best off-screen candidate. Other monsters continue independently.
 

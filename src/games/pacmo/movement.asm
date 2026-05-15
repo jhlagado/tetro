@@ -5,9 +5,11 @@
 ;   K_RIGHT (0x10) = right
 ;   ADD     (0x13) = up
 ;   GO      (0x12) = down
-;   key 5   (0x05) = right
-;   key 8   (0x08) = up
-;   key 0   (0x00) = down
+;   key A   (0x0A) = up
+;   key 7   (0x07) = right
+;   key 2   (0x02) = down
+;   key 5   (0x05) = left
+;   key 0   (0x00) = pause
 ;
 ; Raw keypad codes are normalized into PACMO_DIR_* intents before movement
 ; dispatch. Later game logic should consume directions, not physical keys.
@@ -32,10 +34,23 @@ POLL_INPUT_AND_UPDATE:
         LD      C,API_SCANKEYS
         RST     0x10
         JP      NZ,CLEAR_INPUT_REPEAT_STATE
+        LD      E,A
+        JR      NC,POLL_INPUT_NOT_NEW_KEY
+        LD      A,(PACMO_PAUSED)
+        OR      A
+        JP      NZ,HANDLE_UNPAUSE_KEY
+        LD      A,E
+        CP      K_PAUSE
+        JP      Z,HANDLE_PAUSE_KEY
+POLL_INPUT_NOT_NEW_KEY:
+        LD      A,(PACMO_PAUSED)
+        OR      A
+        JP      NZ,CLEAR_INPUT_REPEAT_STATE
 
+        LD      A,E
         CALL    NORMALIZE_INPUT_TO_DIRECTION
         JR      C,HANDLE_DIRECTION_KEY
-        JR      CLEAR_INPUT_REPEAT_STATE
+        JP      CLEAR_INPUT_REPEAT_STATE
 
 ; POLL_SPLASH_START
 ; Input:
@@ -56,8 +71,7 @@ POLL_SPLASH_START:
 ; Input:
 ;   PACMO_PLAYER_CAUGHT is nonzero
 ; Output:
-;   waits for PACMO_GAME_OVER_GATE, then restarts Pacmo through INIT_STATE
-;   when any key is pressed
+;   waits for PACMO_GAME_OVER_GATE, then restarts or resumes when any key is pressed
 ; Clobbers:
 ;   A, BC, DE, HL, IX when restarting; A, C, HL otherwise
 POLL_CAUGHT_RESTART:
@@ -72,7 +86,59 @@ POLL_CAUGHT_RESTART_KEY:
         LD      C,API_SCANKEYS
         RST     0x10
         RET     NZ
+        LD      A,(PACMO_GAME_OVER)
+        OR      A
+        JP      Z,PACMO_RESUME_AFTER_CAUGHT
         JP      INIT_STATE
+
+; PACMO_RESUME_AFTER_CAUGHT
+; Input:
+;   PACMO_LIVES is nonzero and caught gate has opened
+; Output:
+;   player and monsters reset; level progress, score, eaten paths, and lives preserved
+; Clobbers:
+;   A, BC, DE, HL, IX
+PACMO_RESUME_AFTER_CAUGHT:
+        CALL    INIT_PLAYER_AND_MONSTERS
+        XOR     A
+        LD      (PACMO_GAME_OVER_GATE_LO),A
+        LD      (PACMO_GAME_OVER_GATE_HI),A
+        CALL    LCD_SHOW_PACMO_RUNNING
+        JP      REBUILD_FRAMEBUFFER
+
+; HANDLE_PAUSE_KEY
+; Input:
+;   new K_PAUSE press has been detected
+; Output:
+;   PACMO_PAUSED set; LCD status updated; input repeat state reset
+; Clobbers:
+;   A
+HANDLE_PAUSE_KEY:
+        LD      A,1
+        LD      (PACMO_PAUSED),A
+        CALL    LCD_SHOW_PACMO_PAUSED
+        JP      CLEAR_INPUT_REPEAT_STATE
+
+; HANDLE_UNPAUSE_KEY
+; Input:
+;   PACMO_PAUSED is nonzero and a new key press has been detected
+; Output:
+;   PACMO_PAUSED cleared; LCD status restored; input repeat state reset
+; Clobbers:
+;   A, DE, HL
+HANDLE_UNPAUSE_KEY:
+        XOR     A
+        LD      (PACMO_PAUSED),A
+        LD      A,(PACMO_POWER_TIMER_LO)
+        LD      E,A
+        LD      A,(PACMO_POWER_TIMER_HI)
+        OR      E
+        JR      Z,HANDLE_UNPAUSE_SHOW_RUNNING
+        CALL    LCD_SHOW_PACMO_POWER
+        JP      CLEAR_INPUT_REPEAT_STATE
+HANDLE_UNPAUSE_SHOW_RUNNING:
+        CALL    LCD_SHOW_PACMO_RUNNING
+        JP      CLEAR_INPUT_REPEAT_STATE
 
 HANDLE_DIRECTION_KEY:
         LD      A,(LAST_KEY)
@@ -118,14 +184,16 @@ NORMALIZE_INPUT_TO_DIRECTION:
         CP      K_RIGHT
         JR      Z,NORMALIZE_RIGHT
         CP      PACMO_KEY_5
+        JR      Z,NORMALIZE_LEFT
+        CP      PACMO_KEY_7
         JR      Z,NORMALIZE_RIGHT
         CP      K_ROTATE_CCW
         JR      Z,NORMALIZE_UP
-        CP      PACMO_KEY_8
+        CP      PACMO_KEY_A
         JR      Z,NORMALIZE_UP
         CP      K_ROTATE
         JR      Z,NORMALIZE_DOWN
-        CP      PACMO_KEY_0
+        CP      PACMO_KEY_2
         JR      Z,NORMALIZE_DOWN
         OR      A
         RET
@@ -265,7 +333,7 @@ TRY_MOVE_PLAYER_TO_BC:
 ;   PACMO_PLAYER_CAUGHT = 1 when player and active enemy occupy the same world cell
 ;   outside enemy flee mode; in enemy flee mode, enemy is consumed and starts respawning
 ; Clobbers:
-;   A, BC, DE, HL, IX when the enemy is consumed or game-over is entered;
+;   A, BC, DE, HL, IX when the enemy is consumed or caught state is entered;
 ;   A, B otherwise
 PACMO_CHECK_PLAYER_CAUGHT:
         LD      A,(PACMO_PLAYER_CAUGHT)
@@ -287,22 +355,36 @@ PACMO_CHECK_PLAYER_CAUGHT:
         LD      A,(IX+MONSTER_STATE)
         CP      PACMO_ENEMY_STATE_FLEE
         JR      Z,PACMO_CONSUME_ENEMY
-        JP      PACMO_ENTER_GAME_OVER
+        JP      PACMO_ENTER_CAUGHT
 
-; PACMO_ENTER_GAME_OVER
+; PACMO_ENTER_CAUGHT
 ; Input:
-;   none
+;   player has collided with an attacking monster
 ; Output:
-;   PACMO_PLAYER_CAUGHT latched; restart gate loaded; framebuffer rebuilt
+;   life count reduced; caught or game-over state entered; framebuffer rebuilt
 ; Clobbers:
 ;   A, BC, DE, HL, IX
-PACMO_ENTER_GAME_OVER:
+PACMO_ENTER_CAUGHT:
         LD      A,1
         LD      (PACMO_PLAYER_CAUGHT),A
         LD      HL,PACMO_GAME_OVER_GATE_TICKS
         LD      (PACMO_GAME_OVER_GATE_LO),HL
+        LD      HL,PACMO_LIVES
+        LD      A,(HL)
+        OR      A
+        JR      Z,PACMO_ENTER_FINAL_GAME_OVER
+        DEC     (HL)
+        LD      A,(HL)
+        OR      A
+        JR      Z,PACMO_ENTER_FINAL_GAME_OVER
         CALL    PACMO_SOUND_CAUGHT
         CALL    LCD_SHOW_PACMO_CAUGHT
+        JP      REBUILD_FRAMEBUFFER
+PACMO_ENTER_FINAL_GAME_OVER:
+        LD      A,1
+        LD      (PACMO_GAME_OVER),A
+        CALL    PACMO_SOUND_CAUGHT
+        CALL    LCD_SHOW_PACMO_GAME_OVER
         JP      REBUILD_FRAMEBUFFER
 
 ; PACMO_CONSUME_ENEMY
@@ -316,6 +398,8 @@ PACMO_ENTER_GAME_OVER:
 PACMO_CONSUME_ENEMY:
         LD      A,PACMO_ENEMY_STATE_RESPAWN
         LD      (IX+MONSTER_STATE),A
+        LD      A,PACMO_ENEMY_RESPAWN_DIV
+        LD      (IX+MONSTER_TIMER),A
         LD      A,PACMO_ENEMY_RESPAWN_PERIOD
         LD      (IX+MONSTER_RESPAWN_TIMER),A
         CALL    PACMO_SOUND_EAT_ENEMY

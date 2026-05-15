@@ -51,7 +51,7 @@ Movement and soft drop repeat while held. Rotation is edge-triggered.
 
 ## Pacmo
 
-Pacmo is an 8x8 window into a larger 15x15 maze. The player consumes open paths, collects power pills, avoids attacking monsters, and can eat fleeing monsters during power mode.
+Pacmo is an 8x8 window into a larger 15x15 maze. The player consumes open paths, collects power pills, avoids attacking monsters, and can eat fleeing monsters during power mode. A new game starts with three lives; losing the final life shows `GAME OVER` on the LCD.
 
 ### Pacmo Controls
 
@@ -61,14 +61,16 @@ Pacmo is an 8x8 window into a larger 15x15 maze. The player consumes open paths,
 | `>` | `0x10` | Move right |
 | `AD` | `0x13` | Move up |
 | `GO` | `0x12` | Move down |
+| `0` | `0x00` | Pause |
+| any key | | Resume from pause |
 | any key | | Start from splash, or restart after the caught gate opens |
 
 Alternative diamond controls:
 
 ```text
-      8 = up
-< = left   5 = right
-      0 = down
+      A = up
+5 = left   7 = right
+      2 = down
 ```
 
 Movement repeats while held, with a short repeat delay. The arrow keys and diamond keys normalize to the same Pacmo movement directions.
