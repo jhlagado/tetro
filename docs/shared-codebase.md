@@ -1,8 +1,8 @@
-# Shared TEC-1G runtime architecture
+# Shared codebase
 
 TETRO and Pacmo are different games, but they run on the same tight hardware loop.
 
-There are no interrupts and no background task. The CPU has to keep the RGB matrix visible, scan the six-digit seven-segment display, service the speaker, poll input, and run game logic from one cooperative loop. The shared runtime is the small set of routines that make that possible without turning either game into a generic engine.
+There are no interrupts and no background task. The CPU has to keep the RGB matrix visible, scan the six-digit seven-segment display, service the speaker, poll input, and run game logic from one cooperative loop. The shared codebase is the small set of routines that make that possible without turning either game into a generic engine.
 
 This document describes the shared contract used by both game targets. The game-specific tours explain what each game does on top of it.
 
@@ -89,7 +89,7 @@ The exact slice schedule is game-specific:
 - TETRO uses slices for input, gravity, row clearing, rendering, and line-clear timing.
 - Pacmo uses slices for movement, power timing, monster updates, row clearing, rendering, and level gates.
 
-The shared runtime only provides the clocking pattern and buffer helpers. It does not decide what the slices mean.
+The shared codebase only provides the clocking pattern and buffer helpers. It does not decide what the slices mean.
 
 ---
 

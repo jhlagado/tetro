@@ -4,7 +4,7 @@ Pacmo is a maze game for the TEC-1G 8x8 RGB matrix. The visible display is not t
 
 The implementation follows the same hard constraint as TETRO: there are no interrupts and no background thread. Matrix scanout, speaker timing, score display, input, enemy movement, collision, and rendering all share one loop. Pacmo therefore uses the same scan/slice architecture, but its game logic is about a scrolling world, consumable paths, power mode, and monster records rather than falling pieces.
 
-This document describes the current Pacmo code. The shared loop, scan tick, LCD, HUD, sound, and framebuffer contracts are covered in [shared-runtime.md](shared-runtime.md).
+This document describes the current Pacmo code. The shared loop, scan tick, LCD, HUD, sound, and framebuffer contracts are covered in [shared-codebase.md](shared-codebase.md).
 
 ---
 
@@ -64,7 +64,7 @@ MAIN_LOOP:
     JR      MAIN_LOOP
 ```
 
-Those three instructions in `src/pacmo.asm` are the whole runtime. Pacmo uses the shared cooperative loop described in [shared-runtime.md](shared-runtime.md): `SCAN_TICK` keeps the hardware alive, and `LOGIC_TICK` performs one slice of game work.
+Those three instructions in `src/pacmo.asm` are the whole runtime. Pacmo uses the shared cooperative loop described in [shared-codebase.md](shared-codebase.md): `SCAN_TICK` keeps the hardware alive, and `LOGIC_TICK` performs one slice of game work.
 
 This means the display, score digits, speaker, keypad, scrolling, monster movement, rendering, and level timing all share the same cooperative clock.
 
