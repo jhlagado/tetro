@@ -413,6 +413,8 @@ TETRO wrappers and presentation
     keypad mapping, repeat handling, pause/start/restart gates
 
 TETRO rules
+  games/tetro/constants.asm
+    movement, gravity, scoring, spawn, and sound tuning
   games/tetro/game_init.asm
     cold start, restart, and state initialization
   games/tetro/logic_dispatch.asm

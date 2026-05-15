@@ -79,6 +79,7 @@ src/
 |   `-- sound.asm              ; speaker divider service
 `-- games/
     |-- tetro/
+    |   |-- constants.asm       ; TETRO tuning constants
     |   |-- geometry_helpers.asm
     |   |-- collision.asm
     |   |-- render.asm
