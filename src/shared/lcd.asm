@@ -105,3 +105,32 @@ LCD_PUTC:
         POP     AF
         OUT     (PORT_LCD_DATA),A
         RET
+
+; LCD_WRITE_ROW_STRING
+; Input:
+;   B = row DDRAM command
+;   HL = zero-terminated string
+; Output:
+;   cursor moved and string written
+; Clobbers:
+;   A, HL
+LCD_WRITE_ROW_STRING:
+        CALL    LCD_COMMAND
+        JP      LCD_STRING
+
+; LCD_PUTC_FROM_TABLE
+; Input:
+;   A = unsigned table index
+;   DE = byte table base
+; Output:
+;   table byte at DE+A written
+; Clobbers:
+;   A, HL
+; Notes:
+;   no bounds check
+LCD_PUTC_FROM_TABLE:
+        LD      L,A
+        LD      H,0
+        ADD     HL,DE
+        LD      A,(HL)
+        JP      LCD_PUTC

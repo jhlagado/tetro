@@ -42,12 +42,8 @@ LCD_SHOW_SPLASH:
 ;   A, DE, HL
 LCD_APPEND_NEXT_PREVIEW_LETTER:
         LD      A,(NEXT_PIECE_INDEX)
-        LD      L,A
-        LD      H,0
         LD      DE,PIECE_NAME_TABLE
-        ADD     HL,DE
-        LD      A,(HL)
-        JP      LCD_PUTC
+        JP      LCD_PUTC_FROM_TABLE
 
 ; LCD_REFRESH_NEXT_PREVIEW_ROW
 ; Rewrites HUD row 2 with NEXT: banner + letter. Does not clear the display;
@@ -62,9 +58,8 @@ LCD_REFRESH_NEXT_PREVIEW_ROW:
         PUSH    BC
         PUSH    HL
         LD      B,LCD_ROW2
-        CALL    LCD_COMMAND
         LD      HL,LCD_TEXT_NEXT
-        CALL    LCD_STRING
+        CALL    LCD_WRITE_ROW_STRING
         CALL    LCD_APPEND_NEXT_PREVIEW_LETTER
         POP     HL
         POP     BC

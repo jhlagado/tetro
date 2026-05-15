@@ -81,16 +81,11 @@ LCD_SHOW_PACMO_COMPLETE:
 LCD_REFRESH_LEVEL_ROW:
         PUSH    BC
         LD      B,LCD_ROW2
-        CALL    LCD_COMMAND
         LD      HL,LCD_TEXT_PACMO_LEVEL
-        CALL    LCD_STRING
+        CALL    LCD_WRITE_ROW_STRING
         LD      A,(PACMO_LEVEL)
         AND     0x0F
-        LD      L,A
-        LD      H,0
         LD      DE,PACMO_LEVEL_CHAR_TABLE
-        ADD     HL,DE
-        LD      A,(HL)
-        CALL    LCD_PUTC
+        CALL    LCD_PUTC_FROM_TABLE
         POP     BC
         RET
