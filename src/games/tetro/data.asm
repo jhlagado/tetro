@@ -221,10 +221,10 @@ PIECE_RIGHT_TABLE:
         DB      2,1,2,1
 
 PIECE_COLOR_TABLE:
-        DB      COLOR_GREEN+COLOR_BLUE              ; I = cyan
-        DB      COLOR_RED+COLOR_GREEN+COLOR_BLUE   ; O  = white
-        DB      COLOR_RED+COLOR_BLUE               ; T  = magenta
+        DB      COLOR_CYAN                         ; I = cyan
+        DB      COLOR_WHITE                        ; O  = white
+        DB      COLOR_MAGENTA                      ; T  = magenta
         DB      COLOR_GREEN                        ; S  = green
         DB      COLOR_RED                          ; Z  = red
         DB      COLOR_BLUE                         ; J  = blue
-        DB      COLOR_RED+COLOR_GREEN              ; L  = yellow
+        DB      COLOR_YELLOW                       ; L  = yellow
