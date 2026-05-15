@@ -137,32 +137,6 @@ SCRIPT_PACMO_COMPLETE:
         DW      LCD_TEXT_PACMO_WAIT
         DB      0
 
-DIGIT_MASK_TABLE:
-        DB      0x20
-        DB      0x10
-        DB      0x08
-        DB      0x04
-        DB      0x02
-        DB      0x01
-
-PACMO_HEX_SEG_TABLE:
-        DB      0xEB
-        DB      0x28
-        DB      0xCD
-        DB      0xAD
-        DB      0x2E
-        DB      0xA7
-        DB      0xE7
-        DB      0x29
-        DB      0xEF
-        DB      0x2F
-        DB      0x6F
-        DB      0xE6
-        DB      0xC3
-        DB      0xEC
-        DB      0xC7
-        DB      0x47
-
 ; 15-bit scrolling test bitmap.  Bit 15 is world column 0; bit 1 is column 14.
 ; This is deliberately a visual pattern, not a colliding maze yet.
 ; Each row is stored high byte first, low byte second for RENDER_WORLD_TO_BACK.
