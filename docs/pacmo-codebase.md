@@ -179,7 +179,7 @@ Scores are 16-bit and displayed on the six seven-segment digits. The event value
 
 `PACMO_ADD_SCORE_A` adds an 8-bit event value to `PACMO_SCORE`, then calls `UPDATE_SCORE_DISPLAY`.
 
-`src/shared/hud.asm` handles scanning the six digits and owns the decimal formatter. `src/games/pacmo/hud.asm` is a local wrapper: it loads `PACMO_SCORE`, points at `HUD_SEG_BUFFER`, and tail-calls the shared HUD formatter.
+`src/shared/hud.asm` handles scanning the six digits and owns the decimal formatter. `src/games/pacmo/hud.asm` is a local wrapper: it loads `PACMO_SCORE` into `HL` and tail-calls the shared HUD formatter, which owns the `HUD_SEG_BUFFER` destination.
 
 ---
 

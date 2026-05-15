@@ -61,7 +61,7 @@ Implemented shape:
 - `src/shared/hud.asm` owns `HUD_DIGIT_MASK_TABLE` and `HUD_SEG_GLYPH_TABLE`.
 - `src/shared/hud.asm` owns `HUD_WRITE_U16_DECIMAL` and `HUD_WRITE_DECIMAL_DIGIT`.
 - Game-local `UPDATE_SCORE_DISPLAY` wrappers remain in place.
-- Each wrapper loads the game score into `HL`, points `BC` at `HUD_SEG_BUFFER`, and tail-calls the shared formatter.
+- Each wrapper loads the game score into `HL` and tail-calls the shared formatter. The shared formatter owns the `HUD_SEG_BUFFER` destination.
 
 The shared formatter should not know `SCORE_LO`, `PACMO_SCORE`, line clears, paths, pills, or enemies. It should only know how to turn a 16-bit value into segment bytes.
 
