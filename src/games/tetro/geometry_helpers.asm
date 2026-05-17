@@ -1,8 +1,7 @@
 ; LOAD_DE_FROM_PENDING
-; Returns @out D as PENDING_X.
-; Returns @out E as PENDING_Y.
-; Uses @clobbers A as scratch.
-; Keeps @preserves BC,HL stable for the caller.
+; @out D PENDING_X.
+; @out E PENDING_Y.
+; @clobbers A.
 LOAD_DE_FROM_PENDING:
         LD      A,(PENDING_X)
         LD      D,A
@@ -10,11 +9,10 @@ LOAD_DE_FROM_PENDING:
         LD      E,A
         RET
 ; SHIFT_ROW_MASK
-; Accepts @in A as the unshifted row mask.
-;   SHIFT_COUNT = logical x placement
-; Returns @out A as the shifted row mask.
-; Uses @clobbers C,carry,zero,sign,parity,halfCarry while shifting.
-; Keeps @preserves B,DE,HL stable for the caller.
+; @in A the unshifted row mask.
+; Reads SHIFT_COUNT as logical x placement.
+; @out A the shifted row mask.
+; @clobbers C while shifting.
 SHIFT_ROW_MASK:
         LD      C,A
         LD      A,(SHIFT_COUNT)

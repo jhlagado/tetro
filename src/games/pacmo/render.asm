@@ -1,10 +1,7 @@
 ; REBUILD_FRAMEBUFFER
-; Input:
-;   current viewport and player state in RAM
-; Output:
-;   FRAMEBUFFER rebuilt from scratch
-; Clobbers:
-;   A, BC, DE, HL, IX
+; Current viewport and player state in RAM.
+; FRAMEBUFFER rebuilt from scratch.
+; @clobbers A,BC,DE,HL,IX.
 REBUILD_FRAMEBUFFER:
         CALL    CLEAR_BACK_ALL
         CALL    RENDER_WORLD_TO_BACK
@@ -23,12 +20,8 @@ REBUILD_FRAMEBUFFER_MONSTERS_DONE:
         JP      COPY_BACK_TO_FRONT
 
 ; RENDER_GAME_OVER_TO_BACK
-; Input:
-;   none
-; Output:
-;   FRAMEBUFFER_BACK filled with PACMO_COLOR_GAME_OVER as a dramatic cue
-; Clobbers:
-;   A, B, HL
+; FRAMEBUFFER_BACK filled with PACMO_COLOR_GAME_OVER as a dramatic cue.
+; @clobbers A,B,HL.
 RENDER_GAME_OVER_TO_BACK:
         LD      HL,FRAMEBUFFER_BACK
         LD      B,ROW_COUNT
@@ -61,12 +54,8 @@ RENDER_GAME_OVER_BLUE_OFF:
         RET
 
 ; RENDER_LEVEL_COMPLETE_TO_BACK
-; Input:
-;   none
-; Output:
-;   FRAMEBUFFER_BACK filled with PACMO_COLOR_ROUND_COMPLETE
-; Clobbers:
-;   A, B, HL
+; FRAMEBUFFER_BACK filled with PACMO_COLOR_ROUND_COMPLETE.
+; @clobbers A,B,HL.
 RENDER_LEVEL_COMPLETE_TO_BACK:
         LD      HL,FRAMEBUFFER_BACK
         LD      B,ROW_COUNT
@@ -99,12 +88,9 @@ RENDER_LEVEL_COMPLETE_BLUE_OFF:
         RET
 
 ; RENDER_WORLD_TO_BACK
-; Input:
-;   VIEW_X/Y and PACMO_WORLD_ROWS
-; Output:
-;   visible 8x8 viewport rendered with PACMO_COLOR_PATH and PACMO_COLOR_WALL
-; Clobbers:
-;   A, BC, DE, HL
+; VIEW_X/Y and PACMO_WORLD_ROWS.
+; Visible 8x8 viewport rendered with PACMO_COLOR_PATH and PACMO_COLOR_WALL.
+; @clobbers A,BC,DE,HL.
 RENDER_WORLD_TO_BACK:
         LD      B,0
 RENDER_WORLD_TO_BACK_ROW_LOOP:
@@ -119,15 +105,9 @@ RENDER_WORLD_TO_BACK_ROW_LOOP:
         RET
 
 ; RENDER_WORLD_ROW_TO_BACK
-; Input:
-;   A = screen row 0..7
-; Output:
-;   selected FRAMEBUFFER_BACK row rendered from the corresponding world/eaten row
-; Clobbers:
-;   A, BC, DE, HL
-; Accepts @in A as the screen row.
-; Uses @clobbers A,BC,DE,HL while rendering the world row.
-; Keeps @preserves IX,IY stable for the caller.
+; @in A screen row 0..7.
+; Selected FRAMEBUFFER_BACK row rendered from the corresponding world/eaten row.
+; @clobbers A,BC,DE,HL while rendering the world row.
 RENDER_WORLD_ROW_TO_BACK:
         LD      C,A                     ; C = screen row
         ADD     A,A
@@ -175,17 +155,14 @@ RENDER_WORLD_ROW_TO_BACK:
         JP      WRITE_WORLD_ROW_COLORS
 
 ; WRITE_WORLD_ROW_COLORS
-; Input:
-;   HL = red plane byte for the target framebuffer row
-;   C  = visible wall mask
-;   D  = visible uneaten path mask
-; Output:
-;   red/green/blue plane bytes written from PACMO_COLOR_WALL/PATH;
-;   caught state renders walls with PACMO_COLOR_CAUGHT_WALL;
-;   complete state renders walls with PACMO_COLOR_COMPLETE_WALL
-;   HL points to the aux byte after the blue plane
-; Clobbers:
-;   A, B, HL
+; @in HL red plane byte for the target framebuffer row.
+; @in C visible wall mask.
+; @in D visible uneaten path mask.
+; @out HL points to the aux byte after the blue plane.
+; Red/green/blue plane bytes written from PACMO_COLOR_WALL/PATH;
+; Caught state renders walls with PACMO_COLOR_CAUGHT_WALL;
+; Complete state renders walls with PACMO_COLOR_COMPLETE_WALL.
+; @clobbers A,B,HL.
 WRITE_WORLD_ROW_COLORS:
         XOR     A
         LD      B,A
@@ -240,15 +217,8 @@ WRITE_WORLD_BLUE_STORE:
         RET
 
 ; GET_CURRENT_WALL_COLOR
-; Input:
-;   PACMO_PLAYER_CAUGHT, PACMO_ROUND_COMPLETE
-; Output:
-;   A = wall color for the current render state
-; Clobbers:
-;   A
-; Returns @out A as the current wall color.
-; Uses @clobbers zero,sign,parity,halfCarry while checking render state.
-; Keeps @preserves BC,DE,HL,IX,IY stable for the caller.
+; Reads PACMO_PLAYER_CAUGHT, PACMO_ROUND_COMPLETE.
+; @out A the current wall color.
 GET_CURRENT_WALL_COLOR:
         LD      A,(PACMO_PLAYER_CAUGHT)
         OR      A
@@ -266,18 +236,10 @@ GET_CURRENT_WALL_COLOR_COMPLETE:
         RET
 
 ; WINDOW_BYTE_FROM_BC
-; Input:
-;   BC = 16-bit world row, bit 15 is world column 0
-;   A  = viewport X origin, expected 0..7
-; Output:
-;   A = 8 visible bits for columns VIEW_X..VIEW_X+7
-; Clobbers:
-;   B, C, D
-; Accepts @in BC as the 16-bit world row.
-; Accepts @in A as viewport X origin.
-; Returns @out A as the visible window byte.
-; Uses @clobbers B,C,D,carry,zero,sign,parity,halfCarry while shifting the world row.
-; Keeps @preserves E,HL,IX,IY stable for the caller.
+; @in BC 16-bit world row, bit 15 is world column 0.
+; @in A viewport X origin, expected 0..7.
+; @out A the visible window byte.
+; @clobbers B,C,D while shifting the world row.
 WINDOW_BYTE_FROM_BC:
         LD      D,A
         LD      A,D
@@ -293,12 +255,9 @@ WINDOW_BYTE_DONE:
         RET
 
 ; RENDER_POWER_PILLS_TO_BACK
-; Input:
-;   VIEW_X/Y and PACMO_POWER_PILLS
-; Output:
-;   visible power pills rendered with PACMO_COLOR_POWER_PILL
-; Clobbers:
-;   A, BC, DE, HL
+; VIEW_X/Y and PACMO_POWER_PILLS.
+; Visible power pills rendered with PACMO_COLOR_POWER_PILL.
+; @clobbers A,BC,DE,HL.
 RENDER_POWER_PILLS_TO_BACK:
         LD      HL,PACMO_POWER_PILLS
         LD      D,1
@@ -324,12 +283,9 @@ RENDER_POWER_PILL_NEXT:
         JR      RENDER_POWER_PILL_LOOP
 
 ; RENDER_POWER_PILLS_ROW_TO_BACK
-; Input:
-;   A = screen row 0..7
-; Output:
-;   visible power pills on that row rendered into FRAMEBUFFER_BACK
-; Clobbers:
-;   A, BC, DE, HL
+; @in A screen row 0..7.
+; Visible power pills on that row rendered into FRAMEBUFFER_BACK.
+; @clobbers A,BC,DE,HL.
 RENDER_POWER_PILLS_ROW_TO_BACK:
         LD      E,A                     ; E = target screen row
         LD      HL,PACMO_POWER_PILLS
@@ -360,13 +316,10 @@ RENDER_POWER_PILL_ROW_NEXT:
         JR      RENDER_POWER_PILL_ROW_LOOP
 
 ; RENDER_POWER_PILL_BC
-; Input:
-;   B = world x
-;   C = world y
-; Output:
-;   if the cell is in the viewport, its framebuffer cell is set to power-pill color
-; Clobbers:
-;   A, B, C, DE, HL
+; @in B world x.
+; @in C world y.
+; If the cell is in the viewport, its framebuffer cell is set to power-pill color.
+; @clobbers A,BC,DE,HL.
 RENDER_POWER_PILL_BC:
         LD      A,(VIEW_Y)
         LD      E,A
@@ -394,14 +347,11 @@ RENDER_POWER_PILL_BC:
         JP      FB_SET_CELL_COLOR
 
 ; RENDER_ENEMY_TO_BACK
-; Input:
-;   IX = monster record base
-;   monster X/Y, VIEW_X/Y, monster state, PACMO_POWER_TIMER_LO/HI, respawn timer
-; Output:
-;   enemy pixel rendered as attack color normally or flee color when enemy state is flee,
-;   replacing any path color at that cell; respawning enemy is not rendered
-; Clobbers:
-;   A, B, C, DE, HL
+; @in IX monster record base.
+; Reads monster X/Y, VIEW_X/Y, monster state, respawn timer, and PACMO_POWER_TIMER_LO/HI.
+; Enemy pixel rendered as attack color normally, or flee color when enemy state is flee.
+; Replaces any path color at that cell; respawning enemy is not rendered.
+; @clobbers A,BC,DE,HL.
 RENDER_ENEMY_TO_BACK:
         LD      A,(IX+MONSTER_RESPAWN_TIMER)
         OR      A
@@ -458,12 +408,9 @@ RENDER_ENEMY_FLEE:
         JP      FB_SET_CELL_COLOR
 
 ; RENDER_MONSTERS_ROW_TO_BACK
-; Input:
-;   A = screen row 0..7
-; Output:
-;   visible monsters on that row rendered into FRAMEBUFFER_BACK
-; Clobbers:
-;   A, BC, DE, HL, IX
+; @in A screen row 0..7.
+; Visible monsters on that row rendered into FRAMEBUFFER_BACK.
+; @clobbers A,BC,DE,HL,IX.
 RENDER_MONSTERS_ROW_TO_BACK:
         LD      C,A
         PUSH    BC
@@ -485,13 +432,10 @@ RENDER_MONSTERS_ROW_TO_BACK:
         JP      RENDER_ENEMY_IF_SCREEN_ROW_E
 
 ; RENDER_ENEMY_IF_SCREEN_ROW_E
-; Input:
-;   E = target screen row 0..7
-;   IX = monster record base
-; Output:
-;   enemy rendered only when it is active and occupies target screen row
-; Clobbers:
-;   A, BC, DE, HL
+; @in E target screen row 0..7.
+; @in IX monster record base.
+; Enemy rendered only when it is active and occupies target screen row.
+; @clobbers A,BC,DE,HL.
 RENDER_ENEMY_IF_SCREEN_ROW_E:
         LD      A,(IX+MONSTER_RESPAWN_TIMER)
         OR      A
@@ -512,13 +456,10 @@ RENDER_ENEMY_IF_SCREEN_ROW_E:
         RET
 
 ; RENDER_PLAYER_TO_BACK
-; Input:
-;   PLAYER_X/Y, VIEW_X/Y
-; Output:
-;   player pixel rendered with palette colors; yellow normally, white when the
-;   round is complete, red when caught
-; Clobbers:
-;   A, B, C, DE, HL
+; Reads PLAYER_X/Y, VIEW_X/Y.
+; Player pixel rendered with palette colors.
+; Yellow normally, white when the round is complete, red when caught.
+; @clobbers A,BC,DE,HL.
 RENDER_PLAYER_TO_BACK:
         LD      A,(PLAYER_Y)
         LD      B,A
@@ -563,12 +504,9 @@ RENDER_PLAYER_CAUGHT:
         JP      FB_SET_CELL_COLOR
 
 ; RENDER_PLAYER_ROW_TO_BACK
-; Input:
-;   A = screen row 0..7
-; Output:
-;   player rendered into FRAMEBUFFER_BACK only when it occupies that row
-; Clobbers:
-;   A, BC, DE, HL
+; @in A screen row 0..7.
+; Player rendered into FRAMEBUFFER_BACK only when it occupies that row.
+; @clobbers A,BC,DE,HL.
 RENDER_PLAYER_ROW_TO_BACK:
         LD      E,A
         LD      A,(PLAYER_Y)

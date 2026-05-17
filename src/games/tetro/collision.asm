@@ -1,10 +1,8 @@
 ; Candidate placement test (same MSB-left column convention per SHIFT_ROW_MASK / boarded occupancy nibbles).
-; Accepts @in D as candidate x.
-; Accepts @in E as candidate y.
-; Returns @out carry set if placement collides or is out of bounds.
-;   carry clear if placement is legal
-; Uses @clobbers A,zero,sign,parity,halfCarry as scratch and result flags.
-; Keeps @preserves BC,DE,HL stable for the caller.
+; @in D candidate x.
+; @in E candidate y.
+; @out carry set if placement collides or is out of bounds; clear if placement is legal.
+; @clobbers A as scratch.
 CHECK_COLLISION_AT_DE:
         PUSH    BC
         PUSH    DE
@@ -72,17 +70,10 @@ COLLISION_EXIT_OK:
         RET
 
 ; CHECK_TOP_OUT_ON_LOCK
-; Input:
-;   PLAYER_Y, CURRENT_PIECE_PTR
-; Output:
-;   carry set if any occupied row of the active piece is still above the
-;   visible field when the piece is about to lock
-;   carry clear otherwise
-; Clobbers:
-;   A
-; Returns @out carry set when locking would top out.
-; Uses @clobbers A while scanning the active piece rows.
-; Keeps @preserves BC,DE,HL stable for the caller.
+; Reads PLAYER_Y, CURRENT_PIECE_PTR.
+; @out carry set when locking would top out.
+; Scans active-piece rows; carry is set if any occupied row is still above the visible field.
+; @clobbers A while scanning the active piece rows.
 CHECK_TOP_OUT_ON_LOCK:
         PUSH    BC
         PUSH    DE

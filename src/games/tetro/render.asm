@@ -1,11 +1,8 @@
 ; Full rebuild (used at init). Build in back buffer, then copy to live FB.
 ; REBUILD_FRAMEBUFFER
-; Input:
-;   current board and active-piece state in RAM
-; Output:
-;   FRAMEBUFFER rebuilt from scratch
-; Clobbers:
-;   A, BC, DE, HL
+; Current board and active-piece state in RAM.
+; FRAMEBUFFER rebuilt from scratch.
+; @clobbers A,BC,DE,HL.
 REBUILD_FRAMEBUFFER:
         CALL    CLEAR_BACK_ALL
         CALL    RENDER_BOARD_TO_BACK
@@ -13,12 +10,8 @@ REBUILD_FRAMEBUFFER:
         JP      COPY_BACK_TO_FRONT
 
 ; CLEAR_BOARD
-; Input:
-;   none
-; Output:
-;   BOARD_ROWS and landed RGB planes cleared to zero
-; Clobbers:
-;   A, B, HL
+; BOARD_ROWS and landed RGB planes cleared to zero.
+; @clobbers A,B,HL.
 CLEAR_BOARD:
         LD      HL,BOARD_ROWS
         LD      B,ROW_COUNT*4
@@ -31,15 +24,10 @@ CLEAR_BOARD_LOOP:
         LD      (BOARD_EMPTY),A
         RET
 ; RENDER_BOARD_TO_BACK
-; Input:
-;   BOARD_RED / BOARD_GREEN / BOARD_BLUE / BOARD_ROWS, FRAMEBUFFER_BACK, GAME_OVER
-; Output:
-;   landed board copied into FRAMEBUFFER_BACK in native RGB, except during GAME_OVER
-;   landed cells shown as occupancy on red only (G/B cleared) — uniform red silhouette.
-; Clobbers:
-;   A
-; Uses @clobbers A while copying board state into the back buffer.
-; Keeps @preserves BC,DE,HL stable for the caller.
+; BOARD_RED / BOARD_GREEN / BOARD_BLUE / BOARD_ROWS, FRAMEBUFFER_BACK, GAME_OVER.
+; Landed board copied into FRAMEBUFFER_BACK in native RGB, except during GAME_OVER.
+; Landed cells shown as occupancy on red only (G/B cleared) — uniform red silhouette.
+; @clobbers A while copying board state into the back buffer.
 RENDER_BOARD_TO_BACK:
         PUSH    BC
         PUSH    DE
@@ -131,14 +119,9 @@ RENDER_BOARD_TO_BACK_EXIT:
 
 ; Draw the active 4x4 bitmap into the back buffer (same layout as live FB).
 ; RENDER_ACTIVE_TO_BACK
-; Input:
-;   PLAYER_X, PLAYER_Y, CURRENT_PIECE_PTR, CURRENT_PIECE_COLOR
-; Output:
-;   active piece ORed into FRAMEBUFFER_BACK in piece colour
-; Clobbers:
-;   A
-; Uses @clobbers A while drawing the active piece.
-; Keeps @preserves BC,DE,HL stable for the caller.
+; Reads PLAYER_X, PLAYER_Y, CURRENT_PIECE_PTR, CURRENT_PIECE_COLOR.
+; Active piece ORed into FRAMEBUFFER_BACK in piece colour.
+; @clobbers A while drawing the active piece.
 RENDER_ACTIVE_TO_BACK:
         LD      A,(ACTIVE_PIECE_ENABLED)
         OR      A

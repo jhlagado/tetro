@@ -1,10 +1,6 @@
 ; INIT_STATE
-; Input:
-;   none
-; Output:
-;   initialized runtime state in RAM
-; Clobbers:
-;   A, BC, DE, HL
+; Initialized runtime state in RAM.
+; @clobbers A,BC,DE,HL.
 INIT_STATE:
         CALL    INIT_STATE_BASE
         LD      A,1
@@ -13,12 +9,8 @@ INIT_STATE:
         JP      REBUILD_FRAMEBUFFER
 
 ; INIT_STATE_RESTART
-; Input:
-;   none
-; Output:
-;   initialized runtime state for immediate post-game restart
-; Clobbers:
-;   A, BC, DE, HL
+; Initialized runtime state for immediate post-game restart.
+; @clobbers A,BC,DE,HL.
 INIT_STATE_RESTART:
         CALL    INIT_STATE_BASE
         XOR     A
@@ -31,13 +23,8 @@ INIT_STATE_RESTART:
         JP      REBUILD_FRAMEBUFFER
 
 ; INIT_STATE_BASE
-; Input:
-;   none
-; Output:
-;   common runtime state initialized in RAM
-; Clobbers:
-;   A, B, HL
-; Uses @clobbers A,B,HL while resetting common runtime RAM state.
+; Common runtime state initialized in RAM.
+; @clobbers A,B,HL while resetting common runtime RAM state.
 INIT_STATE_BASE:
         LD      A,MOVE_PERIOD
         LD      (MOVE_COOLDOWN),A

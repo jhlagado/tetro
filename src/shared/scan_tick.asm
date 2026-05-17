@@ -1,14 +1,9 @@
 ; Output one scanline, then advance persistent scan state.
 ; SCAN_TICK
-; Input:
-;   uses SCAN_PTR / SCAN_MASK from RAM
-; Output:
-;   one matrix row emitted to hardware ports
-;   one seven-segment digit emitted to hardware ports
-; Clobbers:
-;   A, BC, DE, HL
-; Uses @clobbers A,BC,DE,HL,carry,zero,sign,parity,halfCarry while scanning display and sound state.
-; Keeps @preserves IX,IY stable for the caller.
+; Uses SCAN_PTR / SCAN_MASK from RAM.
+; One matrix row emitted to hardware ports.
+; One seven-segment digit emitted to hardware ports.
+; @clobbers A,BC,DE,HL while scanning display and sound state.
 SCAN_TICK:
         XOR     A
         OUT     (PORT_ROW),A
@@ -35,15 +30,10 @@ SCAN_TICK:
         RET
 
 ; ADVANCE_SCAN_STATE
-; Input:
-;   uses SCAN_MASK / SCAN_PTR from RAM
-; Output:
-;   updated SCAN_MASK / SCAN_PTR
-;   FRAME_PHASE: see ram.asm label — incremented once per full framebuffer wrap only.
-; Clobbers:
-;   A, DE, HL
-; Uses @clobbers A,DE,HL,carry,zero,sign,parity,halfCarry while advancing scan state.
-; Keeps @preserves BC,IX,IY stable for the caller.
+; Uses SCAN_MASK / SCAN_PTR from RAM.
+; Updated SCAN_MASK / SCAN_PTR.
+; FRAME_PHASE: see ram.asm label — incremented once per full framebuffer wrap only.
+; @clobbers A,DE,HL while advancing scan state.
 ADVANCE_SCAN_STATE:
         LD      A,(SCAN_MASK)
         RLC     A

@@ -18,14 +18,8 @@
 ; dispatch. Later game logic should consume directions, not physical keys.
 ;
 ; POLL_INPUT_AND_UPDATE
-; Input:
-;   none
-; Output:
-;   may update PLAYER_X/Y, VIEW_X/Y, MOVE_COOLDOWN, LAST_KEY
-; Clobbers:
-;   A, BC, DE, HL, IX
-; Uses @clobbers A,BC,DE,HL,IX,carry,zero,sign,parity,halfCarry while polling and applying input.
-; Keeps @preserves IY stable for the caller.
+; May update PLAYER_X/Y, VIEW_X/Y, MOVE_COOLDOWN, LAST_KEY.
+; @clobbers A,BC,DE,HL,IX while polling and applying input.
 POLL_INPUT_AND_UPDATE:
         LD      A,(PACMO_SPLASH_ACTIVE)
         OR      A
@@ -58,12 +52,9 @@ POLL_INPUT_NOT_NEW_KEY:
         JP      CLEAR_INPUT_REPEAT_STATE
 
 ; POLL_SPLASH_START
-; Input:
-;   PACMO_SPLASH_ACTIVE is nonzero
-; Output:
-;   starts Pacmo on any key press
-; Clobbers:
-;   A, BC, DE, HL when starting; A, C otherwise
+; PACMO_SPLASH_ACTIVE is nonzero.
+; Starts Pacmo on any key press.
+; @clobbers A,BC,DE,HL.
 POLL_SPLASH_START:
         LD      C,API_SCANKEYS
         RST     0x10
@@ -73,12 +64,9 @@ POLL_SPLASH_START:
         JP      LCD_SHOW_PACMO_RUNNING
 
 ; POLL_CAUGHT_RESTART
-; Input:
-;   PACMO_PLAYER_CAUGHT is nonzero
-; Output:
-;   waits for PACMO_GAME_OVER_GATE, then restarts or resumes when any key is pressed
-; Clobbers:
-;   A, BC, DE, HL, IX when restarting; A, C, HL otherwise
+; PACMO_PLAYER_CAUGHT is nonzero.
+; Waits for PACMO_GAME_OVER_GATE, then restarts or resumes when any key is pressed.
+; @clobbers A,BC,DE,HL,IX.
 POLL_CAUGHT_RESTART:
         LD      HL,(PACMO_GAME_OVER_GATE_LO)
         LD      A,H
@@ -97,12 +85,9 @@ POLL_CAUGHT_RESTART_KEY:
         JP      INIT_STATE
 
 ; PACMO_RESUME_AFTER_CAUGHT
-; Input:
-;   PACMO_LIVES is nonzero and caught gate has opened
-; Output:
-;   player and monsters reset; level progress, score, eaten paths, and lives preserved
-; Clobbers:
-;   A, BC, DE, HL, IX
+; PACMO_LIVES is nonzero and caught gate has opened.
+; Player and monsters reset; level progress, score, eaten paths, and lives preserved.
+; @clobbers A,BC,DE,HL,IX.
 PACMO_RESUME_AFTER_CAUGHT:
         CALL    INIT_PLAYER_AND_MONSTERS
         XOR     A
@@ -112,12 +97,9 @@ PACMO_RESUME_AFTER_CAUGHT:
         JP      REBUILD_FRAMEBUFFER
 
 ; HANDLE_PAUSE_KEY
-; Input:
-;   new K_PAUSE press has been detected
-; Output:
-;   PACMO_PAUSED set; LCD status updated; input repeat state reset
-; Clobbers:
-;   A
+; New K_PAUSE press has been detected.
+; PACMO_PAUSED set; LCD status updated; input repeat state reset.
+; @clobbers A.
 HANDLE_PAUSE_KEY:
         LD      A,1
         LD      (PACMO_PAUSED),A
@@ -125,12 +107,9 @@ HANDLE_PAUSE_KEY:
         JP      CLEAR_INPUT_REPEAT_STATE
 
 ; HANDLE_UNPAUSE_KEY
-; Input:
-;   PACMO_PAUSED is nonzero and a new key press has been detected
-; Output:
-;   PACMO_PAUSED cleared; LCD status restored; input repeat state reset
-; Clobbers:
-;   A, DE, HL
+; PACMO_PAUSED is nonzero and a new key press has been detected.
+; PACMO_PAUSED cleared; LCD status restored; input repeat state reset.
+; @clobbers A,DE,HL.
 HANDLE_UNPAUSE_KEY:
         XOR     A
         LD      (PACMO_PAUSED),A
@@ -176,17 +155,10 @@ HELD_SAME_KEY:
         RET
 
 ; NORMALIZE_INPUT_TO_DIRECTION
-; Input:
-;   A = raw MON-3 keypad code from API_SCANKEYS
-; Output:
-;   Carry set and E = PACMO_DIR_* for accepted movement keys
-;   Carry clear if the key is not a Pacmo movement key
-; Clobbers:
-;   A, E
-; Accepts @in A as the raw MON-3 keypad code.
-; Returns @out carry set when the key maps to a movement direction.
-; Returns @out E as the normalized PACMO_DIR_* when carry is set.
-; Uses @clobbers A,zero,sign,parity,halfCarry while matching the key.
+; @in A raw MON-3 keypad code from API_SCANKEYS.
+; @out carry set when the key maps to a movement direction.
+; @out E the normalized PACMO_DIR_* when carry is set.
+; @clobbers A while matching the key.
 NORMALIZE_INPUT_TO_DIRECTION:
         CP      K_LEFT
         JR      Z,NORMALIZE_LEFT
@@ -230,12 +202,8 @@ NORMALIZE_DOWN:
         RET
 
 ; CLEAR_INPUT_REPEAT_STATE
-; Input:
-;   none
-; Output:
-;   resets repeat timing so the next valid key moves promptly
-; Clobbers:
-;   A
+; Resets repeat timing so the next valid key moves promptly.
+; @clobbers A.
 CLEAR_INPUT_REPEAT_STATE:
         LD      A,PACMO_MOVE_PERIOD
         LD      (MOVE_COOLDOWN),A
@@ -244,12 +212,10 @@ CLEAR_INPUT_REPEAT_STATE:
         RET
 
 ; MOVE_PLAYER_LEFT
-; Input:
-;   PLAYER_X
-; Output:
-;   applies the PACMO_DIR_LEFT world-step unless already at the horizontal edge or target is a wall
-; Clobbers:
-;   A, BC, DE, HL, IX
+; Reads PLAYER_X.
+; Applies the PACMO_DIR_LEFT world-step unless already at the horizontal edge.
+; Target wall cells block the move.
+; @clobbers A,BC,DE,HL,IX.
 MOVE_PLAYER_LEFT:
         LD      A,(PLAYER_X)
         CP      PACMO_WORLD_MAX
@@ -261,12 +227,10 @@ MOVE_PLAYER_LEFT:
         JP      TRY_MOVE_PLAYER_TO_BC
 
 ; MOVE_PLAYER_RIGHT
-; Input:
-;   PLAYER_X
-; Output:
-;   applies the PACMO_DIR_RIGHT world-step unless already at the horizontal edge or target is a wall
-; Clobbers:
-;   A, BC, DE, HL, IX
+; Reads PLAYER_X.
+; Applies the PACMO_DIR_RIGHT world-step unless already at the horizontal edge.
+; Target wall cells block the move.
+; @clobbers A,BC,DE,HL,IX.
 MOVE_PLAYER_RIGHT:
         LD      A,(PLAYER_X)
         OR      A
@@ -278,12 +242,9 @@ MOVE_PLAYER_RIGHT:
         JP      TRY_MOVE_PLAYER_TO_BC
 
 ; MOVE_PLAYER_UP
-; Input:
-;   PLAYER_Y
-; Output:
-;   decrements PLAYER_Y unless already at world row 0 or target is a wall
-; Clobbers:
-;   A, BC, DE, HL, IX
+; Reads PLAYER_Y.
+; Decrements PLAYER_Y unless already at world row 0 or target is a wall.
+; @clobbers A,BC,DE,HL,IX.
 MOVE_PLAYER_UP:
         LD      A,(PLAYER_Y)
         OR      A
@@ -295,12 +256,9 @@ MOVE_PLAYER_UP:
         JP      TRY_MOVE_PLAYER_TO_BC
 
 ; MOVE_PLAYER_DOWN
-; Input:
-;   PLAYER_Y
-; Output:
-;   increments PLAYER_Y unless already at world row 14 or target is a wall
-; Clobbers:
-;   A, BC, DE, HL, IX
+; Reads PLAYER_Y.
+; Increments PLAYER_Y unless already at world row 14 or target is a wall.
+; @clobbers A,BC,DE,HL,IX.
 MOVE_PLAYER_DOWN:
         LD      A,(PLAYER_Y)
         CP      PACMO_WORLD_MAX
@@ -312,14 +270,11 @@ MOVE_PLAYER_DOWN:
         JP      TRY_MOVE_PLAYER_TO_BC
 
 ; TRY_MOVE_PLAYER_TO_BC
-; Input:
-;   B = candidate world x
-;   C = candidate world y
-; Output:
-;   if target is open, PLAYER_X/Y committed and viewport adjusted
-;   if target is a wall, PLAYER_X/Y unchanged
-; Clobbers:
-;   A, BC, DE, HL, IX
+; @in B candidate world x.
+; @in C candidate world y.
+; If target is open, PLAYER_X/Y committed and viewport adjusted.
+; If target is a wall, PLAYER_X/Y unchanged.
+; @clobbers A,BC,DE,HL,IX.
 TRY_MOVE_PLAYER_TO_BC:
         CALL    PACMO_IS_WALL_AT_BC
         RET     C
@@ -341,15 +296,10 @@ TRY_MOVE_PLAYER_TO_BC:
         JP      UPDATE_VIEWPORT_FOR_PLAYER
 
 ; PACMO_CHECK_PLAYER_CAUGHT
-; Input:
-;   IX = monster record base
-;   PLAYER_X/Y, monster X/Y, state, respawn timer
-; Output:
-;   PACMO_PLAYER_CAUGHT = 1 when player and active enemy occupy the same world cell
-;   outside enemy flee mode; in enemy flee mode, enemy is consumed and starts respawning
-; Clobbers:
-;   A, BC, DE, HL, IX when the enemy is consumed or caught state is entered;
-;   A, B otherwise
+; @in IX monster record base; PLAYER_X/Y, monster X/Y, state, respawn timer.
+; PACMO_PLAYER_CAUGHT = 1 when player and active enemy occupy the same world cell.
+; Outside enemy flee mode; in enemy flee mode, enemy is consumed and starts respawning.
+; @clobbers A,BC,DE,HL,IX.
 PACMO_CHECK_PLAYER_CAUGHT:
         LD      A,(PACMO_PLAYER_CAUGHT)
         OR      A
@@ -373,12 +323,9 @@ PACMO_CHECK_PLAYER_CAUGHT:
         JP      PACMO_ENTER_CAUGHT
 
 ; PACMO_ENTER_CAUGHT
-; Input:
-;   player has collided with an attacking monster
-; Output:
-;   life count reduced; caught or game-over state entered; framebuffer rebuilt
-; Clobbers:
-;   A, BC, DE, HL, IX
+; Player has collided with an attacking monster.
+; Life count reduced; caught or game-over state entered; framebuffer rebuilt.
+; @clobbers A,BC,DE,HL,IX.
 PACMO_ENTER_CAUGHT:
         LD      A,1
         LD      (PACMO_PLAYER_CAUGHT),A
@@ -403,13 +350,10 @@ PACMO_ENTER_FINAL_GAME_OVER:
         JP      REBUILD_FRAMEBUFFER
 
 ; PACMO_CONSUME_ENEMY
-; Input:
-;   IX = monster record base
-;   player and enemy occupy the same world cell while power mode is active
-; Output:
-;   enemy hidden until ENEMY_RESPAWN_TIMER expires; score increased
-; Clobbers:
-;   A, BC, DE, HL
+; @in IX monster record base.
+; Player and enemy occupy the same world cell while power mode is active.
+; Enemy hidden until ENEMY_RESPAWN_TIMER expires; score increased.
+; @clobbers A,BC,DE,HL.
 PACMO_CONSUME_ENEMY:
         LD      A,PACMO_ENEMY_STATE_RESPAWN
         LD      (IX+MONSTER_STATE),A
@@ -423,13 +367,10 @@ PACMO_CONSUME_ENEMY:
         JP      PACMO_ADD_SCORE_A
 
 ; PACMO_CONSUME_POWER_PILL_AT_BC
-; Input:
-;   B = world x coordinate
-;   C = world y coordinate
-; Output:
-;   matching bit set in PACMO_POWER_PILLS_EATEN when B/C is a power-pill cell
-; Clobbers:
-;   A, DE, HL; B and C are preserved
+; @in B world x coordinate.
+; @in C world y coordinate.
+; Matching bit set in PACMO_POWER_PILLS_EATEN when B/C is a power-pill cell.
+; @clobbers A,DE,HL.
 PACMO_CONSUME_POWER_PILL_AT_BC:
         LD      HL,PACMO_POWER_PILLS
         LD      D,1
@@ -468,13 +409,10 @@ PACMO_CONSUME_POWER_PILL_NEXT:
         JR      PACMO_CONSUME_POWER_PILL_LOOP
 
 ; PACMO_MARK_EATEN_AT_BC
-; Input:
-;   B = world x coordinate, expected 0..14
-;   C = world y coordinate, expected 0..14
-; Output:
-;   corresponding bit set in PACMO_EATEN_ROWS
-; Clobbers:
-;   A, BC, DE, HL
+; @in B world x coordinate, expected 0..14.
+; @in C world y coordinate, expected 0..14.
+; Corresponding bit set in PACMO_EATEN_ROWS.
+; @clobbers A,BC,DE,HL.
 PACMO_MARK_EATEN_AT_BC:
         LD      A,C
         ADD     A,A
@@ -521,15 +459,9 @@ PACMO_MARK_EATEN_LOW_BYTE:
         RET
 
 ; PACMO_ADD_SCORE_A
-; Input:
-;   A = unsigned score increment
-; Output:
-;   PACMO_SCORE increased by A; HUD score display refreshed
-; Clobbers:
-;   A, BC, DE, HL
-; Accepts @in A as the unsigned score increment.
-; Uses @clobbers A,BC,DE,HL,carry,zero,sign,parity,halfCarry while updating the score.
-; Keeps @preserves IX,IY stable for the caller.
+; @in A unsigned score increment.
+; PACMO_SCORE increased by A; HUD score display refreshed.
+; @clobbers A,BC,DE,HL while updating the score.
 PACMO_ADD_SCORE_A:
         LD      E,A
         LD      D,0
@@ -539,12 +471,9 @@ PACMO_ADD_SCORE_A:
         JP      UPDATE_SCORE_DISPLAY
 
 ; PACMO_CHECK_ROUND_COMPLETE
-; Input:
-;   PACMO_WORLD_ROWS / PACMO_EATEN_ROWS
-; Output:
-;   PACMO_ROUND_COMPLETE = 1 when every open cell has been consumed
-; Clobbers:
-;   A, BC, DE, HL
+; PACMO_WORLD_ROWS / PACMO_EATEN_ROWS.
+; PACMO_ROUND_COMPLETE = 1 when every open cell has been consumed.
+; @clobbers A,BC,DE,HL.
 PACMO_CHECK_ROUND_COMPLETE:
         LD      A,(PACMO_ROUND_COMPLETE)
         OR      A
@@ -576,19 +505,10 @@ PACMO_CHECK_ROUND_ROW:
         RET
 
 ; PACMO_IS_WALL_AT_BC
-; Input:
-;   B = world x coordinate, expected 0..14
-;   C = world y coordinate, expected 0..14
-; Output:
-;   Carry set if PACMO_WORLD_ROWS has a wall bit at (B,C)
-;   Carry clear if the cell is open
-; Clobbers:
-;   A, DE, HL
-; Accepts @in B as world x coordinate.
-; Accepts @in C as world y coordinate.
-; Returns @out carry set when the target cell is a wall.
-; Uses @clobbers A,DE,HL,zero,sign,parity,halfCarry while reading the world map.
-; Keeps @preserves BC,IX,IY stable for the caller.
+; @in B world x coordinate, expected 0..14.
+; @in C world y coordinate, expected 0..14.
+; @out carry set when the target cell is a wall.
+; @clobbers A,DE,HL while reading the world map.
 PACMO_IS_WALL_AT_BC:
         LD      A,C
         ADD     A,A
@@ -618,13 +538,10 @@ PACMO_WALL_OPEN:
         RET
 
 ; UPDATE_VIEWPORT_FOR_PLAYER
-; Input:
-;   PLAYER_X/Y and VIEW_X/Y in RAM
-; Output:
-;   VIEW_X/Y adjusted so player screen position stays in cells 3..4 when
-;   possible, then clamped to the 15x15 world / 8x8 viewport bounds.
-; Clobbers:
-;   A, B, C
+; PLAYER_X/Y and VIEW_X/Y in RAM.
+; VIEW_X/Y adjusted so player screen position stays in cells 3..4 when possible.
+; Then clamped to the 15x15 world / 8x8 viewport bounds.
+; @clobbers A,BC.
 UPDATE_VIEWPORT_FOR_PLAYER:
         LD      A,(PLAYER_X)
         LD      B,A
@@ -640,17 +557,10 @@ UPDATE_VIEWPORT_FOR_PLAYER:
         RET
 
 ; ADJUST_VIEW_AXIS
-; Input:
-;   A = current view origin for one axis
-;   B = player coordinate on the same axis
-; Output:
-;   A = adjusted view origin, clamped to 0..7
-; Clobbers:
-;   C
-; Accepts @in A as the current view origin.
-; Accepts @in B as the player coordinate.
-; Returns @out A as the adjusted view origin.
-; Uses @clobbers C,carry,zero,sign,parity,halfCarry while clamping the axis.
+; @in A current view origin for one axis.
+; @in B player coordinate on the same axis.
+; @out A the adjusted view origin.
+; @clobbers C while clamping the axis.
 ADJUST_VIEW_AXIS:
         LD      C,A
         LD      A,B
