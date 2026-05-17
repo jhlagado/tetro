@@ -208,6 +208,8 @@ commit only if carry is clear
 
 `MOVE_LEFT` and `MOVE_RIGHT` update `PENDING_X` and call `HORIZONTAL_PROBE_APPLY_PENDING_X`. That helper copies the current y into `PENDING_Y`, tests collision, and commits the candidate x only on success.
 
+Held horizontal movement reloads from `MOVE_PERIOD`, which is intentionally slow so repeat acts as a fallback while deliberate taps remain the responsive control path.
+
 `STEP_ACTIVE_DOWN_ONE_CELL` is shared by gravity and soft drop. `APPLY_GRAVITY` waits for `GRAVITY_COOLDOWN` to expire, then probes one row down. If the probe fails, it calls `LOCK_ACTIVE_PIECE`. `SOFT_DROP` skips the cooldown and probes immediately. If soft drop locks a piece, it sets `DROP_LOCKOUT` so a held drop key does not immediately force the next piece down.
 
 Rotation changes the bitmap, not the position. `ROTATE_CW` and `ROTATE_LEFT` save the previous rotation, load the candidate rotation state, then test collision at the current position. If the test fails, the old rotation and metadata are restored. There is no wall kick. On success, Tetro plays the rotate sound and resets the gravity cooldown.
@@ -365,7 +367,7 @@ When the player presses a key on the splash screen, `HANDLE_SPLASH_STATE` seeds 
 
 `SPAWN_ACTIVE_PIECE` promotes `NEXT_PIECE_INDEX` to `CURRENT_PIECE_INDEX`, generates a new upcoming piece, sets the spawn position, resets movement and gravity cooldowns, and tests collision at the spawn point. If spawn collides immediately, Tetro enters game over.
 
-During play, slice 0 polls input. The keypad mapping is handled locally in `games/tetro/input.asm`; that file calls Tetro movement and rotation routines directly. Left and right key codes are intentionally mirrored to match the physical display orientation:
+During play, slice 0 polls input. The keypad mapping is handled locally in `games/tetro/input.asm`; that file calls Tetro movement and rotation routines directly. Left and right key codes stay as MON-3 hardware constants, while the movement handlers define what action each key performs for the current matrix orientation:
 
 ```asm
 K_LEFT:         EQU     0x11

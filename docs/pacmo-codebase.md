@@ -99,12 +99,12 @@ screenY = worldY - VIEW_Y
 
 Only cells whose screen coordinates are in `0..7` are drawn.
 
-Horizontal movement looks inverted if you think in byte bit order. On the matrix, screen x 0 is the leftmost visible column and maps to the most significant bit. Pacmo therefore uses the display convention, not the usual "bit 0 is rightmost" mental model. The shared key constants now reflect the learned keypad truth:
+Horizontal movement is tied to the matrix orientation. On the matrix, screen x 0 is the leftmost visible column and maps to the most significant bit. Pacmo keeps the MON-3 key constants as hardware truth:
 
 - `K_LEFT  = 0x11`
 - `K_RIGHT = 0x10`
 
-The Pacmo movement directions then preserve visual meaning. `PACMO_DIR_LEFT` moves visually left, even though the underlying world x update increments in the current bit mapping; `PACMO_DIR_RIGHT` moves visually right and decrements x.
+After the emulator was corrected to match the hardware orientation, the left and right keys intentionally dispatch to the opposite internal Pacmo direction so the same physical controls keep their player-facing meaning.
 
 ---
 
@@ -121,10 +121,10 @@ RST     0x10
 
 Pacmo normalizes raw keys into movement intents. The game logic does not care whether "up" came from ADD or key A. The current mappings are:
 
-- `K_LEFT` -> `PACMO_DIR_LEFT`
-- `K_RIGHT` -> `PACMO_DIR_RIGHT`
-- key 5 -> `PACMO_DIR_LEFT`
-- key 7 -> `PACMO_DIR_RIGHT`
+- `K_LEFT` -> `PACMO_DIR_RIGHT`
+- `K_RIGHT` -> `PACMO_DIR_LEFT`
+- key 5 -> `PACMO_DIR_RIGHT`
+- key 7 -> `PACMO_DIR_LEFT`
 - ADD / `K_ROTATE_CCW` -> `PACMO_DIR_UP`
 - key A -> `PACMO_DIR_UP`
 - GO / `K_ROTATE` -> `PACMO_DIR_DOWN`
@@ -151,7 +151,7 @@ The alternative diamond layout is:
       2 = down
 ```
 
-Held-key movement is throttled by `MOVE_COOLDOWN` and `LAST_KEY`. A new direction gets a one-tick cooldown so it moves promptly; a held direction reloads from `PACMO_MOVE_PERIOD`.
+Held-key movement is throttled by `MOVE_COOLDOWN` and `LAST_KEY`. A new direction gets a one-tick cooldown so it moves promptly; a held direction reloads from `PACMO_MOVE_PERIOD`, currently matching the level-1 monster step period so repeat is deliberately slow.
 
 Pause follows the Tetro new-press pattern: `0` enters pause, and any new key press resumes. Holding a key does not repeatedly flip the state. While paused, scanout, rendering, the HUD, and speaker service continue, but movement, monster ticks, collision checks, level gates, and power-mode countdown stop.
 
