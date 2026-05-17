@@ -102,17 +102,17 @@ Requires [asm80](https://www.npmjs.com/package/asm80). Assemble from `src/`, bec
 
 ```bash
 mkdir -p build
-(cd src && asm80 -m Z80 -t hex -o ../build/tetro.hex tetro.asm)
-(cd src && asm80 -m Z80 -t bin -o ../build/tetro.bin tetro.asm)
-(cd src && asm80 -m Z80 -t hex -o ../build/pacmo.hex pacmo.asm)
-(cd src && asm80 -m Z80 -t bin -o ../build/pacmo.bin pacmo.asm)
+(cd src && asm80 -m Z80 -t hex -o ../build/tetro.hex tetro.z80)
+(cd src && asm80 -m Z80 -t bin -o ../build/tetro.bin tetro.z80)
+(cd src && asm80 -m Z80 -t hex -o ../build/pacmo.hex pacmo.z80)
+(cd src && asm80 -m Z80 -t bin -o ../build/pacmo.bin pacmo.z80)
 ```
 
 The generated files under `build/` are outputs, not source.
 
 ## Run
 
-Load the assembled program at `$4000`, matching the `ORG` in [src/tetro.asm](src/tetro.asm) or [src/pacmo.asm](src/pacmo.asm), then run:
+Load the assembled program at `$4000`, matching the `ORG` in [src/tetro.z80](src/tetro.z80) or [src/pacmo.z80](src/pacmo.z80), then run:
 
 ```text
 GO 4000
@@ -124,8 +124,8 @@ The LCD shows the selected game's splash screen. Press any key to start.
 
 ```text
 src/
-|-- tetro.asm                  ; Debug80 target entry point and include order
-|-- pacmo.asm                  ; Debug80 target entry point and include order
+|-- tetro.z80                  ; Debug80 target entry point and include order
+|-- pacmo.z80                  ; Debug80 target entry point and include order
 |-- shared/
 |   |-- inc/
 |   |   `-- constants.asm      ; ports, key codes, shared colour constants

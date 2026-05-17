@@ -55,8 +55,8 @@
           "roms/tec1g/mon3"
         ]
       },
-      "sourceFile": "src/tetro.asm",
-      "asm": "src/tetro.asm",
+      "sourceFile": "src/tetro.z80",
+      "asm": "src/tetro.z80",
       "artifactBase": "tetro"
     },
     "pacmo": {
@@ -92,8 +92,8 @@
           "roms/tec1g/mon3"
         ]
       },
-      "sourceFile": "src/pacmo.asm",
-      "asm": "src/pacmo.asm",
+      "sourceFile": "src/pacmo.z80",
+      "asm": "src/pacmo.z80",
       "artifactBase": "pacmo"
     }
   }
