@@ -460,13 +460,22 @@ RENDER_ENEMY_FLEE:
 ; Clobbers:
 ;   A, BC, DE, HL, IX
 RENDER_MONSTERS_ROW_TO_BACK:
-        LD      E,A
+        LD      C,A
+        PUSH    BC
+        LD      E,C
         LD      IX,MONSTER0
         CALL    RENDER_ENEMY_IF_SCREEN_ROW_E
+        POP     BC
+        PUSH    BC
+        LD      E,C
         LD      IX,MONSTER1
         CALL    RENDER_ENEMY_IF_SCREEN_ROW_E
+        POP     BC
+        PUSH    BC
         CALL    PACMO_IS_LEVEL2_PLUS
+        POP     BC
         RET     C
+        LD      E,C
         LD      IX,MONSTER2
         JP      RENDER_ENEMY_IF_SCREEN_ROW_E
 
