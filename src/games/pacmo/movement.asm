@@ -1,14 +1,14 @@
 ; Poll keypad and move the Pacmo cursor at a controlled repeat rate.
 ;
 ; Direction mapping for this first scrolling experiment:
-;   K_LEFT  (0x11) = horizontal action opposite PACMO_DIR_LEFT
-;   K_RIGHT (0x10) = horizontal action opposite PACMO_DIR_RIGHT
+;   K_LEFT  (0x11) = PACMO_DIR_RIGHT
+;   K_RIGHT (0x10) = PACMO_DIR_LEFT
 ;   ADD     (0x13) = up
 ;   GO      (0x12) = down
 ;   key A   (0x0A) = up
-;   key 7   (0x07) = horizontal action opposite PACMO_DIR_RIGHT
+;   key 7   (0x07) = PACMO_DIR_LEFT
 ;   key 2   (0x02) = down
-;   key 5   (0x05) = horizontal action opposite PACMO_DIR_LEFT
+;   key 5   (0x05) = PACMO_DIR_RIGHT
 ;   key 0   (0x00) = pause
 ;
 ; Raw keypad codes are normalized into PACMO_DIR_* intents before movement
