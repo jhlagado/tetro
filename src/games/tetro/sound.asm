@@ -5,6 +5,7 @@
 ;   short rotate buzz started
 ; Clobbers:
 ;   A, C
+; Uses @clobbers A,C while starting the rotate sound cue.
 SOUND_TRIGGER_ROTATE:
         LD      A,SOUND_ROTATE_LEN
         LD      C,SOUND_ROTATE_DIV
@@ -17,6 +18,7 @@ SOUND_TRIGGER_ROTATE:
 ;   short lock buzz started
 ; Clobbers:
 ;   A, C
+; Uses @clobbers A,C while starting the lock sound cue.
 SOUND_TRIGGER_LOCK:
         LD      A,SOUND_LOCK_LEN
         LD      C,SOUND_LOCK_DIV
@@ -29,6 +31,7 @@ SOUND_TRIGGER_LOCK:
 ;   line-clear buzz started
 ; Clobbers:
 ;   A, C
+; Uses @clobbers A,C while starting the clear sound cue.
 SOUND_TRIGGER_CLEAR:
         LD      A,SOUND_CLEAR_LEN
         LD      C,SOUND_CLEAR_DIV

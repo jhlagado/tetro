@@ -110,6 +110,8 @@ HANDLE_LINE_CLEAR_STATE:
 ;   carry set if one or more rows are full
 ; Clobbers:
 ;   A, BC, E, HL
+; Returns @out carry set when one or more rows are full.
+; Uses @clobbers A,BC,E,HL while building CLEAR_MASK.
 CHECK_FULL_ROWS:
         LD      HL,BOARD_ROWS
         LD      B,ROW_COUNT
@@ -144,6 +146,8 @@ CHECK_FULL_ROWS_NONE:
 ;   A = number of set bits in CLEAR_MASK (0..8)
 ; Clobbers:
 ;   A, BC
+; Returns @out A as the number of rows marked in CLEAR_MASK.
+; Uses @clobbers BC while counting the mask bits.
 COUNT_CLEAR_ROWS:
         LD      A,(CLEAR_MASK)
         LD      C,A
@@ -168,6 +172,7 @@ COUNT_CLEAR_ROWS_DONE:
 ;   SCORE updated using 100/300/500/800 for 1/2/3/4+ rows (from CLEAR_SCORE_TABLE)
 ; Clobbers:
 ;   A, BC, DE, HL
+; Uses @clobbers A,BC,DE,HL while applying the clear-score update.
 APPLY_CLEAR_SCORE:
         CALL    COUNT_CLEAR_ROWS
         OR      A
@@ -228,6 +233,7 @@ UPDATE_GP_STORE:
 ;   completed rows removed, rows above collapsed downward
 ; Clobbers:
 ;   A, BC, DE, HL
+; Uses @clobbers A,BC,DE,HL while compacting non-cleared rows.
 COLLAPSE_FULL_ROWS:
         LD      B,ROW_COUNT
         LD      D,ROW_COUNT-1
@@ -418,6 +424,8 @@ MERGE_OR_EXIT:
 ;   active piece ORed into BOARD_ROWS and landed RGB planes
 ; Clobbers:
 ;   A
+; Uses @clobbers A while merging active-piece cells into board RAM.
+; Keeps @preserves BC,DE,HL stable for the caller.
 MERGE_ACTIVE_TO_BOARD:
         PUSH    BC
         PUSH    DE

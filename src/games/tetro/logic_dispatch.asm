@@ -7,6 +7,7 @@
 ;   one logic slice executed, LOGIC_SLICE advanced
 ; Clobbers:
 ;   A, HL, and whatever the called slice routines clobber
+; Uses @clobbers A,BC,DE,HL while dispatching the current logic slice.
 LOGIC_TICK:
         CALL    SANITIZE_ACTIVE_POSITION
         LD      A,(GAME_OVER)

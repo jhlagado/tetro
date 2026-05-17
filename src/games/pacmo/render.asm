@@ -125,6 +125,9 @@ RENDER_WORLD_TO_BACK_ROW_LOOP:
 ;   selected FRAMEBUFFER_BACK row rendered from the corresponding world/eaten row
 ; Clobbers:
 ;   A, BC, DE, HL
+; Accepts @in A as the screen row.
+; Uses @clobbers A,BC,DE,HL while rendering the world row.
+; Keeps @preserves IX,IY stable for the caller.
 RENDER_WORLD_ROW_TO_BACK:
         LD      C,A                     ; C = screen row
         ADD     A,A
@@ -152,10 +155,10 @@ RENDER_WORLD_ROW_TO_BACK:
         LD      A,(VIEW_X)
         CALL    WINDOW_BYTE_FROM_BC
         POP     DE
-        PUSH    AF                      ; visible wall mask
 
         LD      HL,PACMO_EATEN_ROWS
         ADD     HL,DE
+        LD      E,A                     ; E = visible wall mask
         LD      A,(HL)
         LD      B,A
         INC     HL
@@ -164,8 +167,7 @@ RENDER_WORLD_ROW_TO_BACK:
         LD      A,(VIEW_X)
         CALL    WINDOW_BYTE_FROM_BC
         LD      B,A                     ; B = visible eaten mask
-        POP     AF
-        LD      C,A                     ; C = visible wall mask
+        LD      C,E                     ; C = visible wall mask
         OR      B
         CPL                             ; A = visible uneaten open path mask
         LD      D,A
@@ -244,6 +246,9 @@ WRITE_WORLD_BLUE_STORE:
 ;   A = wall color for the current render state
 ; Clobbers:
 ;   A
+; Returns @out A as the current wall color.
+; Uses @clobbers zero,sign,parity,halfCarry while checking render state.
+; Keeps @preserves BC,DE,HL,IX,IY stable for the caller.
 GET_CURRENT_WALL_COLOR:
         LD      A,(PACMO_PLAYER_CAUGHT)
         OR      A
@@ -271,7 +276,7 @@ GET_CURRENT_WALL_COLOR_COMPLETE:
 ; Accepts @in BC as the 16-bit world row.
 ; Accepts @in A as viewport X origin.
 ; Returns @out A as the visible window byte.
-; Uses @clobbers B,C,D,F while shifting the world row.
+; Uses @clobbers B,C,D,carry,zero,sign,parity,halfCarry while shifting the world row.
 ; Keeps @preserves E,HL,IX,IY stable for the caller.
 WINDOW_BYTE_FROM_BC:
         LD      D,A

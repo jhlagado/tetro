@@ -6,9 +6,12 @@
 ;   ADD     (0x13) = up
 ;   GO      (0x12) = down
 ;   key 6   (0x06) = up
+;   key A   (0x0A) = up
 ;   key 2   (0x02) = down
 ;   key 1   (0x01) = PACMO_DIR_RIGHT
+;   key 5   (0x05) = PACMO_DIR_RIGHT
 ;   key 3   (0x03) = PACMO_DIR_LEFT
+;   key 7   (0x07) = PACMO_DIR_LEFT
 ;   key 0   (0x00) = pause
 ;
 ; Raw keypad codes are normalized into PACMO_DIR_* intents before movement
@@ -21,6 +24,8 @@
 ;   may update PLAYER_X/Y, VIEW_X/Y, MOVE_COOLDOWN, LAST_KEY
 ; Clobbers:
 ;   A, BC, DE, HL, IX
+; Uses @clobbers A,BC,DE,HL,IX,carry,zero,sign,parity,halfCarry while polling and applying input.
+; Keeps @preserves IY stable for the caller.
 POLL_INPUT_AND_UPDATE:
         LD      A,(PACMO_SPLASH_ACTIVE)
         OR      A
@@ -178,6 +183,10 @@ HELD_SAME_KEY:
 ;   Carry clear if the key is not a Pacmo movement key
 ; Clobbers:
 ;   A, E
+; Accepts @in A as the raw MON-3 keypad code.
+; Returns @out carry set when the key maps to a movement direction.
+; Returns @out E as the normalized PACMO_DIR_* when carry is set.
+; Uses @clobbers A,zero,sign,parity,halfCarry while matching the key.
 NORMALIZE_INPUT_TO_DIRECTION:
         CP      K_LEFT
         JR      Z,NORMALIZE_LEFT
@@ -185,11 +194,17 @@ NORMALIZE_INPUT_TO_DIRECTION:
         JR      Z,NORMALIZE_RIGHT
         CP      PACMO_KEY_1
         JR      Z,NORMALIZE_LEFT
+        CP      PACMO_KEY_5
+        JR      Z,NORMALIZE_LEFT
         CP      PACMO_KEY_3
+        JR      Z,NORMALIZE_RIGHT
+        CP      PACMO_KEY_7
         JR      Z,NORMALIZE_RIGHT
         CP      K_ROTATE_CCW
         JR      Z,NORMALIZE_UP
         CP      PACMO_KEY_6
+        JR      Z,NORMALIZE_UP
+        CP      PACMO_KEY_A
         JR      Z,NORMALIZE_UP
         CP      K_ROTATE
         JR      Z,NORMALIZE_DOWN
@@ -512,6 +527,9 @@ PACMO_MARK_EATEN_LOW_BYTE:
 ;   PACMO_SCORE increased by A; HUD score display refreshed
 ; Clobbers:
 ;   A, BC, DE, HL
+; Accepts @in A as the unsigned score increment.
+; Uses @clobbers A,BC,DE,HL,carry,zero,sign,parity,halfCarry while updating the score.
+; Keeps @preserves IX,IY stable for the caller.
 PACMO_ADD_SCORE_A:
         LD      E,A
         LD      D,0
@@ -569,7 +587,7 @@ PACMO_CHECK_ROUND_ROW:
 ; Accepts @in B as world x coordinate.
 ; Accepts @in C as world y coordinate.
 ; Returns @out carry set when the target cell is a wall.
-; Uses @clobbers A,DE,HL,F while reading the world map.
+; Uses @clobbers A,DE,HL,zero,sign,parity,halfCarry while reading the world map.
 ; Keeps @preserves BC,IX,IY stable for the caller.
 PACMO_IS_WALL_AT_BC:
         LD      A,C
@@ -629,6 +647,10 @@ UPDATE_VIEWPORT_FOR_PLAYER:
 ;   A = adjusted view origin, clamped to 0..7
 ; Clobbers:
 ;   C
+; Accepts @in A as the current view origin.
+; Accepts @in B as the player coordinate.
+; Returns @out A as the adjusted view origin.
+; Uses @clobbers C,carry,zero,sign,parity,halfCarry while clamping the axis.
 ADJUST_VIEW_AXIS:
         LD      C,A
         LD      A,B

@@ -67,7 +67,10 @@ Pacmo is an 8x8 window into a larger 15x15 maze. The player consumes open paths,
 | `GO` | `0x12` | Move down |
 | `1` | `0x01` | Move left |
 | `3` | `0x03` | Move right |
+| `5` | `0x05` | Move left |
 | `6` | `0x06` | Move up |
+| `7` | `0x07` | Move right |
+| `A` | `0x0A` | Move up |
 | `2` | `0x02` | Move down |
 | `0` | `0x00` | Pause |
 | any key | | Resume from pause |

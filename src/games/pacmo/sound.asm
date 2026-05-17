@@ -7,6 +7,8 @@
 ;   starts the Pacmo power-pill eaten sound cue
 ; Clobbers:
 ;   A, C
+; Uses @clobbers A,C while starting the sound cue.
+; Keeps @preserves B,DE,HL,IX,IY stable for the caller.
 PACMO_SOUND_POWER:
         LD      A,PACMO_SOUND_POWER_LEN
         LD      C,PACMO_SOUND_POWER_DIV
@@ -19,6 +21,8 @@ PACMO_SOUND_POWER:
 ;   starts the Pacmo fleeing-enemy eaten sound cue
 ; Clobbers:
 ;   A, C
+; Uses @clobbers A,C while starting the sound cue.
+; Keeps @preserves B,DE,HL,IX,IY stable for the caller.
 PACMO_SOUND_EAT_ENEMY:
         LD      A,PACMO_SOUND_EAT_ENEMY_LEN
         LD      C,PACMO_SOUND_EAT_ENEMY_DIV
@@ -31,6 +35,8 @@ PACMO_SOUND_EAT_ENEMY:
 ;   starts the longer Pacmo caught/game-over sound cue
 ; Clobbers:
 ;   A, C
+; Uses @clobbers A,C while starting the sound cue.
+; Keeps @preserves B,DE,HL,IX,IY stable for the caller.
 PACMO_SOUND_CAUGHT:
         LD      A,PACMO_SOUND_CAUGHT_LEN
         LD      C,PACMO_SOUND_CAUGHT_DIV
@@ -43,6 +49,8 @@ PACMO_SOUND_CAUGHT:
 ;   starts the Pacmo level-complete sound cue
 ; Clobbers:
 ;   A, C
+; Uses @clobbers A,C while starting the sound cue.
+; Keeps @preserves B,DE,HL,IX,IY stable for the caller.
 PACMO_SOUND_LEVEL_COMPLETE:
         LD      A,PACMO_SOUND_LEVEL_COMPLETE_LEN
         LD      C,PACMO_SOUND_LEVEL_COMPLETE_DIV

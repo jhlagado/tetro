@@ -52,6 +52,8 @@ MOVE_LEFT:
 ;   pending one row down; Carry from CHECK_COLLISION_AT_DE (CY = collision/block)
 ; Clobbers:
 ;   A, DE
+; Returns @out carry set when the next downward step is blocked.
+; Uses @clobbers A,DE while probing the candidate position.
 STEP_ACTIVE_DOWN_ONE_CELL:
         LD      A,(PLAYER_X)
         LD      (PENDING_X),A
@@ -113,6 +115,7 @@ SOFT_DROP_COMMIT:
 ;   PLAYER_Y clamped to Y_MAX (negative spawn rows preserved)
 ; Clobbers:
 ;   A, HL
+; Uses @clobbers A,HL while clamping active-piece RAM state.
 SANITIZE_ACTIVE_POSITION:
         LD      A,(PLAYER_X)
         LD      HL,CURRENT_PIECE_RIGHT
@@ -142,6 +145,7 @@ SANITIZE_Y_DONE:
 ;   NEXT_PIECE_INDEX advanced modulo PIECE_COUNT
 ; Clobbers:
 ;   A, BC, DE, HL
+; Uses @clobbers A,BC,DE,HL while advancing the current/next piece state.
 SELECT_NEXT_PIECE:
         LD      A,(NEXT_PIECE_INDEX)
         LD      (CURRENT_PIECE_INDEX),A
@@ -161,6 +165,8 @@ SELECT_NEXT_PIECE:
 ;   RNG_SEED advanced
 ; Clobbers:
 ;   A, B
+; Returns @out A as the next piece index.
+; Uses @clobbers B while folding the random byte.
 RNG_NEXT_PIECE:
         CALL    RNG_NEXT8
         LD      B,A
@@ -181,6 +187,7 @@ RNG_NEXT_PIECE:
 ;   RNG_SEED advanced
 ; Clobbers:
 ;   A
+; Returns @out A as the next pseudo-random byte.
 RNG_NEXT8:
         LD      A,(RNG_SEED)
         OR      A
@@ -201,6 +208,7 @@ RNG_NEXT8_SAVE:
 ;   CURRENT_PIECE_PTR / CURRENT_PIECE_RIGHT / CURRENT_PIECE_COLOR updated
 ; Clobbers:
 ;   A, C, DE, HL
+; Uses @clobbers A,C,DE,HL while loading rotation-derived RAM state.
 LOAD_CURRENT_ROTATION_STATE:
         ; COLOR lookup first (indexed by piece only) so DE is still free.
         LD      A,(CURRENT_PIECE_INDEX)
@@ -306,6 +314,8 @@ ROTATE_LEFT:
 ;    refreshes row 3 next-piece preview via LCD_REFRESH_NEXT_PREVIEW_ROW.)
 ; Clobbers:
 ;   A, BC, DE, HL
+; Returns @out carry set when the spawned piece immediately collides.
+; Uses @clobbers A,BC,DE,HL while resetting active-piece state.
 SPAWN_ACTIVE_PIECE:
         CALL    SELECT_NEXT_PIECE
         LD      A,3
