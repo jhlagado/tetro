@@ -3,133 +3,78 @@
 ; status scripts and writes Pacmo-specific dynamic LCD rows.
 
 ; LCD_SHOW_PACMO_SPLASH
-; Input:
-;   none
-; Output:
-;   Pacmo splash and control hint shown on LCD
-; Clobbers:
-;   A, HL
-; Uses @clobbers A,HL while rendering the splash status.
+; Pacmo splash and control hint shown on LCD.
+; @clobbers A,HL while rendering the splash status.
 LCD_SHOW_PACMO_SPLASH:
         LD      HL,SCRIPT_PACMO_SPLASH
         JP      LCD_SHOW_SCRIPT
 
 ; LCD_SHOW_PACMO_RUNNING
-; Input:
-;   none
-; Output:
-;   Pacmo running status shown on LCD
-; Clobbers:
-;   A, DE, HL
-; Uses @clobbers A,DE,HL while rendering the running status.
-; Keeps @preserves BC,IX,IY stable for the caller.
+; Pacmo running status shown on LCD.
+; @clobbers A,DE,HL while rendering the running status.
 LCD_SHOW_PACMO_RUNNING:
         LD      HL,SCRIPT_PACMO_RUNNING
         CALL    LCD_SHOW_SCRIPT
         JP      LCD_REFRESH_STATUS_ROWS
 
 ; LCD_SHOW_PACMO_PAUSED
-; Input:
-;   none
-; Output:
-;   Pacmo paused status shown on LCD
-; Clobbers:
-;   A, DE, HL
-; Uses @clobbers A,DE,HL while rendering the paused status.
-; Keeps @preserves BC,IX,IY stable for the caller.
+; Pacmo paused status shown on LCD.
+; @clobbers A,DE,HL while rendering the paused status.
 LCD_SHOW_PACMO_PAUSED:
         LD      HL,SCRIPT_PACMO_PAUSED
         CALL    LCD_SHOW_SCRIPT
         JP      LCD_REFRESH_STATUS_ROWS
 
 ; LCD_SHOW_PACMO_POWER
-; Input:
-;   none
-; Output:
-;   Pacmo power-mode status shown on LCD
-; Clobbers:
-;   A, DE, HL
-; Uses @clobbers A,DE,HL while rendering the power-mode status.
-; Keeps @preserves BC,IX,IY stable for the caller.
+; Pacmo power-mode status shown on LCD.
+; @clobbers A,DE,HL while rendering the power-mode status.
 LCD_SHOW_PACMO_POWER:
         LD      HL,SCRIPT_PACMO_POWER
         CALL    LCD_SHOW_SCRIPT
         JP      LCD_REFRESH_STATUS_ROWS
 
 ; LCD_SHOW_PACMO_ENEMY_EATEN
-; Input:
-;   none
-; Output:
-;   Pacmo enemy-eaten status shown on LCD
-; Clobbers:
-;   A, DE, HL
-; Uses @clobbers A,DE,HL while rendering the enemy-eaten status.
-; Keeps @preserves BC,IX,IY stable for the caller.
+; Pacmo enemy-eaten status shown on LCD.
+; @clobbers A,DE,HL while rendering the enemy-eaten status.
 LCD_SHOW_PACMO_ENEMY_EATEN:
         LD      HL,SCRIPT_PACMO_ENEMY_EATEN
         CALL    LCD_SHOW_SCRIPT
         JP      LCD_REFRESH_STATUS_ROWS
 
 ; LCD_SHOW_PACMO_CAUGHT
-; Input:
-;   none
-; Output:
-;   Pacmo caught status shown on LCD
-; Clobbers:
-;   A, DE, HL
-; Uses @clobbers A,DE,HL while rendering the caught status.
-; Keeps @preserves BC,IX,IY stable for the caller.
+; Pacmo caught status shown on LCD.
+; @clobbers A,DE,HL while rendering the caught status.
 LCD_SHOW_PACMO_CAUGHT:
         LD      HL,SCRIPT_PACMO_CAUGHT
         CALL    LCD_SHOW_SCRIPT
         JP      LCD_REFRESH_LIVES_ROW
 
 ; LCD_SHOW_PACMO_GAME_OVER
-; Input:
-;   none
-; Output:
-;   Pacmo game-over status shown on LCD
-; Clobbers:
-;   A, HL
-; Uses @clobbers A,HL while rendering the game-over status.
+; Pacmo game-over status shown on LCD.
+; @clobbers A,HL while rendering the game-over status.
 LCD_SHOW_PACMO_GAME_OVER:
         LD      HL,SCRIPT_PACMO_GAME_OVER
         JP      LCD_SHOW_SCRIPT
 
 ; LCD_SHOW_PACMO_COMPLETE
-; Input:
-;   none
-; Output:
-;   Pacmo level-complete status shown on LCD
-; Clobbers:
-;   A, HL
-; Uses @clobbers A,HL while rendering the level-complete status.
+; Pacmo level-complete status shown on LCD.
+; @clobbers A,HL while rendering the level-complete status.
 LCD_SHOW_PACMO_COMPLETE:
         LD      HL,SCRIPT_PACMO_COMPLETE
         JP      LCD_SHOW_SCRIPT
 
 ; LCD_REFRESH_STATUS_ROWS
-; Input:
-;   PACMO_LEVEL, PACMO_LIVES
-; Output:
-;   row 2 rewritten as LEVEL X; row 3 rewritten as LIVES N
-; Clobbers:
-;   A, DE, HL
-; Uses @clobbers A,DE,HL while refreshing Pacmo status rows.
-; Keeps @preserves BC,IX,IY stable for the caller.
+; Reads PACMO_LEVEL, PACMO_LIVES.
+; Row 2 rewritten as LEVEL X; row 3 rewritten as LIVES N.
+; @clobbers A,DE,HL while refreshing Pacmo status rows.
 LCD_REFRESH_STATUS_ROWS:
         CALL    LCD_REFRESH_LEVEL_ROW
         JP      LCD_REFRESH_LIVES_ROW
 
 ; LCD_REFRESH_LEVEL_ROW
-; Input:
-;   PACMO_LEVEL
-; Output:
-;   row 2 rewritten as LEVEL X
-; Clobbers:
-;   A, DE, HL
-; Uses @clobbers A,DE,HL while refreshing the level row.
-; Keeps @preserves BC,IX,IY stable for the caller.
+; Reads PACMO_LEVEL.
+; Row 2 rewritten as LEVEL X.
+; @clobbers A,DE,HL while refreshing the level row.
 LCD_REFRESH_LEVEL_ROW:
         PUSH    BC
         LD      B,LCD_ROW2
@@ -143,14 +88,9 @@ LCD_REFRESH_LEVEL_ROW:
         RET
 
 ; LCD_REFRESH_LIVES_ROW
-; Input:
-;   PACMO_LIVES
-; Output:
-;   row 3 rewritten as LIVES N
-; Clobbers:
-;   A, DE, HL
-; Uses @clobbers A,DE,HL while refreshing the lives row.
-; Keeps @preserves BC,IX,IY stable for the caller.
+; Reads PACMO_LIVES.
+; Row 3 rewritten as LIVES N.
+; @clobbers A,DE,HL while refreshing the lives row.
 LCD_REFRESH_LIVES_ROW:
         PUSH    BC
         LD      B,LCD_ROW3

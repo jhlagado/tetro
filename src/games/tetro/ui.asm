@@ -1,49 +1,29 @@
 ; LCD_SHOW_GAME_OVER
-; Input:
-;   none
-; Output:
-;   game-over screen rendered; no NEXT preview is appended
-; Clobbers:
-;   A, HL
-; Uses @clobbers A,HL while rendering the game-over screen.
+; Game-over screen rendered; no NEXT preview is appended.
+; @clobbers A,HL while rendering the game-over screen.
 LCD_SHOW_GAME_OVER:
         LD      HL,SCRIPT_GAME_OVER
         JP      LCD_SHOW_SCRIPT
 
 ; LCD_SHOW_PAUSED
-; Input:
-;   none
-; Output:
-;   paused HUD rendered with NEXT preview
-; Clobbers:
-;   A, HL
-; Uses @clobbers A,HL while rendering the paused HUD.
+; Paused HUD rendered with NEXT preview.
+; @clobbers A,HL while rendering the paused HUD.
 LCD_SHOW_PAUSED:
         LD      HL,SCRIPT_PAUSED
         JR      LCD_SHOW_HUD
 
 ; LCD_SHOW_SPLASH
-; Input:
-;   none
-; Output:
-;   splash screen + key mapping written to LCD
-; Clobbers:
-;   A, HL
-; Uses @clobbers A,HL while rendering the splash screen.
+; Splash screen + key mapping written to LCD.
+; @clobbers A,HL while rendering the splash screen.
 LCD_SHOW_SPLASH:
         LD      HL,SCRIPT_SPLASH
         JP      LCD_SHOW_SCRIPT
 
 ; LCD_APPEND_NEXT_PREVIEW_LETTER
-; Prerequisites:
-;   LCD cursor positioned after trailing space of NEXT: banner.
-; Input:
-;   NEXT_PIECE_INDEX
-; Output:
-;   one-character piece preview written
-; Clobbers:
-;   A, DE, HL
-; Uses @clobbers A,DE,HL while writing the preview letter.
+; LCD cursor positioned after trailing space of NEXT: banner.
+; Reads NEXT_PIECE_INDEX.
+; One-character piece preview written.
+; @clobbers A,DE,HL while writing the preview letter.
 LCD_APPEND_NEXT_PREVIEW_LETTER:
         LD      A,(NEXT_PIECE_INDEX)
         LD      DE,PIECE_NAME_TABLE
@@ -52,14 +32,9 @@ LCD_APPEND_NEXT_PREVIEW_LETTER:
 ; LCD_REFRESH_NEXT_PREVIEW_ROW
 ; Rewrites HUD row 2 with NEXT: banner + letter. Does not clear the display;
 ; "NEXT: X" is always 7 chars so it overwrites cleanly, preserving row 1.
-; Input:
-;   NEXT_PIECE_INDEX
-; Output:
-;   LCD row 2 rewritten
-; Clobbers:
-;   A, DE
-; Uses @clobbers A,DE while refreshing the next-piece preview row.
-; Keeps @preserves BC,HL stable for the caller.
+; Reads NEXT_PIECE_INDEX.
+; LCD row 2 rewritten.
+; @clobbers A,DE while refreshing the next-piece preview row.
 LCD_REFRESH_NEXT_PREVIEW_ROW:
         PUSH    BC
         PUSH    HL
@@ -72,26 +47,16 @@ LCD_REFRESH_NEXT_PREVIEW_ROW:
         RET
 
 ; LCD_SHOW_RUNNING
-; Input:
-;   none
-; Output:
-;   running HUD rendered with NEXT preview
-; Clobbers:
-;   A, HL
-; Uses @clobbers A,HL while rendering the running HUD.
+; Running HUD rendered with NEXT preview.
+; @clobbers A,HL while rendering the running HUD.
 LCD_SHOW_RUNNING:
         LD      HL,SCRIPT_RUNNING
         ; fall through
 
 ; LCD_SHOW_HUD
-; Input:
-;   HL = script pointer (row1 banner, row2 "NEXT: ")
-; Output:
-;   LCD cleared, script rendered, preview letter appended on row 2
-; Clobbers:
-;   A (BC/DE/HL pushed/popped)
-; Uses @clobbers A while rendering the HUD.
-; Keeps @preserves BC,DE,HL stable for the caller.
+; @in HL script pointer (row1 banner, row2 "NEXT: ").
+; LCD cleared, script rendered, preview letter appended on row 2.
+; @clobbers A while rendering the HUD.
 LCD_SHOW_HUD:
         PUSH    BC
         PUSH    DE

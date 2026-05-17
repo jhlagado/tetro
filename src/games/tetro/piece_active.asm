@@ -1,10 +1,7 @@
 ; HORIZONTAL_PROBE_APPLY_PENDING_X
-; Input:
-;   PENDING_X/Y set for candidate lateral move (PLAYER_Y echoed into PENDING_Y)
-; Output:
-;   on success, PLAYER_X := PENDING_X
-; Clobbers:
-;   A, DE
+; PENDING_X/Y set for candidate lateral move (PLAYER_Y echoed into PENDING_Y).
+; On success, PLAYER_X := PENDING_X.
+; @clobbers A,DE.
 HORIZONTAL_PROBE_APPLY_PENDING_X:
         LD      A,(PLAYER_Y)
         LD      (PENDING_Y),A
@@ -18,12 +15,8 @@ HORIZONTAL_COMMIT_PLAYER_X:
         RET
 
 ; MOVE_RIGHT
-; Input:
-;   none
-; Output:
-;   may increment PLAYER_X if candidate placement is legal
-; Clobbers:
-;   A, DE
+; May increment PLAYER_X if candidate placement is legal.
+; @clobbers A,DE.
 MOVE_RIGHT:
         LD      A,(PLAYER_X)
         INC     A
@@ -31,12 +24,8 @@ MOVE_RIGHT:
         JP      HORIZONTAL_PROBE_APPLY_PENDING_X
 
 ; MOVE_LEFT
-; Input:
-;   none
-; Output:
-;   may decrement PLAYER_X if candidate placement is legal
-; Clobbers:
-;   A, DE
+; May decrement PLAYER_X if candidate placement is legal.
+; @clobbers A,DE.
 MOVE_LEFT:
         LD      A,(PLAYER_X)
         OR      A
@@ -46,14 +35,10 @@ MOVE_LEFT:
         JP      HORIZONTAL_PROBE_APPLY_PENDING_X
 
 ; STEP_ACTIVE_DOWN_ONE_CELL
-; Input:
-;   PLAYER_X / PLAYER_Y
-; Output:
-;   pending one row down; Carry from CHECK_COLLISION_AT_DE (CY = collision/block)
-; Clobbers:
-;   A, DE
-; Returns @out carry set when the next downward step is blocked.
-; Uses @clobbers A,DE while probing the candidate position.
+; PLAYER_X / PLAYER_Y.
+; @out carry set when the next downward step is blocked.
+; Pending one row down; Carry from CHECK_COLLISION_AT_DE (CY = collision/block).
+; @clobbers A,DE while probing the candidate position.
 STEP_ACTIVE_DOWN_ONE_CELL:
         LD      A,(PLAYER_X)
         LD      (PENDING_X),A
@@ -65,12 +50,8 @@ STEP_ACTIVE_DOWN_ONE_CELL:
         RET
 
 ; APPLY_GRAVITY
-; Input:
-;   none
-; Output:
-;   may update PLAYER_Y, or lock and respawn active piece on collision
-; Clobbers:
-;   A, DE on commit; A, BC, DE, HL on lock (tail-calls LOCK_ACTIVE_PIECE)
+; May update PLAYER_Y, or lock and respawn active piece on collision.
+; @clobbers A,BC,DE,HL.
 APPLY_GRAVITY:
         LD      A,(GRAVITY_COOLDOWN)
         DEC     A
@@ -89,12 +70,8 @@ GRAVITY_COMMIT:
         RET
 
 ; SOFT_DROP
-; Input:
-;   none
-; Output:
-;   may update PLAYER_Y, or lock and respawn active piece on collision
-; Clobbers:
-;   A, DE on commit; A, BC, DE, HL on lock (tail-calls LOCK_ACTIVE_PIECE)
+; May update PLAYER_Y, or lock and respawn active piece on collision.
+; @clobbers A,BC,DE,HL.
 SOFT_DROP:
         CALL    STEP_ACTIVE_DOWN_ONE_CELL
         JR      NC,SOFT_DROP_COMMIT
@@ -108,14 +85,10 @@ SOFT_DROP_COMMIT:
         LD      (GRAVITY_COOLDOWN),A
         RET
 ; SANITIZE_ACTIVE_POSITION
-; Input:
-;   PLAYER_X, PLAYER_Y in RAM
-; Output:
-;   PLAYER_X clamped to X_MIN..X_MAX
-;   PLAYER_Y clamped to Y_MAX (negative spawn rows preserved)
-; Clobbers:
-;   A, HL
-; Uses @clobbers A,HL while clamping active-piece RAM state.
+; PLAYER_X, PLAYER_Y in RAM.
+; PLAYER_X clamped to X_MIN..X_MAX.
+; PLAYER_Y clamped to Y_MAX (negative spawn rows preserved).
+; @clobbers A,HL while clamping active-piece RAM state.
 SANITIZE_ACTIVE_POSITION:
         LD      A,(PLAYER_X)
         LD      HL,CURRENT_PIECE_RIGHT
@@ -137,15 +110,11 @@ SANITIZE_Y_DONE:
         RET
 
 ; SELECT_NEXT_PIECE
-; Input:
-;   NEXT_PIECE_INDEX in RAM
-; Output:
-;   CURRENT_PIECE_INDEX / CURRENT_ROTATION updated
-;   CURRENT_PIECE_PTR / CURRENT_PIECE_RIGHT / CURRENT_PIECE_COLOR updated
-;   NEXT_PIECE_INDEX advanced modulo PIECE_COUNT
-; Clobbers:
-;   A, BC, DE, HL
-; Uses @clobbers A,BC,DE,HL while advancing the current/next piece state.
+; NEXT_PIECE_INDEX in RAM.
+; CURRENT_PIECE_INDEX / CURRENT_ROTATION updated.
+; CURRENT_PIECE_PTR / CURRENT_PIECE_RIGHT / CURRENT_PIECE_COLOR updated.
+; NEXT_PIECE_INDEX advanced modulo PIECE_COUNT.
+; @clobbers A,BC,DE,HL while advancing the current/next piece state.
 SELECT_NEXT_PIECE:
         LD      A,(NEXT_PIECE_INDEX)
         LD      (CURRENT_PIECE_INDEX),A
@@ -158,15 +127,10 @@ SELECT_NEXT_PIECE:
         RET
 
 ; RNG_NEXT_PIECE
-; Input:
-;   RNG_SEED
-; Output:
-;   A = next piece index 0..6
-;   RNG_SEED advanced
-; Clobbers:
-;   A, B
-; Returns @out A as the next piece index.
-; Uses @clobbers B while folding the random byte.
+; Reads RNG_SEED.
+; @out A the next piece index.
+; RNG_SEED advanced.
+; @clobbers B while folding the random byte.
 RNG_NEXT_PIECE:
         CALL    RNG_NEXT8
         LD      B,A
@@ -180,14 +144,10 @@ RNG_NEXT_PIECE:
         RET
 
 ; RNG_NEXT8
-; Input:
-;   RNG_SEED
-; Output:
-;   A = next pseudo-random byte
-;   RNG_SEED advanced
-; Clobbers:
-;   A
-; Returns @out A as the next pseudo-random byte.
+; Reads RNG_SEED.
+; @out A the next pseudo-random byte.
+; RNG_SEED advanced.
+; @clobbers A.
 RNG_NEXT8:
         LD      A,(RNG_SEED)
         OR      A
@@ -202,13 +162,9 @@ RNG_NEXT8_SAVE:
         RET
 
 ; LOAD_CURRENT_ROTATION_STATE
-; Input:
-;   CURRENT_PIECE_INDEX / CURRENT_ROTATION in RAM
-; Output:
-;   CURRENT_PIECE_PTR / CURRENT_PIECE_RIGHT / CURRENT_PIECE_COLOR updated
-; Clobbers:
-;   A, C, DE, HL
-; Uses @clobbers A,C,DE,HL while loading rotation-derived RAM state.
+; CURRENT_PIECE_INDEX / CURRENT_ROTATION in RAM.
+; CURRENT_PIECE_PTR / CURRENT_PIECE_RIGHT / CURRENT_PIECE_COLOR updated.
+; @clobbers A,C,DE,HL while loading rotation-derived RAM state.
 LOAD_CURRENT_ROTATION_STATE:
         ; COLOR lookup first (indexed by piece only) so DE is still free.
         LD      A,(CURRENT_PIECE_INDEX)
@@ -247,15 +203,12 @@ LOAD_CURRENT_ROTATION_STATE:
         RET
 
 ; ROTATE_FINISH_TEST
-; Prerequisites: tentative rotation loaded via LOAD_CURRENT_ROTATION_STATE,
+; Prerequisites: tentative rotation loaded via LOAD_CURRENT_ROTATION_STATE.
 ; CURRENT_ROTATION = candidate; COLLISION_AT(PLAYER_X, PLAYER_Y) decides accept.
 ; Rotates back (restore PENDING_ROTATION) + reload if illegal.
-; Input:
-;   CURRENT_ROTATION (candidate), PENDING_ROTATION (previous), PLAYER_X/Y
-; Output:
-;   commit on legal; revert + reload on collision
-; Clobbers:
-;   A, C, DE, HL
+; CURRENT_ROTATION (candidate), PENDING_ROTATION (previous), PLAYER_X/Y.
+; Commit on legal; revert + reload on collision.
+; @clobbers A,C,DE,HL.
 ROTATE_FINISH_TEST:
         LD      A,(PLAYER_X)
         LD      D,A
@@ -273,12 +226,9 @@ ROTATE_ACCEPT_COMMIT:
         RET
 
 ; ROTATE_CW
-; Input:
-;   current active piece state in RAM
-; Output:
-;   may update CURRENT_ROTATION if rotated placement is legal
-; Clobbers:
-;   A, C, DE, HL
+; Current active piece state in RAM.
+; May update CURRENT_ROTATION if rotated placement is legal.
+; @clobbers A,C,DE,HL.
 ROTATE_CW:
         LD      A,(CURRENT_ROTATION)
         LD      (PENDING_ROTATION),A
@@ -289,12 +239,9 @@ ROTATE_CW:
         JP      ROTATE_FINISH_TEST
 
 ; ROTATE_LEFT
-; Input:
-;   current active piece state in RAM
-; Output:
-;   may update CURRENT_ROTATION if rotated placement is legal
-; Clobbers:
-;   A, C, DE, HL
+; Current active piece state in RAM.
+; May update CURRENT_ROTATION if rotated placement is legal.
+; @clobbers A,C,DE,HL.
 ROTATE_LEFT:
         LD      A,(CURRENT_ROTATION)
         LD      (PENDING_ROTATION),A
@@ -305,17 +252,11 @@ ROTATE_LEFT:
         JP      ROTATE_FINISH_TEST
 
 ; SPAWN_ACTIVE_PIECE
-; Input:
-;   none
-; Output:
-;   active-piece state reset to spawn position
-;   returns fault if spawn collides immediately
-;   (Full `LCD_SHOW_RUNNING` left to splash/restart; each successful spawn
-;    refreshes row 3 next-piece preview via LCD_REFRESH_NEXT_PREVIEW_ROW.)
-; Clobbers:
-;   A, BC, DE, HL
-; Returns @out carry set when the spawned piece immediately collides.
-; Uses @clobbers A,BC,DE,HL while resetting active-piece state.
+; Active-piece state reset to spawn position.
+; Enters game over if spawn collides immediately.
+; Full LCD_SHOW_RUNNING is left to splash/restart.
+; Each successful spawn refreshes row 3 next-piece preview via LCD_REFRESH_NEXT_PREVIEW_ROW.
+; @clobbers A,BC,DE,HL while resetting active-piece state.
 SPAWN_ACTIVE_PIECE:
         CALL    SELECT_NEXT_PIECE
         LD      A,3

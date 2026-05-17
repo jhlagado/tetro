@@ -1,13 +1,9 @@
 ; Run one slice of logic per main-loop pass (1 slice per scanline, 0..7 then wrap).
 ; Distributes work so each inter-row interval is similar, helping even brightness/POV.
 ; LOGIC_TICK
-; Input:
-;   uses LOGIC_SLICE from RAM
-; Output:
-;   one logic slice executed, LOGIC_SLICE advanced
-; Clobbers:
-;   A, HL, and whatever the called slice routines clobber
-; Uses @clobbers A,BC,DE,HL while dispatching the current logic slice.
+; Uses LOGIC_SLICE from RAM.
+; One logic slice executed, LOGIC_SLICE advanced.
+; @clobbers A,BC,DE,HL while dispatching the current logic slice.
 LOGIC_TICK:
         CALL    SANITIZE_ACTIVE_POSITION
         LD      A,(GAME_OVER)

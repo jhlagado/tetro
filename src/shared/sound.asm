@@ -3,17 +3,10 @@
 ; SOUND_START.
 
 ; SOUND_START
-; Input:
-;   A = duration in scan ticks
-;   C = divider reload / half-period
-; Output:
-;   speaker state machine restarted
-; Clobbers:
-;   A
-; Accepts @in A as duration in scan ticks.
-; Accepts @in C as divider reload / half-period.
-; Uses @clobbers A,carry,zero,sign,parity,halfCarry while restarting the state machine.
-; Keeps @preserves BC,DE,HL,IX,IY stable for the caller.
+; @in A duration in scan ticks.
+; @in C divider reload / half-period.
+; Speaker state machine restarted.
+; @clobbers A while restarting the state machine.
 SOUND_START:
         LD      (SOUND_TIMER),A
         LD      A,C
@@ -24,14 +17,9 @@ SOUND_START:
         RET
 
 ; SERVICE_SOUND
-; Input:
-;   SOUND_TIMER / SOUND_DIVIDER_RELOAD / SOUND_DIVIDER_COUNT
-; Output:
-;   SPEAKER_PORT_STATE toggled while the active sound cue is running
-; Clobbers:
-;   A
-; Uses @clobbers A,zero,sign,parity,halfCarry while updating the active sound cue.
-; Keeps @preserves BC,DE,HL,IX,IY stable for the caller.
+; SOUND_TIMER / SOUND_DIVIDER_RELOAD / SOUND_DIVIDER_COUNT.
+; SPEAKER_PORT_STATE toggled while the active sound cue is running.
+; @clobbers A while updating the active sound cue.
 SERVICE_SOUND:
         LD      A,(SOUND_TIMER)
         OR      A

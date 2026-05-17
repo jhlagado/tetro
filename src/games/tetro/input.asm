@@ -6,12 +6,9 @@
 ;   NZ = no key / invalid key
 ;   A  = key code
 ; POLL_INPUT_AND_UPDATE
-; Input:
-;   none
-; Output:
-;   may update PLAYER_X / MOVE_COOLDOWN / LAST_KEY / SOFT_DROP via keyed handlers, or JR to CLEAR_INPUT_REPEAT_STATE when no key is pressed (idle / repeat reset path).
-; Clobbers:
-;   A, BC, DE, HL (rotate/soft-drop paths cascade through LOAD_CURRENT_ROTATION_STATE / LOCK_ACTIVE_PIECE)
+; May update PLAYER_X / MOVE_COOLDOWN / LAST_KEY / SOFT_DROP via keyed handlers.
+; Jumps to CLEAR_INPUT_REPEAT_STATE when no key is pressed (idle / repeat reset path).
+; @clobbers A,BC,DE,HL.
 POLL_INPUT_AND_UPDATE:
         LD      C,API_SCANKEYS
         RST     0x10
@@ -69,12 +66,8 @@ HANDLE_DIRECTION_KEY:
 ; CLEAR_INPUT_REPEAT_STATE
 ; Restores MOVE_COOLDOWN full period, clears LAST_KEY and soft-drop latch.
 ; Used when leaving held-autorepeat path (invalid/no key, pause, rotate presses, etc.).
-; Input:
-;   none
-; Output:
-;   MOVE_COOLDOWN = MOVE_PERIOD; LAST_KEY = NO_KEY; DROP_LOCKOUT = 0
-; Clobbers:
-;   A
+; MOVE_COOLDOWN = MOVE_PERIOD; LAST_KEY = NO_KEY; DROP_LOCKOUT = 0.
+; @clobbers A.
 CLEAR_INPUT_REPEAT_STATE:
         LD      A,MOVE_PERIOD
         LD      (MOVE_COOLDOWN),A
@@ -85,14 +78,11 @@ CLEAR_INPUT_REPEAT_STATE:
         RET
 
 ; WAIT_GAME_OVER_KEY_GATE
-; Count down main-loop iterations before POLL_GAME_OVER_RESTART (PRESS ANY KEY) during GAME_OVER.
+; Counts down main-loop iterations before POLL_GAME_OVER_RESTART while game over is active.
 ; Chirps SOUND_TRIGGER_GAME_OVER_RESTART_READY exactly when the counter reaches zero.
-; Input:
-;   GAME_OVER_KEY_GATE_LO/HI
-; Output:
-;   GAME_OVER_KEY_GATE_LO decremented; tail-calls POLL_GAME_OVER_RESTART once gate = 0
-; Clobbers:
-;   A, C, HL
+; Reads GAME_OVER_KEY_GATE_LO/HI.
+; GAME_OVER_KEY_GATE_LO decremented; tail-calls POLL_GAME_OVER_RESTART once gate = 0.
+; @clobbers A,C,HL.
 WAIT_GAME_OVER_KEY_GATE:
         LD      HL,(GAME_OVER_KEY_GATE_LO)
         LD      A,H
@@ -109,12 +99,8 @@ WAIT_GAME_OVER_KEY_GATE:
         RET
 
 ; POLL_GAME_OVER_RESTART
-; Input:
-;   none
-; Output:
-;   restarts the game on a fresh key press
-; Clobbers:
-;   A, C
+; Restarts the game on a fresh key press.
+; @clobbers A,C.
 POLL_GAME_OVER_RESTART:
         LD      C,API_SCANKEYS
         RST     0x10
@@ -122,12 +108,9 @@ POLL_GAME_OVER_RESTART:
         JP      INIT_STATE_RESTART
 
 ; WAIT_FOR_KEY_RELEASE
-; Input:
-;   INPUT_LOCKOUT
-; Output:
-;   clears INPUT_LOCKOUT once no key is pressed
-; Clobbers:
-;   A, C
+; Reads INPUT_LOCKOUT.
+; Clears INPUT_LOCKOUT once no key is pressed.
+; @clobbers A,C.
 WAIT_FOR_KEY_RELEASE:
         LD      C,API_SCANKEYS
         RST     0x10
@@ -138,8 +121,7 @@ WAIT_FOR_KEY_RELEASE:
 
 ; HANDLE_PAUSE_KEY
 ; Toggles PAUSED; swaps LCD between RUNNING/PAUSED banner.
-; Clobbers:
-;   A
+; @clobbers A.
 HANDLE_PAUSE_KEY:
         LD      A,(PAUSED)
         XOR     1
@@ -154,8 +136,7 @@ HANDLE_PAUSE_SHOW_RUNNING:
 
 ; HANDLE_UNPAUSE_KEY
 ; Clears PAUSED, restores RUNNING banner.
-; Clobbers:
-;   A
+; @clobbers A.
 HANDLE_UNPAUSE_KEY:
         XOR     A
         LD      (PAUSED),A
@@ -164,43 +145,36 @@ HANDLE_UNPAUSE_KEY:
 
 ; HANDLE_ROTATE_PRESS
 ; Keyboard dispatch for clockwise rotation with collision check.
-; Clobbers:
-;   A, C, DE, HL
+; @clobbers A,C,DE,HL.
 HANDLE_ROTATE_PRESS:
         CALL    ROTATE_CW
         JP      CLEAR_INPUT_REPEAT_STATE
 
 ; HANDLE_ROTATE_CCW_PRESS
 ; Keyboard dispatch for counter-clockwise rotation with collision check.
-; Clobbers:
-;   A, C, DE, HL
+; @clobbers A,C,DE,HL.
 HANDLE_ROTATE_CCW_PRESS:
         CALL    ROTATE_LEFT
         JP      CLEAR_INPUT_REPEAT_STATE
 
 ; HANDLE_KEY_RIGHT
 ; Tail-calls HANDLE_HELD_DIRECTION with A = K_RIGHT.
-; Clobbers:
-;   A, DE
+; @clobbers A,DE.
 HANDLE_KEY_RIGHT:
         LD      A,K_RIGHT
         JP      HANDLE_HELD_DIRECTION
 
 ; HANDLE_KEY_LEFT
 ; Tail-calls HANDLE_HELD_DIRECTION with A = K_LEFT.
-; Clobbers:
-;   A, DE
+; @clobbers A,DE.
 HANDLE_KEY_LEFT:
         LD      A,K_LEFT
         JP      HANDLE_HELD_DIRECTION
 
 ; HANDLE_KEY_DROP
-; Input:
-;   none (DROP_LOCKOUT gates repeat firing)
-; Output:
-;   tail-calls HANDLE_HELD_DIRECTION with A = K_DROP once lockout clears
-; Clobbers:
-;   A, DE
+; DROP_LOCKOUT gates repeat firing.
+; Tail-calls HANDLE_HELD_DIRECTION with A = K_DROP once lockout clears.
+; @clobbers A,DE.
 HANDLE_KEY_DROP:
         LD      A,(DROP_LOCKOUT)
         OR      A
@@ -209,12 +183,9 @@ HANDLE_KEY_DROP:
         JP      HANDLE_HELD_DIRECTION
 
 ; HANDLE_HELD_DIRECTION
-; Input:
-;   A = K_LEFT, K_RIGHT, or K_DROP (held/repeat timing path via LAST_KEY/MOVE_COOLDOWN)
-; Output:
-;   may update PLAYER_X / PLAYER_Y / MOVE_COOLDOWN / LAST_KEY
-; Clobbers:
-;   A, DE on MOVE_LEFT/RIGHT; A, BC, DE, HL on SOFT_DROP lock-path
+; @in A K_LEFT, K_RIGHT, or K_DROP (held/repeat timing path via LAST_KEY/MOVE_COOLDOWN).
+; May update PLAYER_X / PLAYER_Y / MOVE_COOLDOWN / LAST_KEY.
+; @clobbers A,BC,DE,HL.
 HANDLE_HELD_DIRECTION:
         LD      E,A
         LD      A,(LAST_KEY)

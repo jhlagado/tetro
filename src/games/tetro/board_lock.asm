@@ -1,11 +1,8 @@
 ; LOCK_ACTIVE_PIECE
-; Input:
-;   active piece state (PLAYER_X/Y, CURRENT_PIECE_*), BOARD_ROWS / BOARD_*
-; Output:
-;   active piece merged into board; line-clear queued, next piece spawned,
-;   or top-out -> ENTER_GAME_OVER
-; Clobbers:
-;   A, BC, DE, HL
+; Active piece state (PLAYER_X/Y, CURRENT_PIECE_*), BOARD_ROWS / BOARD_*.
+; Active piece merged into board; line-clear queued, next piece spawned.
+; Top-out enters ENTER_GAME_OVER.
+; @clobbers A,BC,DE,HL.
 LOCK_ACTIVE_PIECE:
         CALL    CHECK_TOP_OUT_ON_LOCK
         JR      C,LOCK_GAME_OVER
@@ -32,12 +29,9 @@ LOCK_GAME_OVER:
         RET
 
 ; ENTER_GAME_OVER
-; Input:
-;   A = game-over reason code
-; Output:
-;   GAME_OVER latched, active piece disabled, framebuffer rebuilt, LCD updated
-; Clobbers:
-;   A, BC, DE, HL
+; @in A game-over reason code.
+; GAME_OVER latched, active piece disabled, framebuffer rebuilt, LCD updated.
+; @clobbers A,BC,DE,HL.
 ENTER_GAME_OVER:
         PUSH    AF
         XOR     A
@@ -52,12 +46,9 @@ ENTER_GAME_OVER:
         JP      LCD_SHOW_GAME_OVER
 
 ; HANDLE_SPLASH_STATE
-; Input:
-;   SPLASH_TIMER / FRAME_PHASE
-; Output:
-;   waits for a fresh key press, then seeds the RNG and starts a new game
-; Clobbers:
-;   A, BC, DE, HL
+; SPLASH_TIMER / FRAME_PHASE.
+; Waits for a fresh key press, then seeds the RNG and starts a new game.
+; @clobbers A,BC,DE,HL.
 HANDLE_SPLASH_STATE:
         LD      C,API_SCANKEYS
         RST     0x10
@@ -80,13 +71,10 @@ HANDLE_SPLASH_SEED_READY:
         JP      REBUILD_FRAMEBUFFER
 
 ; HANDLE_LINE_CLEAR_STATE
-; Input:
-;   CLEAR_PENDING / CLEAR_TIMER / LOGIC_SLICE in RAM
-; Output:
-;   advances clear-hold countdown once per full logic cycle
-;   collapses full rows and spawns next piece when timer expires
-; Clobbers:
-;   A, BC, DE, HL
+; CLEAR_PENDING / CLEAR_TIMER / LOGIC_SLICE in RAM.
+; Advances clear-hold countdown once per full logic cycle.
+; Collapses full rows and spawns next piece when timer expires.
+; @clobbers A,BC,DE,HL.
 HANDLE_LINE_CLEAR_STATE:
         LD      A,(LOGIC_SLICE)
         OR      A
@@ -103,15 +91,10 @@ HANDLE_LINE_CLEAR_STATE:
         JP      SPAWN_ACTIVE_PIECE
 
 ; CHECK_FULL_ROWS
-; Input:
-;   BOARD_ROWS
-; Output:
-;   CLEAR_MASK updated
-;   carry set if one or more rows are full
-; Clobbers:
-;   A, BC, E, HL
-; Returns @out carry set when one or more rows are full.
-; Uses @clobbers A,BC,E,HL while building CLEAR_MASK.
+; Reads BOARD_ROWS.
+; @out carry set when one or more rows are full.
+; CLEAR_MASK updated.
+; @clobbers A,BC,E,HL while building CLEAR_MASK.
 CHECK_FULL_ROWS:
         LD      HL,BOARD_ROWS
         LD      B,ROW_COUNT
@@ -140,14 +123,9 @@ CHECK_FULL_ROWS_NONE:
         RET
 
 ; COUNT_CLEAR_ROWS
-; Input:
-;   CLEAR_MASK
-; Output:
-;   A = number of set bits in CLEAR_MASK (0..8)
-; Clobbers:
-;   A, BC
-; Returns @out A as the number of rows marked in CLEAR_MASK.
-; Uses @clobbers BC while counting the mask bits.
+; Reads CLEAR_MASK.
+; @out A the number of rows marked in CLEAR_MASK.
+; @clobbers BC while counting the mask bits.
 COUNT_CLEAR_ROWS:
         LD      A,(CLEAR_MASK)
         LD      C,A
@@ -165,14 +143,10 @@ COUNT_CLEAR_ROWS_DONE:
         RET
 
 ; APPLY_CLEAR_SCORE
-; Input:
-;   CLEAR_MASK
-; Output:
-;   LINES_CLEARED_TOTAL incremented by number of cleared rows
-;   SCORE updated using 100/300/500/800 for 1/2/3/4+ rows (from CLEAR_SCORE_TABLE)
-; Clobbers:
-;   A, BC, DE, HL
-; Uses @clobbers A,BC,DE,HL while applying the clear-score update.
+; Reads CLEAR_MASK.
+; LINES_CLEARED_TOTAL incremented by number of cleared rows.
+; SCORE updated using 100/300/500/800 for 1/2/3/4+ rows (from CLEAR_SCORE_TABLE).
+; @clobbers A,BC,DE,HL while applying the clear-score update.
 APPLY_CLEAR_SCORE:
         CALL    COUNT_CLEAR_ROWS
         OR      A
@@ -202,12 +176,9 @@ APPLY_CLEAR_LOOKUP:
         JP      UPDATE_SCORE_DISPLAY
 
 ; UPDATE_GRAVITY_PERIOD_FROM_SCORE
-; Input:
-;   SCORE_LO / SCORE_HI
-; Output:
-;   CURRENT_GRAVITY_PERIOD updated from score threshold(s)
-; Clobbers:
-;   A, HL
+; SCORE_LO / SCORE_HI.
+; CURRENT_GRAVITY_PERIOD updated from score threshold(s).
+; @clobbers A,HL.
 UPDATE_GRAVITY_PERIOD_FROM_SCORE:
         LD      HL,(SCORE_LO)
         LD      A,H
@@ -227,13 +198,9 @@ UPDATE_GP_STORE:
         RET
 
 ; COLLAPSE_FULL_ROWS
-; Input:
-;   CLEAR_MASK, BOARD_ROWS, BOARD_RED, BOARD_GREEN, BOARD_BLUE
-; Output:
-;   completed rows removed, rows above collapsed downward
-; Clobbers:
-;   A, BC, DE, HL
-; Uses @clobbers A,BC,DE,HL while compacting non-cleared rows.
+; Reads CLEAR_MASK, BOARD_ROWS, BOARD_RED, BOARD_GREEN, BOARD_BLUE.
+; Completed rows removed, rows above collapsed downward.
+; @clobbers A,BC,DE,HL while compacting non-cleared rows.
 COLLAPSE_FULL_ROWS:
         LD      B,ROW_COUNT
         LD      D,ROW_COUNT-1
@@ -278,13 +245,10 @@ COLLAPSE_CLEAR_TOP_LOOP:
         RET
 
 ; COPY_BOARD_ROW_DE_TO_E
-; Input:
-;   D = source row index
-;   E = destination row index
-; Output:
-;   BOARD_ROWS and landed RGB planes copied from D to E
-; Clobbers:
-;   A
+; @in D source row index.
+; @in E destination row index.
+; BOARD_ROWS and landed RGB planes copied from D to E.
+; @clobbers A.
 COPY_BOARD_ROW_DE_TO_E:
         PUSH    HL
         PUSH    BC
@@ -323,12 +287,9 @@ COPY_BR_ADVNC:
         RET
 
 ; CLEAR_BOARD_ROW_D
-; Input:
-;   D = row index
-; Output:
-;   row cleared in occupancy and RGB planes
-; Clobbers:
-;   A, BC, HL
+; @in D row index.
+; Row cleared in occupancy and RGB planes.
+; @clobbers A,BC,HL.
 CLEAR_BOARD_ROW_D:
         XOR     A
         LD      B,A
@@ -355,12 +316,9 @@ CLEAR_BR_ADVNC:
         RET
 
 ; RECOMPUTE_BOARD_EMPTY
-; Input:
-;   BOARD_ROWS
-; Output:
-;   BOARD_EMPTY updated from occupancy rows
-; Clobbers:
-;   A, B, HL
+; Reads BOARD_ROWS.
+; BOARD_EMPTY updated from occupancy rows.
+; @clobbers A,B,HL.
 RECOMPUTE_BOARD_EMPTY:
         LD      HL,BOARD_ROWS
         LD      B,ROW_COUNT
@@ -379,14 +337,10 @@ BOARD_NOT_EMPTY:
         RET
 
 ; MERGE_OR_RGB_AT_BOARD_ROW_L
-; Input:
-;   H = 0, L = landed row index within playfield (same cell row used for BOARD_ROWS)
-;   C = shifted occupancy mask already ORed into BOARD_ROWS for this row
-; Output:
-;   colour planes optionally ORed — controlled by CURRENT_PIECE_COLOR bits
-; Clobbers:
-;   A; preserves HL, DE, BC (B is caller's DJNZ counter)
-; Relies on BOARD_RED/GREEN/BLUE being contiguous ROW_COUNT-sized arrays.
+; @in L landed row index within playfield (same cell row used for BOARD_ROWS).
+; @in C shifted occupancy mask already ORed into BOARD_ROWS for this row.
+; Colour planes optionally ORed, controlled by CURRENT_PIECE_COLOR bits.
+; @clobbers A.
 MERGE_OR_RGB_AT_BOARD_ROW_L:
         PUSH    BC
         PUSH    DE
@@ -418,14 +372,9 @@ MERGE_OR_EXIT:
         RET
 
 ; MERGE_ACTIVE_TO_BOARD
-; Input:
-;   PLAYER_X, PLAYER_Y, CURRENT_PIECE_PTR, CURRENT_PIECE_COLOR
-; Output:
-;   active piece ORed into BOARD_ROWS and landed RGB planes
-; Clobbers:
-;   A
-; Uses @clobbers A while merging active-piece cells into board RAM.
-; Keeps @preserves BC,DE,HL stable for the caller.
+; Reads PLAYER_X, PLAYER_Y, CURRENT_PIECE_PTR, CURRENT_PIECE_COLOR.
+; Active piece ORed into BOARD_ROWS and landed RGB planes.
+; @clobbers A while merging active-piece cells into board RAM.
 MERGE_ACTIVE_TO_BOARD:
         PUSH    BC
         PUSH    DE

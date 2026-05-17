@@ -1,8 +1,7 @@
 ; Generic HD44780 LCD primitives for the TEC-1G MON-3 hardware mapping.
 
 ; LCD_BUSY
-;   waits until LCD busy flag clears
-; Keeps @preserves AF,BC,DE,HL,IX,IY stable for the caller.
+; Waits until LCD busy flag clears.
 LCD_BUSY:
         PUSH    AF
 LCD_BUSY_LOOP:
@@ -13,9 +12,8 @@ LCD_BUSY_LOOP:
         RET
 
 ; LCD_COMMAND
-; Accepts @in B as LCD instruction byte.
-;   instruction sent to LCD
-; Keeps @preserves AF,BC,DE,HL,IX,IY stable for the caller.
+; @in B LCD instruction byte.
+; Sends the instruction to LCD.
 LCD_COMMAND:
         PUSH    AF
         CALL    LCD_BUSY
@@ -25,23 +23,16 @@ LCD_COMMAND:
         RET
 
 ; LCD_CLEAR_DISPLAY
-; Input:
-;   none
-; Output:
-;   LCD cleared, cursor home
-; Clobbers:
-;   B
+; LCD cleared, cursor home.
+; @clobbers B.
 LCD_CLEAR_DISPLAY:
         LD      B,0x01
         JP      LCD_COMMAND
 
 ; LCD_STRING
-; Input:
-;   HL = zero-terminated ASCII string
-; Output:
-;   string written at current LCD cursor position
-; Clobbers:
-;   A, HL
+; @in HL zero-terminated ASCII string.
+; String written at current LCD cursor position.
+; @clobbers A,HL.
 LCD_STRING:
         LD      A,(HL)
         INC     HL
@@ -52,14 +43,9 @@ LCD_STRING:
         JR      LCD_STRING
 
 ; LCD_SHOW_SCRIPT
-; Input:
-;   HL = pointer to script table (DB row_cmd, DW text_ptr, ..., DB 0)
-; Output:
-;   LCD cleared, then each (row_cmd, text_ptr) pair rendered in order
-; Clobbers:
-;   A  (BC, DE, HL pushed/popped)
-; Uses @clobbers A,carry,zero,sign,parity,halfCarry while walking the script.
-; Keeps @preserves BC,DE,HL,IX,IY stable for the caller.
+; @in HL pointer to script table (DB row_cmd, DW text_ptr, ..., DB 0).
+; LCD cleared, then each (row_cmd, text_ptr) pair rendered in order.
+; @clobbers A while walking the script.
 LCD_SHOW_SCRIPT:
         PUSH    BC
         PUSH    DE
@@ -88,12 +74,8 @@ LCD_SCRIPT_DONE:
         RET
 
 ; LCD_PUTC
-; Input:
-;   A = ASCII character
-; Output:
-;   character written at current LCD cursor position
-; Clobbers:
-;   none
+; @in A ASCII character.
+; Character written at current LCD cursor position.
 LCD_PUTC:
         PUSH    AF
         CALL    LCD_BUSY
@@ -102,27 +84,20 @@ LCD_PUTC:
         RET
 
 ; LCD_WRITE_ROW_STRING
-; Input:
-;   B = row DDRAM command
-;   HL = zero-terminated string
-; Output:
-;   cursor moved and string written
-; Clobbers:
-;   A, HL
+; @in B row DDRAM command.
+; @in HL zero-terminated string.
+; Cursor moved and string written.
+; @clobbers A,HL.
 LCD_WRITE_ROW_STRING:
         CALL    LCD_COMMAND
         JP      LCD_STRING
 
 ; LCD_PUTC_FROM_TABLE
-; Input:
-;   A = unsigned table index
-;   DE = byte table base
-; Output:
-;   table byte at DE+A written
-; Clobbers:
-;   A, HL
-; Notes:
-;   no bounds check
+; @in A unsigned table index.
+; @in DE byte table base.
+; Table byte at DE+A written.
+; @clobbers A,HL.
+; Note: no bounds check.
 LCD_PUTC_FROM_TABLE:
         LD      L,A
         LD      H,0

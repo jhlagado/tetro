@@ -1,10 +1,6 @@
 ; INIT_STATE
-; Input:
-;   none
-; Output:
-;   initializes Pacmo cursor, viewport, scan state, display buffers, and HUD
-; Clobbers:
-;   A, BC, DE, HL
+; Initializes Pacmo cursor, viewport, scan state, display buffers, and HUD.
+; @clobbers A,BC,DE,HL.
 INIT_STATE:
         XOR     A
         LD      (PACMO_SCORE),A
@@ -21,12 +17,9 @@ INIT_STATE:
         JP      LCD_SHOW_PACMO_SPLASH
 
 ; INIT_LEVEL_STATE
-; Input:
-;   PACMO_SCORE, PACMO_LEVEL, ENEMY_PERIOD_CURRENT
-; Output:
-;   initializes one Pacmo level without resetting score or level
-; Clobbers:
-;   A, BC, DE, HL
+; Reads PACMO_SCORE, PACMO_LEVEL, ENEMY_PERIOD_CURRENT.
+; Initializes one Pacmo level without resetting score or level.
+; @clobbers A,BC,DE,HL.
 INIT_LEVEL_STATE:
         CALL    INIT_PLAYER_AND_MONSTERS
 
@@ -77,12 +70,9 @@ INIT_LEVEL_STATE:
         JP      REBUILD_FRAMEBUFFER
 
 ; INIT_PLAYER_AND_MONSTERS
-; Input:
-;   ENEMY_PERIOD_CURRENT
-; Output:
-;   player, monsters, viewport, input repeat, and transient play flags reset
-; Clobbers:
-;   A
+; Reads ENEMY_PERIOD_CURRENT.
+; Player, monsters, viewport, input repeat, and transient play flags reset.
+; @clobbers A.
 INIT_PLAYER_AND_MONSTERS:
         LD      A,7
         LD      (PLAYER_X),A
@@ -138,12 +128,8 @@ INIT_PLAYER_AND_MONSTERS:
         RET
 
 ; CLEAR_FRONT_AND_BACK
-; Input:
-;   none
-; Output:
-;   FRAMEBUFFER and FRAMEBUFFER_BACK cleared to zero
-; Clobbers:
-;   A, B, HL
+; FRAMEBUFFER and FRAMEBUFFER_BACK cleared to zero.
+; @clobbers A,B,HL.
 CLEAR_FRONT_AND_BACK:
         LD      HL,FRAMEBUFFER
         LD      B,FRAMEBUFFER_BYTES*2
@@ -155,12 +141,8 @@ CLEAR_FRONT_AND_BACK_LOOP:
         RET
 
 ; CLEAR_EATEN_PATHS
-; Input:
-;   none
-; Output:
-;   PACMO_EATEN_ROWS cleared to zero
-; Clobbers:
-;   A, B, HL
+; PACMO_EATEN_ROWS cleared to zero.
+; @clobbers A,B,HL.
 CLEAR_EATEN_PATHS:
         LD      HL,PACMO_EATEN_ROWS
         LD      B,PACMO_EATEN_BYTES

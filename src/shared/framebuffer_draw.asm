@@ -1,8 +1,7 @@
 ; MATRIX_X_TO_MASK
-; Accepts @in A as matrix x coordinate, expected 0..7.
-; Returns @out A as a bit mask with column 0 as MSB.
-; Uses @clobbers B,C,carry,zero,sign,parity,halfCarry while shifting.
-; Keeps @preserves DE,HL stable for the caller.
+; @in A matrix x coordinate, expected 0..7.
+; @out A a bit mask with column 0 as MSB.
+; @clobbers B,C while shifting.
 MATRIX_X_TO_MASK:
         LD      C,A
         OR      A
@@ -16,15 +15,12 @@ MATRIX_X_TO_MASK_DONE:
         RET
 
 ; FB_SET_CELL_COLOR
-; Input:
-;   HL = red plane byte for the target row
-;   C  = target cell bit mask
-;   A  = COLOR_* bitfield
-; Output:
-;   target cell set to the requested color, replacing previous RGB bits
-;   HL = blue plane byte for the target row
-; Clobbers:
-;   A, B, D, HL
+; @in HL red plane byte for the target row.
+; @in C target cell bit mask.
+; @in A COLOR_* bitfield.
+; @out HL blue plane byte for the target row.
+; Target cell set to the requested color, replacing previous RGB bits.
+; @clobbers A,B,D,HL.
 FB_SET_CELL_COLOR:
         LD      B,A
         LD      A,C
@@ -68,13 +64,12 @@ FB_SET_CELL_BLUE_STORE:
         RET
 
 ; FB_OR_ROW_COLOR_MASK
-; Accepts @in HL as framebuffer row red-byte address.
-; Accepts @in C as row mask.
-; Accepts @in A as COLOR_* bitfield.
-;   mask ORed into enabled red, green, blue bytes
-; Returns @out HL as the blue-byte address.
-; Uses @clobbers A,carry,zero,sign,parity,halfCarry while applying colour planes.
-; Keeps @preserves BC,DE stable for the caller.
+; @in HL framebuffer row red-byte address.
+; @in C row mask.
+; @in A COLOR_* bitfield.
+; ORs the mask into enabled red, green, and blue bytes.
+; @out HL the blue-byte address.
+; @clobbers A while applying colour planes.
 FB_OR_ROW_COLOR_MASK:
         PUSH    BC
         LD      B,3                     ; 3 planes: R, G, B
