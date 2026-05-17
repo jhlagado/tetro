@@ -45,17 +45,25 @@ KEY_NEW_PRESS:
         JP      Z,HANDLE_ROTATE_CCW_PRESS
         CP      K_ROTATE_CW
         JP      Z,HANDLE_ROTATE_PRESS
+        CP      TETRO_KEY_ROTATE_ALT
+        JP      Z,HANDLE_ROTATE_PRESS
         ; fall through
 
 HANDLE_DIRECTION_KEY:
         LD      A,E
         CP      K_RIGHT
         JP      Z,HANDLE_KEY_RIGHT
+        CP      TETRO_KEY_RIGHT_ALT
+        JP      Z,HANDLE_KEY_RIGHT
         CP      K_LEFT
+        JP      Z,HANDLE_KEY_LEFT
+        CP      TETRO_KEY_LEFT_ALT
         JP      Z,HANDLE_KEY_LEFT
         CP      K_ROTATE
         JP      Z,HANDLE_KEY_DROP
         CP      K_DROP
+        JP      Z,HANDLE_KEY_DROP
+        CP      TETRO_KEY_DROP_ALT
         JP      Z,HANDLE_KEY_DROP
 
 ; CLEAR_INPUT_REPEAT_STATE

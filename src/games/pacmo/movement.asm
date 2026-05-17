@@ -5,10 +5,10 @@
 ;   K_RIGHT (0x10) = PACMO_DIR_LEFT
 ;   ADD     (0x13) = up
 ;   GO      (0x12) = down
-;   key A   (0x0A) = up
-;   key 7   (0x07) = PACMO_DIR_LEFT
+;   key 6   (0x06) = up
 ;   key 2   (0x02) = down
-;   key 5   (0x05) = PACMO_DIR_RIGHT
+;   key 1   (0x01) = PACMO_DIR_RIGHT
+;   key 3   (0x03) = PACMO_DIR_LEFT
 ;   key 0   (0x00) = pause
 ;
 ; Raw keypad codes are normalized into PACMO_DIR_* intents before movement
@@ -183,13 +183,13 @@ NORMALIZE_INPUT_TO_DIRECTION:
         JR      Z,NORMALIZE_LEFT
         CP      K_RIGHT
         JR      Z,NORMALIZE_RIGHT
-        CP      PACMO_KEY_5
+        CP      PACMO_KEY_1
         JR      Z,NORMALIZE_LEFT
-        CP      PACMO_KEY_7
+        CP      PACMO_KEY_3
         JR      Z,NORMALIZE_RIGHT
         CP      K_ROTATE_CCW
         JR      Z,NORMALIZE_UP
-        CP      PACMO_KEY_A
+        CP      PACMO_KEY_6
         JR      Z,NORMALIZE_UP
         CP      K_ROTATE
         JR      Z,NORMALIZE_DOWN

@@ -3,6 +3,10 @@
 ; constants without inheriting Tetro's movement, gravity, scoring, or sounds.
 MOVE_PERIOD:    EQU     128
 DROP_PERIOD:    EQU     1
+TETRO_KEY_LEFT_ALT: EQU 0x01
+TETRO_KEY_DROP_ALT: EQU 0x02
+TETRO_KEY_RIGHT_ALT: EQU 0x03
+TETRO_KEY_ROTATE_ALT: EQU 0x06
 ; Decremented once per full 8-slice pass (in slice 1). Larger = slower fall.
 GRAVITY_PERIOD: EQU     160
 GRAVITY_PERIOD_STEP1: EQU 148
