@@ -655,7 +655,7 @@ ENEMY_IS_LH_OCCUPIED_BY_OTHER_MONSTER:
 ; Accepts @in IX as respawning monster record base.
 ; Returns @out carry set when the candidate is occupied.
 ; Uses @clobbers A,DE,F while testing the monster record.
-; Keeps @preserves BC,HL,IY stable for the caller.
+; Keeps @preserves BC,HL,IX,IY stable for the caller.
 ENEMY_IS_LH_OCCUPIED_BY_MONSTER_DE:
         PUSH    HL
         PUSH    DE
