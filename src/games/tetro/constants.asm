@@ -1,7 +1,7 @@
 ; Tetro gameplay tuning constants.
 ; These are intentionally game-local so new games can share hardware/display
 ; constants without inheriting Tetro's movement, gravity, scoring, or sounds.
-MOVE_PERIOD:    EQU     16
+MOVE_PERIOD:    EQU     128
 DROP_PERIOD:    EQU     1
 ; Decremented once per full 8-slice pass (in slice 1). Larger = slower fall.
 GRAVITY_PERIOD: EQU     160

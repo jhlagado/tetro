@@ -37,7 +37,7 @@ Tetro is a compact falling-block game built around precomputed piece rotations, 
 | `0` | `0x00` | Pause or resume |
 | any key | | Start from splash, or restart after the game-over gate opens |
 
-Movement and soft drop repeat while held. Rotation is edge-triggered.
+Movement repeats slowly while held. Soft drop repeats while held. Rotation is edge-triggered.
 
 ### Tetro Gameplay
 
@@ -73,7 +73,7 @@ Alternative diamond controls:
       2 = down
 ```
 
-Movement repeats while held, with a short repeat delay. The arrow keys and diamond keys normalize to the same Pacmo movement directions.
+Movement repeats slowly while held; tapping moves faster than waiting for repeat. The arrow keys and diamond keys normalize to the same Pacmo movement directions.
 
 ### Pacmo Display Legend
 

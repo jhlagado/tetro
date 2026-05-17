@@ -1,14 +1,14 @@
 ; Poll keypad and move the Pacmo cursor at a controlled repeat rate.
 ;
 ; Direction mapping for this first scrolling experiment:
-;   K_LEFT  (0x11) = left
-;   K_RIGHT (0x10) = right
+;   K_LEFT  (0x11) = PACMO_DIR_RIGHT
+;   K_RIGHT (0x10) = PACMO_DIR_LEFT
 ;   ADD     (0x13) = up
 ;   GO      (0x12) = down
 ;   key A   (0x0A) = up
-;   key 7   (0x07) = right
+;   key 7   (0x07) = PACMO_DIR_LEFT
 ;   key 2   (0x02) = down
-;   key 5   (0x05) = left
+;   key 5   (0x05) = PACMO_DIR_RIGHT
 ;   key 0   (0x00) = pause
 ;
 ; Raw keypad codes are normalized into PACMO_DIR_* intents before movement
@@ -198,11 +198,11 @@ NORMALIZE_INPUT_TO_DIRECTION:
         OR      A
         RET
 NORMALIZE_LEFT:
-        LD      E,PACMO_DIR_LEFT
+        LD      E,PACMO_DIR_RIGHT
         SCF
         RET
 NORMALIZE_RIGHT:
-        LD      E,PACMO_DIR_RIGHT
+        LD      E,PACMO_DIR_LEFT
         SCF
         RET
 NORMALIZE_UP:
@@ -232,7 +232,7 @@ CLEAR_INPUT_REPEAT_STATE:
 ; Input:
 ;   PLAYER_X
 ; Output:
-;   moves visually left unless already at the mirrored horizontal edge or target is a wall
+;   applies the PACMO_DIR_LEFT world-step unless already at the horizontal edge or target is a wall
 ; Clobbers:
 ;   A, BC, DE, HL, IX
 MOVE_PLAYER_LEFT:
@@ -249,7 +249,7 @@ MOVE_PLAYER_LEFT:
 ; Input:
 ;   PLAYER_X
 ; Output:
-;   moves visually right unless already at the mirrored horizontal edge or target is a wall
+;   applies the PACMO_DIR_RIGHT world-step unless already at the horizontal edge or target is a wall
 ; Clobbers:
 ;   A, BC, DE, HL, IX
 MOVE_PLAYER_RIGHT:
