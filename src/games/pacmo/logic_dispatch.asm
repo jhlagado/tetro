@@ -3,77 +3,92 @@
 ; Input:
 ;   uses LOGIC_SLICE from RAM
 ; Output:
-;   slice 0 polls movement; slices 0..7 clear/render/copy the framebuffer
+;   slices 0..7 copy and rebuild one framebuffer row; after row 7, the
+;   matrix is blanked and frame-wide Pacmo duties run
 ; Clobbers:
 ;   A, BC, DE, HL, IX, and registers clobbered by called slice routines
 LOGIC_TICK:
         LD      A,(LOGIC_SLICE)
         AND     7
-        JR      Z,LOGIC_SL0
-        CP      1
-        JP      Z,LOGIC_SL1
         CP      7
         JP      Z,LOGIC_SL7
-        ADD     A,A
-        ADD     A,A
-        CALL    CLEAR_BACK_4
+        CALL    PACMO_RENDER_LOGIC_ROW_A
         JP      LOGIC_SLICE_NEXT
 
-LOGIC_SL0:
+LOGIC_SL7:
+        LD      A,7
+        CALL    PACMO_RENDER_LOGIC_ROW_A
+        XOR     A
+        OUT     (PORT_ROW),A
+        CALL    PACMO_FRAME_DUTIES
+        XOR     A
+        LD      (LOGIC_SLICE),A
+        RET
+
+; PACMO_FRAME_DUTIES
+; Input:
+;   current Pacmo state
+; Output:
+;   input, timers, enemy ticks, and collision checks updated once per frame
+;   while the matrix rows are blanked
+; Clobbers:
+;   A, BC, DE, HL, IX
+PACMO_FRAME_DUTIES:
         CALL    POLL_INPUT_AND_UPDATE
         LD      A,(PACMO_PAUSED)
         OR      A
-        JR      NZ,LOGIC_SL0_CLEAR
+        RET     NZ
         CALL    TICK_LEVEL_COMPLETE_GATE
         CALL    TICK_POWER_TIMER
-LOGIC_SL0_CLEAR:
-        XOR     A
-        CALL    CLEAR_BACK_4
-        JR      LOGIC_SLICE_NEXT
+        LD      IX,MONSTER0
+        CALL    TICK_ENEMY
+        LD      IX,MONSTER1
+        CALL    TICK_ENEMY
+        CALL    PACMO_IS_LEVEL2_PLUS
+        JR      C,PACMO_FRAME_TICK_DONE
+        LD      IX,MONSTER2
+        CALL    TICK_ENEMY
+PACMO_FRAME_TICK_DONE:
+        LD      IX,MONSTER0
+        CALL    PACMO_CHECK_PLAYER_CAUGHT
+        LD      IX,MONSTER1
+        CALL    PACMO_CHECK_PLAYER_CAUGHT
+        CALL    PACMO_IS_LEVEL2_PLUS
+        JR      C,PACMO_FRAME_COLLISION_DONE
+        LD      IX,MONSTER2
+        CALL    PACMO_CHECK_PLAYER_CAUGHT
+PACMO_FRAME_COLLISION_DONE:
+        RET
 
-LOGIC_SL1:
-        LD      A,(PACMO_PAUSED)
-        OR      A
-        JP      NZ,LOGIC_SL1_COLLISION_DONE
-        LD      IX,MONSTER0
-        CALL    TICK_ENEMY
-        LD      IX,MONSTER1
-        CALL    TICK_ENEMY
-        CALL    PACMO_IS_LEVEL2_PLUS
-        JR      C,LOGIC_SL1_TICK_DONE
-        LD      IX,MONSTER2
-        CALL    TICK_ENEMY
-LOGIC_SL1_TICK_DONE:
-        LD      IX,MONSTER0
-        CALL    PACMO_CHECK_PLAYER_CAUGHT
-        LD      IX,MONSTER1
-        CALL    PACMO_CHECK_PLAYER_CAUGHT
-        CALL    PACMO_IS_LEVEL2_PLUS
-        JR      C,LOGIC_SL1_COLLISION_DONE
-        LD      IX,MONSTER2
-        CALL    PACMO_CHECK_PLAYER_CAUGHT
-LOGIC_SL1_COLLISION_DONE:
-        LD      A,4
+; PACMO_RENDER_LOGIC_ROW_A
+; Input:
+;   A = screen row 0..7
+; Output:
+;   matching completed back row copied to the front framebuffer, then that
+;   back row rebuilt from the current Pacmo world/entity state
+; Clobbers:
+;   A, BC, DE, HL, IX
+PACMO_RENDER_LOGIC_ROW_A:
+        PUSH    AF
+        ADD     A,A
+        ADD     A,A
+        CALL    COPY_BACK_4_TO_FRONT
+        POP     AF
+        PUSH    AF
+        ADD     A,A
+        ADD     A,A
         CALL    CLEAR_BACK_4
-        JR      LOGIC_SLICE_NEXT
-
-LOGIC_SL7:
-        LD      A,28
-        CALL    CLEAR_BACK_4
-        CALL    RENDER_WORLD_TO_BACK
-        CALL    RENDER_POWER_PILLS_TO_BACK
-        LD      IX,MONSTER0
-        CALL    RENDER_ENEMY_TO_BACK
-        LD      IX,MONSTER1
-        CALL    RENDER_ENEMY_TO_BACK
-        CALL    PACMO_IS_LEVEL2_PLUS
-        JR      C,LOGIC_SL7_MONSTERS_DONE
-        LD      IX,MONSTER2
-        CALL    RENDER_ENEMY_TO_BACK
-LOGIC_SL7_MONSTERS_DONE:
-        CALL    RENDER_PLAYER_TO_BACK
-        CALL    COPY_BACK_TO_FRONT
-        JR      LOGIC_SLICE_NEXT
+        POP     AF
+        PUSH    AF
+        CALL    RENDER_WORLD_ROW_TO_BACK
+        POP     AF
+        PUSH    AF
+        CALL    RENDER_POWER_PILLS_ROW_TO_BACK
+        POP     AF
+        PUSH    AF
+        CALL    RENDER_MONSTERS_ROW_TO_BACK
+        POP     AF
+        JP      RENDER_PLAYER_ROW_TO_BACK
 
 LOGIC_SLICE_NEXT:
         LD      HL,LOGIC_SLICE

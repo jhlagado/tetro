@@ -106,65 +106,71 @@ RENDER_LEVEL_COMPLETE_BLUE_OFF:
 ; Clobbers:
 ;   A, BC, DE, HL
 RENDER_WORLD_TO_BACK:
-        LD      HL,FRAMEBUFFER_BACK
-        LD      A,(VIEW_Y)
+        LD      B,0
+RENDER_WORLD_TO_BACK_ROW_LOOP:
+        LD      A,B
+        PUSH    BC
+        CALL    RENDER_WORLD_ROW_TO_BACK
+        POP     BC
+        INC     B
+        LD      A,B
+        CP      ROW_COUNT
+        JR      C,RENDER_WORLD_TO_BACK_ROW_LOOP
+        RET
+
+; RENDER_WORLD_ROW_TO_BACK
+; Input:
+;   A = screen row 0..7
+; Output:
+;   selected FRAMEBUFFER_BACK row rendered from the corresponding world/eaten row
+; Clobbers:
+;   A, BC, DE, HL
+RENDER_WORLD_ROW_TO_BACK:
+        LD      C,A                     ; C = screen row
+        ADD     A,A
         ADD     A,A
         LD      E,A
         LD      D,0
-        PUSH    HL
+        LD      HL,FRAMEBUFFER_BACK
+        ADD     HL,DE
+        PUSH    HL                      ; target framebuffer row
+
+        LD      A,(VIEW_Y)
+        ADD     A,C                     ; A = world row
+        ADD     A,A
+        LD      E,A
+        LD      D,0
+        PUSH    DE                      ; source byte offset
+
         LD      HL,PACMO_WORLD_ROWS
         ADD     HL,DE
-        EX      DE,HL                   ; DE = source world row pointer
-        POP     HL                      ; HL = framebuffer row pointer
-        PUSH    HL
-        LD      A,(VIEW_Y)
-        ADD     A,A
-        LD      L,A
-        LD      H,0
-        LD      BC,PACMO_EATEN_ROWS
-        ADD     HL,BC
-        LD      (RENDER_EATEN_PTR),HL
-        POP     HL
-        LD      B,ROW_COUNT
-RENDER_WORLD_ROW:
-        PUSH    BC
-        LD      A,(DE)
+        LD      A,(HL)
         LD      B,A                     ; B = high byte of 15-bit row
-        INC     DE
-        LD      A,(DE)
+        INC     HL
+        LD      A,(HL)
         LD      C,A                     ; C = low byte of 15-bit row
-        INC     DE
-        LD      A,(VIEW_X)
-        PUSH    DE
-        CALL    WINDOW_BYTE_FROM_BC
-        POP     DE
-        LD      C,A                     ; C = visible wall mask
-        PUSH    BC
-        PUSH    DE
-        PUSH    HL
-        LD      HL,(RENDER_EATEN_PTR)
-        LD      B,(HL)
-        INC     HL
-        LD      C,(HL)
-        INC     HL
-        LD      (RENDER_EATEN_PTR),HL
         LD      A,(VIEW_X)
         CALL    WINDOW_BYTE_FROM_BC
-        POP     HL
         POP     DE
-        POP     BC
+        PUSH    AF                      ; visible wall mask
+
+        LD      HL,PACMO_EATEN_ROWS
+        ADD     HL,DE
+        LD      A,(HL)
+        LD      B,A
+        INC     HL
+        LD      A,(HL)
+        LD      C,A
+        LD      A,(VIEW_X)
+        CALL    WINDOW_BYTE_FROM_BC
         LD      B,A                     ; B = visible eaten mask
-        LD      A,C
+        POP     AF
+        LD      C,A                     ; C = visible wall mask
         OR      B
         CPL                             ; A = visible uneaten open path mask
-        PUSH    DE
         LD      D,A
-        CALL    WRITE_WORLD_ROW_COLORS
-        POP     DE
-        INC     HL                      ; aux byte
-        POP     BC
-        DJNZ    RENDER_WORLD_ROW
-        RET
+        POP     HL                      ; target framebuffer row
+        JP      WRITE_WORLD_ROW_COLORS
 
 ; WRITE_WORLD_ROW_COLORS
 ; Input:
@@ -312,6 +318,42 @@ RENDER_POWER_PILL_NEXT:
         SLA     D
         JR      RENDER_POWER_PILL_LOOP
 
+; RENDER_POWER_PILLS_ROW_TO_BACK
+; Input:
+;   A = screen row 0..7
+; Output:
+;   visible power pills on that row rendered into FRAMEBUFFER_BACK
+; Clobbers:
+;   A, BC, DE, HL
+RENDER_POWER_PILLS_ROW_TO_BACK:
+        LD      E,A                     ; E = target screen row
+        LD      HL,PACMO_POWER_PILLS
+        LD      D,1
+RENDER_POWER_PILL_ROW_LOOP:
+        LD      A,(HL)
+        CP      0xFF
+        RET     Z
+        LD      B,A                     ; B = world x
+        INC     HL
+        LD      A,(HL)
+        INC     HL
+        LD      C,A                     ; C = world y
+        LD      A,(PACMO_POWER_PILLS_EATEN)
+        AND     D
+        JR      NZ,RENDER_POWER_PILL_ROW_NEXT
+        LD      A,(VIEW_Y)
+        ADD     A,E
+        CP      C
+        JR      NZ,RENDER_POWER_PILL_ROW_NEXT
+        PUSH    HL
+        PUSH    DE
+        CALL    RENDER_POWER_PILL_BC
+        POP     DE
+        POP     HL
+RENDER_POWER_PILL_ROW_NEXT:
+        SLA     D
+        JR      RENDER_POWER_PILL_ROW_LOOP
+
 ; RENDER_POWER_PILL_BC
 ; Input:
 ;   B = world x
@@ -410,6 +452,51 @@ RENDER_ENEMY_FLEE:
         LD      A,PACMO_COLOR_ENEMY_FLEE
         JP      FB_SET_CELL_COLOR
 
+; RENDER_MONSTERS_ROW_TO_BACK
+; Input:
+;   A = screen row 0..7
+; Output:
+;   visible monsters on that row rendered into FRAMEBUFFER_BACK
+; Clobbers:
+;   A, BC, DE, HL, IX
+RENDER_MONSTERS_ROW_TO_BACK:
+        LD      E,A
+        LD      IX,MONSTER0
+        CALL    RENDER_ENEMY_IF_SCREEN_ROW_E
+        LD      IX,MONSTER1
+        CALL    RENDER_ENEMY_IF_SCREEN_ROW_E
+        CALL    PACMO_IS_LEVEL2_PLUS
+        RET     C
+        LD      IX,MONSTER2
+        JP      RENDER_ENEMY_IF_SCREEN_ROW_E
+
+; RENDER_ENEMY_IF_SCREEN_ROW_E
+; Input:
+;   E = target screen row 0..7
+;   IX = monster record base
+; Output:
+;   enemy rendered only when it is active and occupies target screen row
+; Clobbers:
+;   A, BC, DE, HL
+RENDER_ENEMY_IF_SCREEN_ROW_E:
+        LD      A,(IX+MONSTER_RESPAWN_TIMER)
+        OR      A
+        RET     NZ
+        LD      A,(IX+MONSTER_Y)
+        LD      B,A
+        LD      A,(VIEW_Y)
+        LD      C,A
+        LD      A,B
+        SUB     C
+        CP      ROW_COUNT
+        RET     NC
+        CP      E
+        RET     NZ
+        PUSH    DE
+        CALL    RENDER_ENEMY_TO_BACK
+        POP     DE
+        RET
+
 ; RENDER_PLAYER_TO_BACK
 ; Input:
 ;   PLAYER_X/Y, VIEW_X/Y
@@ -460,3 +547,24 @@ RENDER_PLAYER_WHITE:
 RENDER_PLAYER_CAUGHT:
         LD      A,PACMO_COLOR_ENEMY_ATTACK
         JP      FB_SET_CELL_COLOR
+
+; RENDER_PLAYER_ROW_TO_BACK
+; Input:
+;   A = screen row 0..7
+; Output:
+;   player rendered into FRAMEBUFFER_BACK only when it occupies that row
+; Clobbers:
+;   A, BC, DE, HL
+RENDER_PLAYER_ROW_TO_BACK:
+        LD      E,A
+        LD      A,(PLAYER_Y)
+        LD      B,A
+        LD      A,(VIEW_Y)
+        LD      C,A
+        LD      A,B
+        SUB     C
+        CP      ROW_COUNT
+        RET     NC
+        CP      E
+        RET     NZ
+        JP      RENDER_PLAYER_TO_BACK

@@ -13,7 +13,7 @@ This tour follows the Tetro code as it now stands. The shared loop, scan tick, L
 The Debug80 target is still the top-level file:
 
 ```text
-src/tetro.asm
+src/tetro.z80
 ```
 
 That file owns the `ORG`, the reset entry, the main loop, and the include order. Debug80 can treat it as the Tetro target without needing to know how the internal files are arranged.
@@ -70,7 +70,7 @@ MAIN_LOOP:
     JR      MAIN_LOOP
 ```
 
-Those three instructions in `src/tetro.asm` are the whole runtime. Tetro uses the shared cooperative loop described in [shared-codebase.md](shared-codebase.md): `SCAN_TICK` keeps the hardware alive, and `LOGIC_TICK` performs one slice of game work.
+Those three instructions in `src/tetro.z80` are the whole runtime. Tetro uses the shared cooperative loop described in [shared-codebase.md](shared-codebase.md): `SCAN_TICK` keeps the hardware alive, and `LOGIC_TICK` performs one slice of game work.
 
 This means the display, score digits, speaker, keypad, gravity, rendering, and line-clear timing all share the same cooperative clock.
 
@@ -251,6 +251,7 @@ Rendering is split between shared buffer helpers, shared draw primitives, and Te
 
 - `CLEAR_BACK_ALL`
 - `CLEAR_BACK_4`
+- `COPY_BACK_4_TO_FRONT`
 - `COPY_BACK_TO_FRONT`
 
 Those routines know only about the 8x8 RGB framebuffer layout.
@@ -385,7 +386,7 @@ Game over leaves the loop running. The matrix, score display, LCD, and speaker a
 
 ```text
 target
-  src/tetro.asm
+  src/tetro.z80
     ORG, START, MAIN_LOOP, include order
 
 shared hardware helpers
@@ -398,7 +399,7 @@ shared hardware helpers
   shared/lcd.asm
     LCD_BUSY, LCD_COMMAND, LCD_STRING, LCD_SHOW_SCRIPT, LCD_PUTC, LCD_WRITE_ROW_STRING, LCD_PUTC_FROM_TABLE
   shared/framebuffer_core.asm
-    CLEAR_BACK_ALL, CLEAR_BACK_4, COPY_BACK_TO_FRONT
+    CLEAR_BACK_ALL, CLEAR_BACK_4, COPY_BACK_4_TO_FRONT, COPY_BACK_TO_FRONT
   shared/framebuffer_draw.asm
     MATRIX_X_TO_MASK, FB_SET_CELL_COLOR, FB_OR_ROW_COLOR_MASK
 

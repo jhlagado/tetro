@@ -13,8 +13,8 @@ This document describes the shared contract used by both game targets. The game-
 Each game has its own top-level assembly file:
 
 ```text
-src/tetro.asm
-src/pacmo.asm
+src/tetro.z80
+src/pacmo.z80
 ```
 
 Those files own the `ORG`, reset entry, main loop, and include order. Debug80 can load either target directly without knowing how the internal helper files are split.
@@ -129,6 +129,7 @@ The scanout emits only the red, green, and blue bytes. The fourth byte keeps row
 
 - `CLEAR_BACK_ALL`
 - `CLEAR_BACK_4`
+- `COPY_BACK_4_TO_FRONT`
 - `COPY_BACK_TO_FRONT`
 
 Those routines know the buffer shape, but not the game meaning of the pixels.

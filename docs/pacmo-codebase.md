@@ -13,7 +13,7 @@ This document describes the current Pacmo code. The shared loop, scan tick, LCD,
 The Debug80 target is still the top-level file:
 
 ```text
-src/pacmo.asm
+src/pacmo.z80
 ```
 
 That file owns the `ORG`, the reset entry, the main loop, and the include order. Debug80 can treat it as the Pacmo target without needing to know how the internal files are arranged.
@@ -65,7 +65,7 @@ MAIN_LOOP:
     JR      MAIN_LOOP
 ```
 
-Those three instructions in `src/pacmo.asm` are the whole runtime. Pacmo uses the shared cooperative loop described in [shared-codebase.md](shared-codebase.md): `SCAN_TICK` keeps the hardware alive, and `LOGIC_TICK` performs one slice of game work.
+Those three instructions in `src/pacmo.z80` are the whole runtime. Pacmo uses the shared cooperative loop described in [shared-codebase.md](shared-codebase.md): `SCAN_TICK` keeps the hardware alive, and `LOGIC_TICK` performs one slice of game work.
 
 This means the display, score digits, speaker, keypad, scrolling, monster movement, rendering, and level timing all share the same cooperative clock.
 
@@ -73,31 +73,16 @@ This means the display, score digits, speaker, keypad, scrolling, monster moveme
 
 ## Logic dispatch
 
-Pacmo's `LOGIC_TICK` is a slice dispatcher. It spreads game work across eight passes through the main loop so scanout keeps happening between chunks of logic.
+Pacmo's `LOGIC_TICK` is a slice dispatcher. It spreads framebuffer work across eight passes through the main loop so scanout keeps happening between chunks of logic.
 
-Slice 0:
-- polls movement input
-- ticks the level-complete gate
-- ticks the power-mode timer
-- clears framebuffer row 0 in the back buffer
+Slices 0 through 7:
+- copy the corresponding completed back-buffer row to the front framebuffer
+- clear that back-buffer row
+- rebuild that back-buffer row from the current world, pills, monsters, and player state
 
-Slice 1:
-- ticks each active monster
-- checks whether any active monster now shares the player's cell
-- clears framebuffer row 1
+After slice 7 finishes its row work, Pacmo blanks the matrix row port and runs the frame-wide duties: input polling, level-complete timing, power-mode timing, monster ticks, and player-caught collision checks. This keeps visible scan rows on a common workload and moves irregular frame work into the inter-frame blanking interval.
 
-Slices 2 through 6:
-- clear one row of `FRAMEBUFFER_BACK`
-
-Slice 7:
-- clears the final row
-- renders the maze window
-- renders visible power pills
-- renders monsters
-- renders the player
-- copies `FRAMEBUFFER_BACK` to `FRAMEBUFFER`
-
-The generic helpers for clearing and copying live in `src/shared/framebuffer_core.asm`: `CLEAR_BACK_ALL`, `CLEAR_BACK_4`, and `COPY_BACK_TO_FRONT`. Pacmo still owns the actual rendering because the maze, eaten-path mask, power pills, player state, and monster state are game-specific.
+The generic helpers for clearing and copying live in `src/shared/framebuffer_core.asm`: `CLEAR_BACK_ALL`, `CLEAR_BACK_4`, `COPY_BACK_4_TO_FRONT`, and `COPY_BACK_TO_FRONT`. Pacmo still owns the actual rendering because the maze, eaten-path mask, power pills, player state, and monster state are game-specific.
 
 ---
 
@@ -292,7 +277,9 @@ Pacmo uses the shared double-buffer core and shared framebuffer draw primitives,
 
 `REBUILD_FRAMEBUFFER` is a full redraw path used during initialization and state changes. The sliced render path in `LOGIC_TICK` is the normal steady-state path.
 
-`RENDER_WORLD_TO_BACK` is the main maze renderer. It starts from `VIEW_Y`, reads eight world rows, and uses `WINDOW_BYTE_FROM_BC` to extract the visible eight bits from each 15-bit row. It also extracts the matching eaten bits from `PACMO_EATEN_ROWS`. Walls and uneaten paths are passed to `WRITE_WORLD_ROW_COLORS`, which writes red, green, and blue plane bytes according to the current palette.
+`RENDER_WORLD_ROW_TO_BACK` is the steady-state maze renderer. It accepts a screen row `0..7`, combines that row with `VIEW_Y`, reads the matching world and eaten-path rows, and uses `WINDOW_BYTE_FROM_BC` to extract the visible eight bits from each 15-bit row. Walls and uneaten paths are passed to `WRITE_WORLD_ROW_COLORS`, which writes red, green, and blue plane bytes according to the current palette.
+
+`RENDER_WORLD_TO_BACK` remains as a full-frame wrapper for initialization and state rebuild paths. It calls the row renderer eight times rather than owning separate world-render logic.
 
 Wall colour is state-dependent:
 
@@ -300,11 +287,11 @@ Wall colour is state-dependent:
 - player caught: `PACMO_COLOR_CAUGHT_WALL`
 - round complete: `PACMO_COLOR_COMPLETE_WALL`
 
-`RENDER_POWER_PILLS_TO_BACK` walks the power-pill table and draws only pills that are not eaten and are currently in the viewport.
+`RENDER_POWER_PILLS_ROW_TO_BACK` walks the power-pill table and draws only uneaten pills on the requested screen row. `RENDER_POWER_PILLS_TO_BACK` remains the full-frame wrapper.
 
-`RENDER_ENEMY_TO_BACK` converts a monster's world x,y to screen x,y, skips off-screen and respawning monsters, chooses attack or flee colour, and writes one cell.
+`RENDER_MONSTERS_ROW_TO_BACK` filters monsters by the requested screen row before calling `RENDER_ENEMY_TO_BACK`. `RENDER_ENEMY_TO_BACK` converts a monster's world x,y to screen x,y, skips off-screen and respawning monsters, chooses attack or flee colour, and writes one cell.
 
-`RENDER_PLAYER_TO_BACK` draws the player last so it appears over paths, pills, and monsters. It is normally yellow. When the round is complete it is white. When caught it is red.
+`RENDER_PLAYER_ROW_TO_BACK` draws the player only when the requested row matches the player's visible screen row. `RENDER_PLAYER_TO_BACK` still owns the cell colour choice. The player is drawn last so it appears over paths, pills, and monsters. It is normally yellow. When the round is complete it is white. When caught it is red.
 
 Single-cell overlays go through `FB_SET_CELL_COLOR`. The render path converts screen x coordinates with `MATRIX_X_TO_MASK`, then passes the framebuffer row pointer, cell bit mask, and colour bitfield to the shared cell writer. `FB_SET_CELL_COLOR` clears that bit from each RGB plane not present in the colour and sets it in each plane that is present. This matters because an enemy over a green path should render as red, not yellow from red plus green.
 
@@ -421,7 +408,7 @@ As the player eats paths, the green path cells turn black. When no open path cel
 
 ```text
 target
-  src/pacmo.asm
+  src/pacmo.z80
     ORG, START, MAIN_LOOP, include order
 
 shared hardware helpers
@@ -434,7 +421,7 @@ shared hardware helpers
   shared/lcd.asm
     LCD_BUSY, LCD_COMMAND, LCD_STRING, LCD_SHOW_SCRIPT, LCD_PUTC, LCD_WRITE_ROW_STRING, LCD_PUTC_FROM_TABLE
   shared/framebuffer_core.asm
-    CLEAR_BACK_ALL, CLEAR_BACK_4, COPY_BACK_TO_FRONT
+    CLEAR_BACK_ALL, CLEAR_BACK_4, COPY_BACK_4_TO_FRONT, COPY_BACK_TO_FRONT
   shared/framebuffer_draw.asm
     MATRIX_X_TO_MASK, FB_SET_CELL_COLOR, FB_OR_ROW_COLOR_MASK
 

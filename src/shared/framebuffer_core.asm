@@ -52,3 +52,36 @@ COPY_BACK_TO_FRONT:
         LD      BC,FRAMEBUFFER_BYTES
         LDIR
         RET
+
+; COPY_BACK_4_TO_FRONT
+; Input:
+;   A = byte offset into both framebuffers, expected 0,4,8,...,28
+; Output:
+;   selected 4-byte row copied from FRAMEBUFFER_BACK to FRAMEBUFFER
+; Clobbers:
+;   A, DE, HL
+COPY_BACK_4_TO_FRONT:
+        LD      E,A
+        LD      D,0
+        LD      HL,FRAMEBUFFER_BACK
+        ADD     HL,DE
+        PUSH    HL
+        LD      HL,FRAMEBUFFER
+        ADD     HL,DE
+        EX      DE,HL
+        POP     HL
+        LD      A,(HL)
+        LD      (DE),A
+        INC     HL
+        INC     DE
+        LD      A,(HL)
+        LD      (DE),A
+        INC     HL
+        INC     DE
+        LD      A,(HL)
+        LD      (DE),A
+        INC     HL
+        INC     DE
+        LD      A,(HL)
+        LD      (DE),A
+        RET
