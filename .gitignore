@@ -11,4 +11,5 @@ roms/
 # OS / editor
 .DS_Store
 Thumbs.db
+*.regcare.txt
 ### end Debug80 ###

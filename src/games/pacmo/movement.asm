@@ -566,6 +566,11 @@ PACMO_CHECK_ROUND_ROW:
 ;   Carry clear if the cell is open
 ; Clobbers:
 ;   A, DE, HL
+; Accepts @in B as world x coordinate.
+; Accepts @in C as world y coordinate.
+; Returns @out carry set when the target cell is a wall.
+; Uses @clobbers A,DE,HL,F while reading the world map.
+; Keeps @preserves BC,IX,IY stable for the caller.
 PACMO_IS_WALL_AT_BC:
         LD      A,C
         ADD     A,A

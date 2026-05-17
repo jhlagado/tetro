@@ -1,12 +1,8 @@
 ; Generic HD44780 LCD primitives for the TEC-1G MON-3 hardware mapping.
 
 ; LCD_BUSY
-; Input:
-;   none
-; Output:
 ;   waits until LCD busy flag clears
-; Clobbers:
-;   none
+; Keeps @preserves AF,BC,DE,HL,IX,IY stable for the caller.
 LCD_BUSY:
         PUSH    AF
 LCD_BUSY_LOOP:
@@ -17,12 +13,9 @@ LCD_BUSY_LOOP:
         RET
 
 ; LCD_COMMAND
-; Input:
-;   B = LCD instruction byte
-; Output:
+; Accepts @in B as LCD instruction byte.
 ;   instruction sent to LCD
-; Clobbers:
-;   none
+; Keeps @preserves AF,BC,DE,HL,IX,IY stable for the caller.
 LCD_COMMAND:
         PUSH    AF
         CALL    LCD_BUSY

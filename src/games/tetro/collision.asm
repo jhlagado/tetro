@@ -1,12 +1,10 @@
 ; Candidate placement test (same MSB-left column convention per SHIFT_ROW_MASK / boarded occupancy nibbles).
-; Input:
-;   D = candidate x
-;   E = candidate y
-; Output:
-;   carry set if placement collides or is out of bounds
+; Accepts @in D as candidate x.
+; Accepts @in E as candidate y.
+; Returns @out carry set if placement collides or is out of bounds.
 ;   carry clear if placement is legal
-; Clobbers:
-;   A
+; Uses @clobbers A,F as scratch and result flags.
+; Keeps @preserves BC,DE,HL stable for the caller.
 CHECK_COLLISION_AT_DE:
         PUSH    BC
         PUSH    DE

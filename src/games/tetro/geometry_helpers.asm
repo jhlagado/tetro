@@ -1,6 +1,8 @@
 ; LOAD_DE_FROM_PENDING
-; Output: D = PENDING_X, E = PENDING_Y (arguments for CHECK_COLLISION_AT_DE)
-; Clobbers: A
+; Returns @out D as PENDING_X.
+; Returns @out E as PENDING_Y.
+; Uses @clobbers A as scratch.
+; Keeps @preserves BC,HL stable for the caller.
 LOAD_DE_FROM_PENDING:
         LD      A,(PENDING_X)
         LD      D,A
@@ -8,13 +10,11 @@ LOAD_DE_FROM_PENDING:
         LD      E,A
         RET
 ; SHIFT_ROW_MASK
-; Input:
-;   A = unshifted row mask
+; Accepts @in A as the unshifted row mask.
 ;   SHIFT_COUNT = logical x placement
-; Output:
-;   A = shifted row mask
-; Clobbers:
-;   A, C
+; Returns @out A as the shifted row mask.
+; Uses @clobbers C,F while shifting.
+; Keeps @preserves B,DE,HL stable for the caller.
 SHIFT_ROW_MASK:
         LD      C,A
         LD      A,(SHIFT_COUNT)
