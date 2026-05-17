@@ -119,14 +119,14 @@ LD      C,API_SCANKEYS
 RST     0x10
 ```
 
-Pacmo normalizes raw keys into movement intents. The game logic does not care whether "up" came from ADD or key A. The current mappings are:
+Pacmo normalizes raw keys into movement intents. The game logic does not care whether "up" came from ADD or key 6. The current mappings are:
 
 - `K_LEFT` -> `PACMO_DIR_RIGHT`
 - `K_RIGHT` -> `PACMO_DIR_LEFT`
-- key 5 -> `PACMO_DIR_RIGHT`
-- key 7 -> `PACMO_DIR_LEFT`
+- key 1 -> `PACMO_DIR_RIGHT`
+- key 3 -> `PACMO_DIR_LEFT`
 - ADD / `K_ROTATE_CCW` -> `PACMO_DIR_UP`
-- key A -> `PACMO_DIR_UP`
+- key 6 -> `PACMO_DIR_UP`
 - GO / `K_ROTATE` -> `PACMO_DIR_DOWN`
 - key 2 -> `PACMO_DIR_DOWN`
 - key 0 -> pause
@@ -143,11 +143,11 @@ Player-facing controls are therefore:
 | `0` | pause |
 | any key | resume from pause |
 
-The alternative diamond layout is:
+The alternative inverted-T layout is:
 
 ```text
-      A = up
-5 = left   7 = right
+      6 = up
+1 = left   3 = right
       2 = down
 ```
 

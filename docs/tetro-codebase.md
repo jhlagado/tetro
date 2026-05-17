@@ -374,6 +374,8 @@ K_LEFT:         EQU     0x11
 K_RIGHT:        EQU     0x10
 ```
 
+Tetro also accepts an inverted-T numeric layout: `1` moves left, `3` moves right, `2` soft-drops, and `6` rotates clockwise. These aliases route through the same handlers as the dedicated movement, drop, and rotate keys.
+
 Slice 1 applies gravity. If the downward probe succeeds, the piece moves down. If it fails, `LOCK_ACTIVE_PIECE` merges or ends the game.
 
 Slices 2 through 6 clear rows of the back buffer. Slice 7 finishes the clear, renders board and active piece, and copies the back buffer to the live framebuffer.

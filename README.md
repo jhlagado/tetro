@@ -34,6 +34,10 @@ Tetro is a compact falling-block game built around precomputed piece rotations, 
 | `GO` | `0x12` | Soft drop |
 | `AD` | `0x13` | Rotate counter-clockwise |
 | `C` | `0x0C` | Rotate clockwise |
+| `1` | `0x01` | Move left |
+| `3` | `0x03` | Move right |
+| `2` | `0x02` | Soft drop |
+| `6` | `0x06` | Rotate clockwise |
 | `0` | `0x00` | Pause or resume |
 | any key | | Start from splash, or restart after the game-over gate opens |
 
@@ -61,19 +65,23 @@ Pacmo is an 8x8 window into a larger 15x15 maze. The player consumes open paths,
 | `>` | `0x10` | Move right |
 | `AD` | `0x13` | Move up |
 | `GO` | `0x12` | Move down |
+| `1` | `0x01` | Move left |
+| `3` | `0x03` | Move right |
+| `6` | `0x06` | Move up |
+| `2` | `0x02` | Move down |
 | `0` | `0x00` | Pause |
 | any key | | Resume from pause |
 | any key | | Start from splash, or restart after the caught gate opens |
 
-Alternative diamond controls:
+Alternative inverted-T controls:
 
 ```text
-      A = up
-5 = left   7 = right
+      6 = up
+1 = left   3 = right
       2 = down
 ```
 
-Movement repeats slowly while held; tapping moves faster than waiting for repeat. The arrow keys and diamond keys normalize to the same Pacmo movement directions.
+Movement repeats slowly while held; tapping moves faster than waiting for repeat. The arrow keys and inverted-T keys normalize to the same Pacmo movement directions.
 
 ### Pacmo Display Legend
 
