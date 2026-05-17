@@ -3,7 +3,7 @@
 ; Accepts @in E as candidate y.
 ; Returns @out carry set if placement collides or is out of bounds.
 ;   carry clear if placement is legal
-; Uses @clobbers A,F as scratch and result flags.
+; Uses @clobbers A,zero,sign,parity,halfCarry as scratch and result flags.
 ; Keeps @preserves BC,DE,HL stable for the caller.
 CHECK_COLLISION_AT_DE:
         PUSH    BC
@@ -80,6 +80,9 @@ COLLISION_EXIT_OK:
 ;   carry clear otherwise
 ; Clobbers:
 ;   A
+; Returns @out carry set when locking would top out.
+; Uses @clobbers A while scanning the active piece rows.
+; Keeps @preserves BC,DE,HL stable for the caller.
 CHECK_TOP_OUT_ON_LOCK:
         PUSH    BC
         PUSH    DE

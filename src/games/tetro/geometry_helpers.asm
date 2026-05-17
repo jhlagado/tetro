@@ -13,7 +13,7 @@ LOAD_DE_FROM_PENDING:
 ; Accepts @in A as the unshifted row mask.
 ;   SHIFT_COUNT = logical x placement
 ; Returns @out A as the shifted row mask.
-; Uses @clobbers C,F while shifting.
+; Uses @clobbers C,carry,zero,sign,parity,halfCarry while shifting.
 ; Keeps @preserves B,DE,HL stable for the caller.
 SHIFT_ROW_MASK:
         LD      C,A

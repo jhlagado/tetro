@@ -5,6 +5,7 @@
 ;   game-over screen rendered; no NEXT preview is appended
 ; Clobbers:
 ;   A, HL
+; Uses @clobbers A,HL while rendering the game-over screen.
 LCD_SHOW_GAME_OVER:
         LD      HL,SCRIPT_GAME_OVER
         JP      LCD_SHOW_SCRIPT
@@ -16,6 +17,7 @@ LCD_SHOW_GAME_OVER:
 ;   paused HUD rendered with NEXT preview
 ; Clobbers:
 ;   A, HL
+; Uses @clobbers A,HL while rendering the paused HUD.
 LCD_SHOW_PAUSED:
         LD      HL,SCRIPT_PAUSED
         JR      LCD_SHOW_HUD
@@ -27,6 +29,7 @@ LCD_SHOW_PAUSED:
 ;   splash screen + key mapping written to LCD
 ; Clobbers:
 ;   A, HL
+; Uses @clobbers A,HL while rendering the splash screen.
 LCD_SHOW_SPLASH:
         LD      HL,SCRIPT_SPLASH
         JP      LCD_SHOW_SCRIPT
@@ -40,6 +43,7 @@ LCD_SHOW_SPLASH:
 ;   one-character piece preview written
 ; Clobbers:
 ;   A, DE, HL
+; Uses @clobbers A,DE,HL while writing the preview letter.
 LCD_APPEND_NEXT_PREVIEW_LETTER:
         LD      A,(NEXT_PIECE_INDEX)
         LD      DE,PIECE_NAME_TABLE
@@ -54,6 +58,8 @@ LCD_APPEND_NEXT_PREVIEW_LETTER:
 ;   LCD row 2 rewritten
 ; Clobbers:
 ;   A, DE
+; Uses @clobbers A,DE while refreshing the next-piece preview row.
+; Keeps @preserves BC,HL stable for the caller.
 LCD_REFRESH_NEXT_PREVIEW_ROW:
         PUSH    BC
         PUSH    HL
@@ -72,6 +78,7 @@ LCD_REFRESH_NEXT_PREVIEW_ROW:
 ;   running HUD rendered with NEXT preview
 ; Clobbers:
 ;   A, HL
+; Uses @clobbers A,HL while rendering the running HUD.
 LCD_SHOW_RUNNING:
         LD      HL,SCRIPT_RUNNING
         ; fall through
@@ -83,6 +90,8 @@ LCD_SHOW_RUNNING:
 ;   LCD cleared, script rendered, preview letter appended on row 2
 ; Clobbers:
 ;   A (BC/DE/HL pushed/popped)
+; Uses @clobbers A while rendering the HUD.
+; Keeps @preserves BC,DE,HL stable for the caller.
 LCD_SHOW_HUD:
         PUSH    BC
         PUSH    DE

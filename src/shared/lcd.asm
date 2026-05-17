@@ -58,6 +58,8 @@ LCD_STRING:
 ;   LCD cleared, then each (row_cmd, text_ptr) pair rendered in order
 ; Clobbers:
 ;   A  (BC, DE, HL pushed/popped)
+; Uses @clobbers A,carry,zero,sign,parity,halfCarry while walking the script.
+; Keeps @preserves BC,DE,HL,IX,IY stable for the caller.
 LCD_SHOW_SCRIPT:
         PUSH    BC
         PUSH    DE

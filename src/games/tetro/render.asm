@@ -38,6 +38,8 @@ CLEAR_BOARD_LOOP:
 ;   landed cells shown as occupancy on red only (G/B cleared) — uniform red silhouette.
 ; Clobbers:
 ;   A
+; Uses @clobbers A while copying board state into the back buffer.
+; Keeps @preserves BC,DE,HL stable for the caller.
 RENDER_BOARD_TO_BACK:
         PUSH    BC
         PUSH    DE
@@ -135,6 +137,8 @@ RENDER_BOARD_TO_BACK_EXIT:
 ;   active piece ORed into FRAMEBUFFER_BACK in piece colour
 ; Clobbers:
 ;   A
+; Uses @clobbers A while drawing the active piece.
+; Keeps @preserves BC,DE,HL stable for the caller.
 RENDER_ACTIVE_TO_BACK:
         LD      A,(ACTIVE_PIECE_ENABLED)
         OR      A

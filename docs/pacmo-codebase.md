@@ -124,9 +124,12 @@ Pacmo normalizes raw keys into movement intents. The game logic does not care wh
 - `K_LEFT` -> `PACMO_DIR_RIGHT`
 - `K_RIGHT` -> `PACMO_DIR_LEFT`
 - key 1 -> `PACMO_DIR_RIGHT`
+- key 5 -> `PACMO_DIR_RIGHT`
 - key 3 -> `PACMO_DIR_LEFT`
+- key 7 -> `PACMO_DIR_LEFT`
 - ADD / `K_ROTATE_CCW` -> `PACMO_DIR_UP`
 - key 6 -> `PACMO_DIR_UP`
+- key A -> `PACMO_DIR_UP`
 - GO / `K_ROTATE` -> `PACMO_DIR_DOWN`
 - key 2 -> `PACMO_DIR_DOWN`
 - key 0 -> pause
@@ -150,6 +153,8 @@ The alternative inverted-T layout is:
 1 = left   3 = right
       2 = down
 ```
+
+Legacy diamond aliases are still accepted: `A` = up, `5` = left, and `7` = right.
 
 Held-key movement is throttled by `MOVE_COOLDOWN` and `LAST_KEY`. A new direction gets a one-tick cooldown so it moves promptly; a held direction reloads from `PACMO_MOVE_PERIOD`, currently matching the level-1 monster step period so repeat is deliberately slow.
 

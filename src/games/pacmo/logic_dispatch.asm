@@ -33,6 +33,8 @@ LOGIC_SL7:
 ;   while the matrix rows are blanked
 ; Clobbers:
 ;   A, BC, DE, HL, IX
+; Uses @clobbers A,BC,DE,HL,IX,carry,zero,sign,parity,halfCarry while running frame duties.
+; Keeps @preserves IY stable for the caller.
 PACMO_FRAME_DUTIES:
         CALL    POLL_INPUT_AND_UPDATE
         LD      A,(PACMO_PAUSED)
@@ -68,6 +70,9 @@ PACMO_FRAME_COLLISION_DONE:
 ;   back row rebuilt from the current Pacmo world/entity state
 ; Clobbers:
 ;   A, BC, DE, HL, IX
+; Accepts @in A as the screen row.
+; Uses @clobbers A,BC,DE,HL,IX,carry,zero,sign,parity,halfCarry while rebuilding the row.
+; Keeps @preserves IY stable for the caller.
 PACMO_RENDER_LOGIC_ROW_A:
         PUSH    AF
         ADD     A,A
@@ -125,6 +130,8 @@ TICK_LEVEL_COMPLETE_GATE:
 ;   running LCD status when power mode expires
 ; Clobbers:
 ;   A, DE, HL
+; Uses @clobbers A,DE,HL,carry,zero,sign,parity,halfCarry while ticking power mode.
+; Keeps @preserves BC,IX,IY stable for the caller.
 TICK_POWER_TIMER:
         LD      HL,(PACMO_POWER_TIMER_LO)
         LD      A,H
@@ -149,7 +156,7 @@ TICK_POWER_TIMER:
 ; Clobbers:
 ;   A
 ; Returns @out carry set when level < 2, clear otherwise.
-; Uses @clobbers A,F while comparing PACMO_LEVEL.
+; Uses @clobbers A,zero,sign,parity,halfCarry while comparing PACMO_LEVEL.
 ; Keeps @preserves BC,DE,HL,IX,IY stable for the caller.
 PACMO_IS_LEVEL2_PLUS:
         LD      A,(PACMO_LEVEL)
@@ -165,6 +172,9 @@ PACMO_IS_LEVEL2_PLUS:
 ;   down, then respawns at the selected candidate cell
 ; Clobbers:
 ;   A, BC, DE, HL
+; Accepts @in IX as the monster record base.
+; Uses @clobbers A,BC,DE,HL,carry,zero,sign,parity,halfCarry while ticking the enemy.
+; Keeps @preserves IX,IY stable for the caller.
 TICK_ENEMY:
         LD      A,(PACMO_SPLASH_ACTIVE)
         OR      A
@@ -203,6 +213,7 @@ ENEMY_ATTACK_STEP:
         CALL    ENEMY_OPPOSITE_DIR
         LD      L,A                     ; L = immediate reverse direction
         LD      A,D
+        LD      H,0                     ; H is stack padding; only L is restored later.
         PUSH    DE
         PUSH    HL
         CALL    ENEMY_TRY_CHASE_DIR
@@ -225,7 +236,7 @@ ENEMY_ATTACK_STEP:
 ; Accepts @in A as candidate PACMO_DIR_* or 0.
 ; Accepts @in L as immediate reverse direction to avoid.
 ; Returns @out carry set when candidate moves the enemy.
-; Uses @clobbers A,BC,DE,HL,F while testing the move.
+; Uses @clobbers A,BC,DE,HL,zero,sign,parity,halfCarry while testing the move.
 ; Keeps @preserves IX,IY stable for the caller.
 ENEMY_TRY_CHASE_DIR:
         OR      A
@@ -249,7 +260,7 @@ ENEMY_TRY_CHASE_BLOCKED:
 ;   A, B, C, H, L
 ; Returns @out D as the preferred chase direction.
 ; Returns @out E as the secondary chase direction.
-; Uses @clobbers A,BC,HL,F while comparing chase axes.
+; Uses @clobbers A,BC,HL,carry,zero,sign,parity,halfCarry while comparing chase axes.
 ; Keeps @preserves IX,IY stable for the caller.
 ENEMY_CHASE_DIRS:
         CALL    ENEMY_GET_HORIZONTAL_CHASE
@@ -275,6 +286,11 @@ ENEMY_CHASE_DIRS:
 ;   B = PACMO_DIR_LEFT/RIGHT reducing that distance, or 0 when aligned
 ; Clobbers:
 ;   A, B, C
+; Accepts @in IX as the monster record base.
+; Returns @out A as the absolute horizontal distance.
+; Returns @out B as the horizontal reducing direction.
+; Uses @clobbers C,carry,zero,sign,parity,halfCarry while comparing positions.
+; Keeps @preserves DE,HL,IX,IY stable for the caller.
 ENEMY_GET_HORIZONTAL_CHASE:
         LD      A,(IX+MONSTER_X)
         LD      C,A
@@ -308,6 +324,11 @@ ENEMY_GET_HORIZONTAL_ALIGNED:
 ;   B = PACMO_DIR_UP/DOWN reducing that distance, or 0 when aligned
 ; Clobbers:
 ;   A, B, C
+; Accepts @in IX as the monster record base.
+; Returns @out A as the absolute vertical distance.
+; Returns @out B as the vertical reducing direction.
+; Uses @clobbers C,carry,zero,sign,parity,halfCarry while comparing positions.
+; Keeps @preserves DE,HL,IX,IY stable for the caller.
 ENEMY_GET_VERTICAL_CHASE:
         LD      A,(IX+MONSTER_Y)
         LD      C,A
@@ -391,6 +412,9 @@ ENEMY_ROAM_CANDIDATE_READY:
 ;   A = opposite PACMO_DIR_*
 ; Clobbers:
 ;   A
+; Accepts @in A as a PACMO_DIR_* value.
+; Returns @out A as the opposite PACMO_DIR_* value.
+; Uses @clobbers carry,zero,sign,parity,halfCarry while matching the direction.
 ENEMY_OPPOSITE_DIR:
         CP      PACMO_DIR_UP
         JR      Z,ENEMY_OPPOSITE_DOWN
@@ -418,7 +442,12 @@ ENEMY_OPPOSITE_RIGHT:
 ;   Carry set when move succeeds; monster X/Y and direction committed.
 ;   Carry clear when candidate is out of bounds or a wall.
 ; Clobbers:
-;   A, BC, DE, HL
+;   A, BC, E
+; Accepts @in A as the PACMO_DIR_* candidate.
+; Accepts @in IX as the monster record base.
+; Returns @out carry set when the move succeeds.
+; Uses @clobbers A,BC,E,zero,sign,parity,halfCarry while testing and committing the move.
+; Keeps @preserves D,HL,IX,IY stable for the caller.
 ENEMY_TRY_MOVE_DIR:
         LD      E,A
         LD      A,(IX+MONSTER_X)
@@ -461,7 +490,9 @@ ENEMY_TRY_DOWN:
         INC     C
 ENEMY_TRY_COMMIT_IF_OPEN:
         PUSH    DE
+        PUSH    HL
         CALL    PACMO_IS_WALL_AT_BC
+        POP     HL
         POP     DE
         JR      C,ENEMY_TRY_BLOCKED
         LD      A,B
@@ -484,6 +515,10 @@ ENEMY_TRY_BLOCKED:
 ;   enemy position and direction are reset and carry is cleared
 ; Clobbers:
 ;   A, BC, DE, HL
+; Accepts @in IX as the monster record base.
+; Returns @out carry set while the enemy is still respawning.
+; Uses @clobbers A,BC,DE,HL,zero,sign,parity,halfCarry while ticking respawn state.
+; Keeps @preserves IX,IY stable for the caller.
 TICK_ENEMY_RESPAWN:
         LD      A,(IX+MONSTER_RESPAWN_TIMER)
         OR      A
@@ -514,7 +549,7 @@ TICK_ENEMY_RESPAWN_DONE:
         LD      A,(ENEMY_PERIOD_CURRENT)
         LD      (IX+MONSTER_TIMER),A
         CALL    LCD_SHOW_PACMO_RUNNING
-        OR      A
+        XOR     A
         RET
 
 ; ENEMY_SELECT_RESPAWN
@@ -527,6 +562,9 @@ TICK_ENEMY_RESPAWN_DONE:
 ;   Ties keep the earlier table entry.
 ; Clobbers:
 ;   A, BC, DE, HL
+; Accepts @in IX as the respawning monster record base.
+; Uses @clobbers A,BC,DE,HL,carry,zero,sign,parity,halfCarry while selecting the spawn.
+; Keeps @preserves IX,IY stable for the caller.
 ENEMY_SELECT_RESPAWN:
         LD      HL,PACMO_ENEMY_SPAWNS
         LD      B,0xFF                  ; B = best distance; 0xFF means no best yet
@@ -580,6 +618,12 @@ ENEMY_SELECT_RESPAWN_COMMIT:
 ;   A = candidate score.  Higher is better.
 ; Clobbers:
 ;   A, BC
+; Accepts @in L as candidate x.
+; Accepts @in H as candidate y.
+; Accepts @in IX as the respawning monster record base.
+; Returns @out A as the candidate score.
+; Uses @clobbers BC,carry,zero,sign,parity,halfCarry while scoring the spawn.
+; Keeps @preserves DE,HL,IX,IY stable for the caller.
 ENEMY_RESPAWN_SCORE_LH:
         PUSH    DE
         CALL    ENEMY_IS_LH_IN_VIEWPORT
@@ -608,6 +652,11 @@ ENEMY_RESPAWN_SCORE_ZERO:
 ;   carry clear otherwise
 ; Clobbers:
 ;   A, C
+; Accepts @in L as candidate x.
+; Accepts @in H as candidate y.
+; Returns @out carry set when the candidate is visible.
+; Uses @clobbers A,C,zero,sign,parity,halfCarry while testing the viewport.
+; Keeps @preserves B,DE,HL,IX,IY stable for the caller.
 ENEMY_IS_LH_IN_VIEWPORT:
         LD      A,(VIEW_X)
         LD      C,A
@@ -641,6 +690,12 @@ ENEMY_IS_LH_NOT_VISIBLE:
 ;   carry clear otherwise
 ; Clobbers:
 ;   A, DE
+; Accepts @in L as candidate x.
+; Accepts @in H as candidate y.
+; Accepts @in IX as the respawning monster record base.
+; Returns @out carry set when another monster occupies the candidate.
+; Uses @clobbers A,DE,zero,sign,parity,halfCarry while checking monsters.
+; Keeps @preserves BC,HL,IX,IY stable for the caller.
 ENEMY_IS_LH_OCCUPIED_BY_OTHER_MONSTER:
         LD      DE,MONSTER0
         CALL    ENEMY_IS_LH_OCCUPIED_BY_MONSTER_DE
@@ -669,7 +724,7 @@ ENEMY_IS_LH_OCCUPIED_BY_OTHER_MONSTER:
 ; Accepts @in DE as monster record pointer.
 ; Accepts @in IX as respawning monster record base.
 ; Returns @out carry set when the candidate is occupied.
-; Uses @clobbers A,DE,F while testing the monster record.
+; Uses @clobbers A,DE,zero,sign,parity,halfCarry while testing the monster record.
 ; Keeps @preserves BC,HL,IX,IY stable for the caller.
 ENEMY_IS_LH_OCCUPIED_BY_MONSTER_DE:
         PUSH    HL
@@ -716,6 +771,12 @@ ENEMY_OCCUPIED_NO:
 ;   current IX monster, and level-2 monster before level 2 are ignored.
 ; Clobbers:
 ;   A, BC, DE
+; Accepts @in L as candidate x.
+; Accepts @in H as candidate y.
+; Accepts @in IX as the respawning monster record base.
+; Returns @out A as the summed distance to other active monsters.
+; Uses @clobbers BC,DE,carry,zero,sign,parity,halfCarry while accumulating distance.
+; Keeps @preserves HL,IX,IY stable for the caller.
 ENEMY_DISTANCE_LH_TO_OTHER_MONSTER:
         LD      B,0                     ; B = accumulated distance score
         LD      DE,MONSTER0
@@ -744,6 +805,14 @@ ENEMY_DISTANCE_LH_TO_OTHER_MONSTER:
 ;   B = updated accumulated distance score
 ; Clobbers:
 ;   A, C, DE
+; Accepts @in B as the accumulated distance score.
+; Accepts @in L as candidate x.
+; Accepts @in H as candidate y.
+; Accepts @in DE as the monster record pointer.
+; Accepts @in IX as the respawning monster record base.
+; Returns @out B as the updated accumulated distance score.
+; Uses @clobbers A,C,DE,carry,zero,sign,parity,halfCarry while testing the monster.
+; Keeps @preserves HL,IX,IY stable for the caller.
 ENEMY_ADD_DISTANCE_TO_MONSTER_DE:
         PUSH    HL
         PUSH    DE
@@ -784,6 +853,11 @@ ENEMY_ADD_DISTANCE_TO_MONSTER_DE:
 ;   A = |candidate x - PLAYER_X| + |candidate y - PLAYER_Y|
 ; Clobbers:
 ;   A, C
+; Accepts @in L as candidate x.
+; Accepts @in H as candidate y.
+; Returns @out A as the Manhattan distance to the player.
+; Uses @clobbers C,carry,zero,sign,parity,halfCarry while computing distance.
+; Keeps @preserves B,DE,HL,IX,IY stable for the caller.
 ENEMY_DISTANCE_LH_TO_PLAYER:
         PUSH    DE
         LD      A,(PLAYER_X)
@@ -804,6 +878,13 @@ ENEMY_DISTANCE_LH_TO_PLAYER:
 ;   A = |candidate x - target x| + |candidate y - target y|
 ; Clobbers:
 ;   A, C
+; Accepts @in L as candidate x.
+; Accepts @in H as candidate y.
+; Accepts @in E as target x.
+; Accepts @in D as target y.
+; Returns @out A as the Manhattan distance.
+; Uses @clobbers C,carry,zero,sign,parity,halfCarry while computing distance.
+; Keeps @preserves B,DE,HL,IX,IY stable for the caller.
 ENEMY_DISTANCE_LH_TO_DE:
         LD      A,L
         LD      C,A

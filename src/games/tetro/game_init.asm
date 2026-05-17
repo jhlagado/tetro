@@ -37,6 +37,7 @@ INIT_STATE_RESTART:
 ;   common runtime state initialized in RAM
 ; Clobbers:
 ;   A, B, HL
+; Uses @clobbers A,B,HL while resetting common runtime RAM state.
 INIT_STATE_BASE:
         LD      A,MOVE_PERIOD
         LD      (MOVE_COOLDOWN),A

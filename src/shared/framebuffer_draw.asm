@@ -1,7 +1,7 @@
 ; MATRIX_X_TO_MASK
 ; Accepts @in A as matrix x coordinate, expected 0..7.
 ; Returns @out A as a bit mask with column 0 as MSB.
-; Uses @clobbers B,C,F while shifting.
+; Uses @clobbers B,C,carry,zero,sign,parity,halfCarry while shifting.
 ; Keeps @preserves DE,HL stable for the caller.
 MATRIX_X_TO_MASK:
         LD      C,A
@@ -73,7 +73,7 @@ FB_SET_CELL_BLUE_STORE:
 ; Accepts @in A as COLOR_* bitfield.
 ;   mask ORed into enabled red, green, blue bytes
 ; Returns @out HL as the blue-byte address.
-; Uses @clobbers A,F while applying colour planes.
+; Uses @clobbers A,carry,zero,sign,parity,halfCarry while applying colour planes.
 ; Keeps @preserves BC,DE stable for the caller.
 FB_OR_ROW_COLOR_MASK:
         PUSH    BC
