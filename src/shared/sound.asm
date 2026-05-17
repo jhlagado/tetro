@@ -10,6 +10,10 @@
 ;   speaker state machine restarted
 ; Clobbers:
 ;   A
+; Accepts @in A as duration in scan ticks.
+; Accepts @in C as divider reload / half-period.
+; Uses @clobbers A,F while restarting the state machine.
+; Keeps @preserves BC,DE,HL,IX,IY stable for the caller.
 SOUND_START:
         LD      (SOUND_TIMER),A
         LD      A,C
@@ -26,6 +30,8 @@ SOUND_START:
 ;   SPEAKER_PORT_STATE toggled while the active sound cue is running
 ; Clobbers:
 ;   A
+; Uses @clobbers A,F while updating the active sound cue.
+; Keeps @preserves BC,DE,HL,IX,IY stable for the caller.
 SERVICE_SOUND:
         LD      A,(SOUND_TIMER)
         OR      A

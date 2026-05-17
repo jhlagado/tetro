@@ -262,6 +262,11 @@ GET_CURRENT_WALL_COLOR_COMPLETE:
 ;   A = 8 visible bits for columns VIEW_X..VIEW_X+7
 ; Clobbers:
 ;   B, C, D
+; Accepts @in BC as the 16-bit world row.
+; Accepts @in A as viewport X origin.
+; Returns @out A as the visible window byte.
+; Uses @clobbers B,C,D,F while shifting the world row.
+; Keeps @preserves E,HL,IX,IY stable for the caller.
 WINDOW_BYTE_FROM_BC:
         LD      D,A
         LD      A,D

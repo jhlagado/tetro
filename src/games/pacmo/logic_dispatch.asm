@@ -133,6 +133,9 @@ TICK_POWER_TIMER:
 ;   carry clear when level >= 2, carry set when level < 2
 ; Clobbers:
 ;   A
+; Returns @out carry set when level < 2, clear otherwise.
+; Uses @clobbers A,F while comparing PACMO_LEVEL.
+; Keeps @preserves BC,DE,HL,IX,IY stable for the caller.
 PACMO_IS_LEVEL2_PLUS:
         LD      A,(PACMO_LEVEL)
         CP      2
@@ -204,6 +207,11 @@ ENEMY_ATTACK_STEP:
 ;   Carry set when candidate moves the enemy; carry clear otherwise
 ; Clobbers:
 ;   A, BC, DE, HL
+; Accepts @in A as candidate PACMO_DIR_* or 0.
+; Accepts @in L as immediate reverse direction to avoid.
+; Returns @out carry set when candidate moves the enemy.
+; Uses @clobbers A,BC,DE,HL,F while testing the move.
+; Keeps @preserves IX,IY stable for the caller.
 ENEMY_TRY_CHASE_DIR:
         OR      A
         RET     Z
@@ -224,6 +232,10 @@ ENEMY_TRY_CHASE_BLOCKED:
 ;   E = secondary reducing direction, or 0 when aligned
 ; Clobbers:
 ;   A, B, C, H, L
+; Returns @out D as the preferred chase direction.
+; Returns @out E as the secondary chase direction.
+; Uses @clobbers A,BC,HL,F while comparing chase axes.
+; Keeps @preserves IX,IY stable for the caller.
 ENEMY_CHASE_DIRS:
         CALL    ENEMY_GET_HORIZONTAL_CHASE
         LD      H,A                     ; H = horizontal distance
@@ -637,6 +649,13 @@ ENEMY_IS_LH_OCCUPIED_BY_OTHER_MONSTER:
 ;   carry clear otherwise
 ; Clobbers:
 ;   A, DE
+; Accepts @in L as candidate x.
+; Accepts @in H as candidate y.
+; Accepts @in DE as monster record pointer.
+; Accepts @in IX as respawning monster record base.
+; Returns @out carry set when the candidate is occupied.
+; Uses @clobbers A,DE,F while testing the monster record.
+; Keeps @preserves BC,HL,IY stable for the caller.
 ENEMY_IS_LH_OCCUPIED_BY_MONSTER_DE:
         PUSH    HL
         PUSH    DE

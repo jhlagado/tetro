@@ -7,6 +7,8 @@
 ;   one seven-segment digit refreshed
 ; Clobbers:
 ;   A, BC, DE, HL
+; Uses @clobbers A,BC,DE,HL,F while refreshing one HUD digit.
+; Keeps @preserves IX,IY stable for the caller.
 SCAN_SCORE_DIGIT:
         LD      A,(HUD_SCAN_INDEX)
         LD      C,A
@@ -47,6 +49,8 @@ SCAN_SCORE_DIGIT_SAVE:
 ;   HUD_SEG_BUFFER[0..5] = 0
 ; Clobbers:
 ;   A, B, HL
+; Uses @clobbers A,B,HL,F while clearing the HUD digit buffer.
+; Keeps @preserves C,DE,IX,IY stable for the caller.
 BLANK_HUD_SCORE_DIGITS:
         LD      HL,HUD_SEG_BUFFER
         LD      B,6
@@ -65,6 +69,9 @@ BLANK_HUD_SCORE_DIGITS_LOOP:
 ;   HUD_SEG_BUFFER[1..5] = decimal digits for 10000,1000,100,10,1
 ; Clobbers:
 ;   A, BC, DE, HL
+; Accepts @in HL as the unsigned value.
+; Uses @clobbers A,BC,DE,HL,F while formatting the decimal display.
+; Keeps @preserves IX,IY stable for the caller.
 HUD_WRITE_U16_DECIMAL:
         LD      A,(HUD_SEG_GLYPH_TABLE)
         LD      (HUD_SEG_BUFFER),A
@@ -83,15 +90,12 @@ HUD_WRITE_U16_DECIMAL:
         RET
 
 ; HUD_WRITE_DECIMAL_DIGIT
-; Input:
-;   HL = value remainder
-;   DE = decimal divisor
-;   BC = destination digit in HUD_SEG_BUFFER
-; Output:
-;   HL = updated value remainder
-;   BC = advanced to next destination
-; Clobbers:
-;   A, DE
+; Accepts @in HL as the value remainder.
+; Accepts @in DE as the decimal divisor.
+; Accepts @in BC as destination digit in HUD_SEG_BUFFER.
+; Returns @out HL as the updated value remainder.
+; Returns @out BC advanced to the next destination.
+; Uses @clobbers A,DE,F while subtracting and formatting.
 HUD_WRITE_DECIMAL_DIGIT:
         XOR     A
 HUD_WRITE_DECIMAL_DIGIT_LOOP:
