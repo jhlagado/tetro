@@ -1,125 +1,125 @@
 ; Generic seven-segment HUD scan helpers.
 
-; SCAN_SCORE_DIGIT
+; HudScanDig
 ; Input:
-;   HUD_SEG_BUFFER / HUD_SCAN_INDEX / SPEAKER_PORT_STATE
+;   HudSegBuffer / HudScanIndex / SpeakerPort
 ; Output:
 ;   one seven-segment digit refreshed
 ; Clobbers:
 ;   A, BC, DE, HL
 ; Uses @clobbers A,BC,DE,HL,F while refreshing one HUD digit.
 ; Keeps @preserves IX,IY stable for the caller.
-SCAN_SCORE_DIGIT:
-        LD      A,(HUD_SCAN_INDEX)
+HudScanDig:
+        LD      A,(HudScanIndex)
         LD      C,A
-        LD      A,(SPEAKER_PORT_STATE)
-        OUT     (PORT_DIGITS),A
+        LD      A,(SpeakerPort)
+        OUT     (PortDigits),A
         LD      A,C
         LD      L,A
         LD      H,0
-        LD      DE,HUD_SEG_BUFFER
+        LD      DE,HudSegBuffer
         ADD     HL,DE
         LD      A,(HL)
-        OUT     (PORT_SEGS),A
+        OUT     (PortSegs),A
 
         LD      A,C
         LD      L,A
         LD      H,0
-        LD      DE,HUD_DIGIT_MASK_TABLE
+        LD      DE,HudMaskTbl
         ADD     HL,DE
         LD      A,(HL)
         LD      B,A
-        LD      A,(SPEAKER_PORT_STATE)
+        LD      A,(SpeakerPort)
         OR      B
-        OUT     (PORT_DIGITS),A
+        OUT     (PortDigits),A
 
         LD      A,C
         INC     A
         CP      6
-        JR      C,SCAN_SCORE_DIGIT_SAVE
+        JR      C,HudScanSave
         XOR     A
-SCAN_SCORE_DIGIT_SAVE:
-        LD      (HUD_SCAN_INDEX),A
+HudScanSave:
+        LD      (HudScanIndex),A
         RET
 
-; BLANK_HUD_SCORE_DIGITS
+; HudBlankDig
 ; Input:
 ;   none
 ; Output:
-;   HUD_SEG_BUFFER[0..5] = 0
+;   HudSegBuffer[0..5] = 0
 ; Clobbers:
 ;   A, B, HL
 ; Uses @clobbers A,B,HL,F while clearing the HUD digit buffer.
 ; Keeps @preserves C,DE,IX,IY stable for the caller.
-BLANK_HUD_SCORE_DIGITS:
-        LD      HL,HUD_SEG_BUFFER
+HudBlankDig:
+        LD      HL,HudSegBuffer
         LD      B,6
         XOR     A
-BLANK_HUD_SCORE_DIGITS_LOOP:
+HudBlankLp:
         LD      (HL),A
         INC     HL
-        DJNZ    BLANK_HUD_SCORE_DIGITS_LOOP
+        DJNZ    HudBlankLp
         RET
 
-; HUD_WRITE_U16_DECIMAL
+; HudWriteU16
 ; Input:
 ;   HL = unsigned 16-bit value
 ; Output:
-;   HUD_SEG_BUFFER[0] = zero glyph
-;   HUD_SEG_BUFFER[1..5] = decimal digits for 10000,1000,100,10,1
+;   HudSegBuffer[0] = zero glyph
+;   HudSegBuffer[1..5] = decimal digits for 10000,1000,100,10,1
 ; Clobbers:
 ;   A, BC, DE, HL
 ; Accepts @in HL as the unsigned value.
 ; Uses @clobbers A,BC,DE,HL,F while formatting the decimal display.
 ; Keeps @preserves IX,IY stable for the caller.
-HUD_WRITE_U16_DECIMAL:
-        LD      A,(HUD_SEG_GLYPH_TABLE)
-        LD      (HUD_SEG_BUFFER),A
-        LD      BC,HUD_SEG_BUFFER+1
+HudWriteU16:
+        LD      A,(HudGlyphTbl)
+        LD      (HudSegBuffer),A
+        LD      BC,HudSegBuffer + 1
 
         LD      DE,0x2710      ; 10000
-        CALL    HUD_WRITE_DECIMAL_DIGIT
+        CALL    HudDecDigit
         LD      DE,0x03E8      ; 1000
-        CALL    HUD_WRITE_DECIMAL_DIGIT
+        CALL    HudDecDigit
         LD      DE,0x0064      ; 100
-        CALL    HUD_WRITE_DECIMAL_DIGIT
+        CALL    HudDecDigit
         LD      DE,0x000A      ; 10
-        CALL    HUD_WRITE_DECIMAL_DIGIT
+        CALL    HudDecDigit
         LD      DE,0x0001      ; 1
-        CALL    HUD_WRITE_DECIMAL_DIGIT
+        CALL    HudDecDigit
         RET
 
-; HUD_WRITE_DECIMAL_DIGIT
+; HudDecDigit
 ; Accepts @in HL as the value remainder.
 ; Accepts @in DE as the decimal divisor.
-; Accepts @in BC as destination digit in HUD_SEG_BUFFER.
+; Accepts @in BC as destination digit in HudSegBuffer.
 ; Returns @out HL as the updated value remainder.
 ; Returns @out BC advanced to the next destination.
 ; Uses @clobbers A,DE,F while subtracting and formatting.
-HUD_WRITE_DECIMAL_DIGIT:
+HudDecDigit:
         XOR     A
-HUD_WRITE_DECIMAL_DIGIT_LOOP:
+HudDecLp:
         PUSH    AF
         LD      A,H
         CP      D
-        JR      C,HUD_WRITE_DECIMAL_DIGIT_DONE
-        JR      NZ,HUD_WRITE_DECIMAL_DIGIT_SUB
+        JR      C,HudDecDone
+        JR      NZ,HudDecSub
         LD      A,L
         CP      E
-        JR      C,HUD_WRITE_DECIMAL_DIGIT_DONE
-HUD_WRITE_DECIMAL_DIGIT_SUB:
+        JR      C,HudDecDone
+HudDecSub:
         POP     AF
         OR      A
         SBC     HL,DE
         INC     A
-        JR      HUD_WRITE_DECIMAL_DIGIT_LOOP
-HUD_WRITE_DECIMAL_DIGIT_DONE:
+        JR      HudDecLp
+HudDecDone:
         POP     AF
         PUSH    HL
         PUSH    BC
         LD      L,A
         LD      H,0
-        LD      DE,HUD_SEG_GLYPH_TABLE
+        LD      DE,HudGlyphTbl
         ADD     HL,DE
         LD      A,(HL)
         POP     BC
@@ -128,7 +128,7 @@ HUD_WRITE_DECIMAL_DIGIT_DONE:
         POP     HL
         RET
 
-HUD_DIGIT_MASK_TABLE:
+HudMaskTbl:
         DB      0x20
         DB      0x10
         DB      0x08
@@ -136,7 +136,7 @@ HUD_DIGIT_MASK_TABLE:
         DB      0x02
         DB      0x01
 
-HUD_SEG_GLYPH_TABLE:
+HudGlyphTbl:
         DB      0xEB
         DB      0x28
         DB      0xCD

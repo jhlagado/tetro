@@ -1,33 +1,33 @@
-; Generic double-buffer helpers for the 8x8 RGB matrix framebuffer.
+; Generic double-buffer helpers for the 8x8 RGB matrix Framebuffer.
 
-; CLEAR_BACK_ALL
+; FbClearAll
 ; Input:
 ;   none
 ; Output:
-;   FRAMEBUFFER_BACK cleared to zero
+;   FramebufferBack cleared to zero
 ; Clobbers:
 ;   A, B, HL
-CLEAR_BACK_ALL:
-        LD      HL,FRAMEBUFFER_BACK
-        LD      B,FRAMEBUFFER_BYTES
+FbClearAll:
+        LD      HL,FramebufferBack
+        LD      B,FramebufferBytes
         XOR     A
-CLEAR_BACK_ALL_LOOP:
+FbClrLoop:
         LD      (HL),A
         INC     HL
-        DJNZ    CLEAR_BACK_ALL_LOOP
+        DJNZ    FbClrLoop
         RET
 
-; CLEAR_BACK_4
+; FbClearRow
 ; Input:
-;   A = byte offset into FRAMEBUFFER_BACK, expected 0,4,8,...,28
+;   A = byte offset into FramebufferBack, expected 0,4,8,...,28
 ; Output:
 ;   selected 4-byte row cleared
 ; Clobbers:
 ;   A, DE, HL
-CLEAR_BACK_4:
+FbClearRow:
         LD      E,A
         LD      D,0
-        LD      HL,FRAMEBUFFER_BACK
+        LD      HL,FramebufferBack
         ADD     HL,DE
         XOR     A
         LD      (HL),A
@@ -39,34 +39,34 @@ CLEAR_BACK_4:
         LD      (HL),A
         RET
 
-; COPY_BACK_TO_FRONT
+; FbCopyAll
 ; Input:
-;   FRAMEBUFFER_BACK contains completed image
+;   FramebufferBack contains completed image
 ; Output:
-;   FRAMEBUFFER overwritten from FRAMEBUFFER_BACK
+;   Framebuffer overwritten from FramebufferBack
 ; Clobbers:
 ;   BC, DE, HL
-COPY_BACK_TO_FRONT:
-        LD      HL,FRAMEBUFFER_BACK
-        LD      DE,FRAMEBUFFER
-        LD      BC,FRAMEBUFFER_BYTES
+FbCopyAll:
+        LD      HL,FramebufferBack
+        LD      DE,Framebuffer
+        LD      BC,FramebufferBytes
         LDIR
         RET
 
-; COPY_BACK_4_TO_FRONT
+; FbCopyRow
 ; Input:
 ;   A = byte offset into both framebuffers, expected 0,4,8,...,28
 ; Output:
-;   selected 4-byte row copied from FRAMEBUFFER_BACK to FRAMEBUFFER
+;   selected 4-byte row copied from FramebufferBack to Framebuffer
 ; Clobbers:
 ;   A, DE, HL
-COPY_BACK_4_TO_FRONT:
+FbCopyRow:
         LD      E,A
         LD      D,0
-        LD      HL,FRAMEBUFFER_BACK
+        LD      HL,FramebufferBack
         ADD     HL,DE
         PUSH    HL
-        LD      HL,FRAMEBUFFER
+        LD      HL,Framebuffer
         ADD     HL,DE
         EX      DE,HL
         POP     HL

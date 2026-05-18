@@ -1,94 +1,94 @@
-; LCD_SHOW_GAME_OVER
+; LcdShowGOver
 ; Input:
 ;   none
 ; Output:
 ;   game-over screen rendered; no NEXT preview is appended
 ; Clobbers:
 ;   A, HL
-LCD_SHOW_GAME_OVER:
-        LD      HL,SCRIPT_GAME_OVER
-        JP      LCD_SHOW_SCRIPT
+LcdShowGOver:
+        LD      HL,ScriptGameOver
+        JP      LcdScript
 
-; LCD_SHOW_PAUSED
+; LcdShowPaused
 ; Input:
 ;   none
 ; Output:
-;   paused HUD rendered with NEXT preview
+;   Paused HUD rendered with NEXT preview
 ; Clobbers:
 ;   A, HL
-LCD_SHOW_PAUSED:
-        LD      HL,SCRIPT_PAUSED
-        JR      LCD_SHOW_HUD
+LcdShowPaused:
+        LD      HL,ScriptPaused
+        JR      LcdShowHud
 
-; LCD_SHOW_SPLASH
+; LcdShowSplash
 ; Input:
 ;   none
 ; Output:
 ;   splash screen + key mapping written to LCD
 ; Clobbers:
 ;   A, HL
-LCD_SHOW_SPLASH:
-        LD      HL,SCRIPT_SPLASH
-        JP      LCD_SHOW_SCRIPT
+LcdShowSplash:
+        LD      HL,ScriptSplash
+        JP      LcdScript
 
-; LCD_APPEND_NEXT_PREVIEW_LETTER
+; LcdAppendPrev
 ; Prerequisites:
 ;   LCD cursor positioned after trailing space of NEXT: banner.
 ; Input:
-;   NEXT_PIECE_INDEX
+;   NextPieceIndex
 ; Output:
 ;   one-character piece preview written
 ; Clobbers:
 ;   A, DE, HL
-LCD_APPEND_NEXT_PREVIEW_LETTER:
-        LD      A,(NEXT_PIECE_INDEX)
-        LD      DE,PIECE_NAME_TABLE
-        JP      LCD_PUTC_FROM_TABLE
+LcdAppendPrev:
+        LD      A,(NextPieceIndex)
+        LD      DE,PieceNameTable
+        JP      LcdPutcTbl
 
-; LCD_REFRESH_NEXT_PREVIEW_ROW
+; LcdRefNextPrev
 ; Rewrites HUD row 2 with NEXT: banner + letter. Does not clear the display;
 ; "NEXT: X" is always 7 chars so it overwrites cleanly, preserving row 1.
 ; Input:
-;   NEXT_PIECE_INDEX
+;   NextPieceIndex
 ; Output:
 ;   LCD row 2 rewritten
 ; Clobbers:
 ;   A, DE
-LCD_REFRESH_NEXT_PREVIEW_ROW:
+LcdRefNextPrev:
         PUSH    BC
         PUSH    HL
-        LD      B,LCD_ROW2
-        LD      HL,LCD_TEXT_NEXT
-        CALL    LCD_WRITE_ROW_STRING
-        CALL    LCD_APPEND_NEXT_PREVIEW_LETTER
+        LD      B,LcdRow2
+        LD      HL,LcdTextNext
+        CALL    LcdRowStr
+        CALL    LcdAppendPrev
         POP     HL
         POP     BC
         RET
 
-; LCD_SHOW_RUNNING
+; LcdShowRunning
 ; Input:
 ;   none
 ; Output:
 ;   running HUD rendered with NEXT preview
 ; Clobbers:
 ;   A, HL
-LCD_SHOW_RUNNING:
-        LD      HL,SCRIPT_RUNNING
+LcdShowRunning:
+        LD      HL,ScriptRunning
         ; fall through
 
-; LCD_SHOW_HUD
+; LcdShowHud
 ; Input:
 ;   HL = script pointer (row1 banner, row2 "NEXT: ")
 ; Output:
 ;   LCD cleared, script rendered, preview letter appended on row 2
 ; Clobbers:
 ;   A (BC/DE/HL pushed/popped)
-LCD_SHOW_HUD:
+LcdShowHud:
         PUSH    BC
         PUSH    DE
         PUSH    HL
-        CALL    LCD_SHOW_SCRIPT
-        CALL    LCD_APPEND_NEXT_PREVIEW_LETTER
+        CALL    LcdScript
+        CALL    LcdAppendPrev
         POP     HL
         POP     DE
         POP     BC

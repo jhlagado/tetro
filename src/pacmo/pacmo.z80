@@ -1,0 +1,34 @@
+; TEC-1G pacmo
+; ------------------
+; First Pacmo experiment: a yellow cursor moving through an 8x8 viewport
+; over a larger 15x15 bitmap world.  This target is intentionally separate
+; from Tetro so the finished Tetro game remains stable while Pacmo evolves.
+; SPDX-License-Identifier: 0BSD
+
+        ORG     0x4000
+
+        .include "../shared/inc/constants.asm"
+
+Start:
+        CALL    InitState
+
+MainLoop:
+        CALL    ScanTick
+        CALL    LogicTick
+        JR      MainLoop
+
+        .include "../shared/scan-tick.asm"
+        .include "game-init.asm"
+        .include "logic-dispatch.asm"
+        .include "movement.asm"
+        .include "../shared/framebuffer-core.asm"
+        .include "../shared/framebuffer-draw.asm"
+        .include "render.asm"
+        .include "../shared/sound.asm"
+        .include "sound.asm"
+        .include "../shared/hud.asm"
+        .include "hud.asm"
+        .include "../shared/lcd.asm"
+        .include "ui.asm"
+        .include "data.asm"
+        .include "ram.asm"

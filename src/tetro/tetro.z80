@@ -26,41 +26,41 @@
 ;
 ; Design:
 ;   - One scanline is output per main-loop iteration.
-;   - Game work is split across 8 slices (LOGIC_SLICE 0-7 on each pass).
-;   - The framebuffer is 8 rows x 4 bytes (R/G/B/Aux).
+;   - Game work is split across 8 slices (LogicSlice 0-7 on each pass).
+;   - The Framebuffer is 8 rows x 4 bytes (R/G/B/Aux).
 ;   - The landed board is stored as RGB bitplanes plus monochrome occupancy.
 ;   - The active object is a 4x4 bitmap blitted in its piece colour over the board.
 ;   - Pieces are selected from a PRNG-driven 7-piece stream with preview.
 
         ORG     0x4000
 
-        .include "shared/inc/constants.asm"
-        .include "games/tetro/constants.asm"
+        .include "../shared/inc/constants.asm"
+        .include "constants.asm"
 
-START:
-        CALL    INIT_STATE
+Start:
+        CALL    InitState
 
-MAIN_LOOP:
-        CALL    SCAN_TICK
-        CALL    LOGIC_TICK
-        JR      MAIN_LOOP
+MainLoop:
+        CALL    ScanTick
+        CALL    LogicTick
+        JR      MainLoop
 
-        .include "games/tetro/geometry_helpers.asm"
-        .include "games/tetro/collision.asm"
-        .include "shared/framebuffer_core.asm"
-        .include "shared/framebuffer_draw.asm"
-        .include "games/tetro/render.asm"
-        .include "games/tetro/piece_active.asm"
-        .include "games/tetro/board_lock.asm"
-        .include "games/tetro/game_init.asm"
-        .include "shared/scan_tick.asm"
-        .include "shared/sound.asm"
-        .include "games/tetro/sound.asm"
-        .include "shared/hud.asm"
-        .include "games/tetro/hud.asm"
-        .include "shared/lcd.asm"
-        .include "games/tetro/ui.asm"
-        .include "games/tetro/logic_dispatch.asm"
-        .include "games/tetro/input.asm"
-        .include "games/tetro/data.asm"
-        .include "games/tetro/ram.asm"
+        .include "geometry-helpers.asm"
+        .include "collision.asm"
+        .include "../shared/framebuffer-core.asm"
+        .include "../shared/framebuffer-draw.asm"
+        .include "render.asm"
+        .include "piece-active.asm"
+        .include "board-lock.asm"
+        .include "game-init.asm"
+        .include "../shared/scan-tick.asm"
+        .include "../shared/sound.asm"
+        .include "sound.asm"
+        .include "../shared/hud.asm"
+        .include "hud.asm"
+        .include "../shared/lcd.asm"
+        .include "ui.asm"
+        .include "logic-dispatch.asm"
+        .include "input.asm"
+        .include "data.asm"
+        .include "ram.asm"

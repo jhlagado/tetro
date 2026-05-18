@@ -1,109 +1,109 @@
-; Candidate placement test (same MSB-left column convention per SHIFT_ROW_MASK / boarded occupancy nibbles).
+; Candidate placement test (same MSB-left column convention per ShiftRowMask / boarded occupancy nibbles).
 ; Accepts @in D as candidate x.
 ; Accepts @in E as candidate y.
 ; Returns @out carry set if placement collides or is out of bounds.
 ;   carry clear if placement is legal
 ; Uses @clobbers A,F as scratch and result flags.
 ; Keeps @preserves BC,DE,HL stable for the caller.
-CHECK_COLLISION_AT_DE:
+CheckCollAtDe:
         PUSH    BC
         PUSH    DE
         PUSH    HL
         LD      A,D
-        CP      X_MIN
-        JR      C,COLLISION_TRUE_XBOUND
+        CP      XMin
+        JR      C,CollXBound
         LD      C,A
-        LD      A,(CURRENT_PIECE_RIGHT)
+        LD      A,(CurPieceRight)
         ADD     A,C
-        CP      ROW_COUNT
-        JR      NC,COLLISION_TRUE_XBOUND
+        CP      RowCount
+        JR      NC,CollXBound
         LD      A,D
-        LD      (SHIFT_COUNT),A
+        LD      (ShiftCount),A
         LD      A,E
         LD      L,A
         LD      H,0
         LD      B,4
-        LD      DE,(CURRENT_PIECE_PTR)
-        ; Empty-board fast path removed: CHECK_COLLISION_ROW handles it correctly
-        ; (BOARD_ROWS=0 -> AND yields 0 -> no overlap), at the cost of ~12 cycles
+        LD      DE,(CurPiecePtr)
+        ; Empty-board fast path removed: CheckCollRow handles it correctly
+        ; (BoardRows=0 -> AND yields 0 -> no overlap), at the cost of ~12 cycles
         ; per collision on an empty board (only at first spawn after reset).
-CHECK_COLLISION_ROW:
+CheckCollRow:
         LD      A,(DE)
-        CALL    SHIFT_ROW_MASK
+        CALL    ShiftRowMask
         LD      C,A
         OR      A
-        JR      Z,COLLISION_NEXT_ROW
+        JR      Z,CollNextRow
         BIT     7,L
-        JR      NZ,COLLISION_NEXT_ROW
+        JR      NZ,CollNextRow
         LD      A,L
-        CP      ROW_COUNT
-        JR      NC,COLLISION_TRUE_ROW_BOTTOM
+        CP      RowCount
+        JR      NC,CollRowBottom
         PUSH    HL
         PUSH    DE
         LD      H,0
-        LD      DE,BOARD_ROWS
+        LD      DE,BoardRows
         ADD     HL,DE
         LD      A,(HL)
         AND     C
         POP     DE
         POP     HL
-        JR      NZ,COLLISION_TRUE_ROW_OVERLAP
-COLLISION_NEXT_ROW:
+        JR      NZ,CollRowOverlap
+CollNextRow:
         INC     DE
         INC     HL
-        DJNZ    CHECK_COLLISION_ROW
+        DJNZ    CheckCollRow
         OR      A
-        JR      COLLISION_EXIT_OK
+        JR      CollExitOk
 
-COLLISION_TRUE_XBOUND:
+CollXBound:
         SCF
-        JR      COLLISION_EXIT_OK
+        JR      CollExitOk
 
-COLLISION_TRUE_ROW_BOTTOM:
+CollRowBottom:
         SCF
-        JR      COLLISION_EXIT_OK
+        JR      CollExitOk
 
-COLLISION_TRUE_ROW_OVERLAP:
+CollRowOverlap:
         SCF
-COLLISION_EXIT_OK:
+CollExitOk:
         POP     HL
         POP     DE
         POP     BC
         RET
 
-; CHECK_TOP_OUT_ON_LOCK
+; CheckTopOut
 ; Input:
-;   PLAYER_Y, CURRENT_PIECE_PTR
+;   PlayerY, CurPiecePtr
 ; Output:
 ;   carry set if any occupied row of the active piece is still above the
 ;   visible field when the piece is about to lock
 ;   carry clear otherwise
 ; Clobbers:
 ;   A
-CHECK_TOP_OUT_ON_LOCK:
+CheckTopOut:
         PUSH    BC
         PUSH    DE
         PUSH    HL
-        LD      A,(PLAYER_Y)
+        LD      A,(PlayerY)
         LD      L,A
         LD      H,0
-        LD      DE,(CURRENT_PIECE_PTR)
+        LD      DE,(CurPiecePtr)
         LD      B,4
-TOP_OUT_ROW_LOOP:
+TopOutRowLoop:
         LD      A,(DE)
         OR      A
-        JR      Z,TOP_OUT_NEXT_ROW
+        JR      Z,TopOutNextRow
         BIT     7,L
-        JR      NZ,TOP_OUT_TRUE
-TOP_OUT_NEXT_ROW:
+        JR      NZ,TopOutTrue
+TopOutNextRow:
         INC     DE
         INC     HL
-        DJNZ    TOP_OUT_ROW_LOOP
+        DJNZ    TopOutRowLoop
         OR      A
-        JR      TOP_OUT_EXIT
-TOP_OUT_TRUE:
+        JR      TopOutExit
+TopOutTrue:
         SCF
-TOP_OUT_EXIT:
+TopOutExit:
         POP     HL
         POP     DE
         POP     BC
