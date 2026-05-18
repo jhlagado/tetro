@@ -1,10 +1,12 @@
-; RebuildFb
-; Input:
-;   current viewport and player state in RAM
-; Output:
-;   Framebuffer rebuilt from scratch
-; Clobbers:
-;   A, BC, DE, HL, IX
+; RebuildFb —
+; Full Framebuffer rebuild from current world
+; and entity state.
+; Renders world, power pills, active Monsters
+; (Monster2 skipped before level 2), and player.
+; ========================== AZM
+; in        IX
+; clobbers  IX,A,BC,DE,HL
+; ========================== AZM
 RebuildFb:
         CALL    FbClearAll
         CALL    RendWorldBack
@@ -22,13 +24,12 @@ RebuildMonsDone:
         CALL    RendPlyBack
         JP      FbCopyAll
 
-; RendGOverBack
-; Input:
-;   none
-; Output:
-;   FramebufferBack filled with PacColorGOver as a dramatic cue
-; Clobbers:
-;   A, B, HL
+; RendGOverBack —
+; Fill FramebufferBack with PacColorGOver.
+; Used as a dramatic full-matrix flash.
+; ========================== AZM
+; clobbers  B,HL
+; ========================== AZM
 RendGOverBack:
         LD      HL,FramebufferBack
         LD      B,RowCount
@@ -60,13 +61,12 @@ RendGOverBluOff:
         DJNZ    RendGOverRow
         RET
 
-; RendLvlDoneBack
-; Input:
-;   none
-; Output:
-;   FramebufferBack filled with PacColorRound
-; Clobbers:
-;   A, B, HL
+; RendLvlDoneBack —
+; Fill FramebufferBack with PacColorRound.
+; Used as the level-complete visual cue.
+; ========================== AZM
+; clobbers  B,HL
+; ========================== AZM
 RendLvlDoneBack:
         LD      HL,FramebufferBack
         LD      B,RowCount
@@ -98,13 +98,12 @@ RendLvlBluOff:
         DJNZ    RendLvlDoneRow
         RET
 
-; RendWorldBack
-; Input:
-;   ViewX/Y and PacWorldRows
-; Output:
-;   visible 8x8 viewport rendered with PacColorPath and PacColorWall
-; Clobbers:
-;   A, BC, DE, HL
+; RendWorldBack —
+; Render the full 8x8 viewport into back-buffer.
+; Calls RendWorldRow for each screen row 0..7.
+; ========================== AZM
+; clobbers  B
+; ========================== AZM
 RendWorldBack:
         LD      B,0
 RendWorldBackLp:
@@ -118,13 +117,16 @@ RendWorldBackLp:
         JR      C,RendWorldBackLp
         RET
 
-; RendWorldRow
-; Input:
-;   A = screen row 0..7
-; Output:
-;   selected FramebufferBack row rendered from the corresponding world/eaten row
-; Clobbers:
-;   A, BC, DE, HL
+; RendWorldRow —
+; Render one screen row from world and eaten maps.
+; Clips PacWorldRows and PacEatenRows to the 8-bit
+; viewport window via WindowByteBc.
+; Uneaten open path = ~(wall | eaten); both wall
+; and path are written via WrWorldColors.
+; ========================== AZM
+; in        A
+; clobbers  A,BC,DE,HL
+; ========================== AZM
 RendWorldRow:
         LD      C,A                     ; C = screen row
         ADD     A,A
@@ -172,18 +174,16 @@ RendWorldRow:
         POP     HL                      ; target Framebuffer row
         JP      WrWorldColors
 
-; WrWorldColors
-; Input:
-;   HL = red plane byte for the target Framebuffer row
-;   C  = visible wall mask
-;   D  = visible uneaten path mask
-; Output:
-;   red/green/blue plane bytes written from PacColorWall/PATH;
-;   caught state renders walls with PacColorCaught;
-;   complete state renders walls with PacColorDone
-;   HL points to the aux byte after the blue plane
-; Clobbers:
-;   A, B, HL
+; WrWorldColors —
+; Write R/G/B bytes for one world row.
+; Wall mask C is drawn in the colour returned by
+; GetWallColor (normal, caught, or done colour).
+; Uneaten path mask D is drawn in PacColorPath.
+; Both are OR'd per plane. HL exits on aux byte.
+; ========================== AZM
+; in        C
+; clobbers  A,B
+; ========================== AZM
 WrWorldColors:
         XOR     A
         LD      B,A
@@ -237,13 +237,14 @@ WrWorldBluSet:
         INC     HL
         RET
 
-; GetWallColor
-; Input:
-;   PacPlayerCaught, PacRoundDone
-; Output:
-;   A = wall color for the current render state
-; Clobbers:
-;   A
+; GetWallColor —
+; Choose wall colour based on game state.
+; Returns PacColorCaught when caught,
+; PacColorDone when round is complete,
+; PacColorWall otherwise.
+; ========================== AZM
+; clobbers  A
+; ========================== AZM
 GetWallColor:
         LD      A,(PacPlayerCaught)
         OR      A
@@ -260,19 +261,17 @@ GetWallDone:
         LD      A,PacColorDone
         RET
 
-; WindowByteBc
-; Input:
-;   BC = 16-bit world row, bit 15 is world column 0
-;   A  = viewport X origin, expected 0..7
-; Output:
-;   A = 8 visible bits for columns ViewX..ViewX+7
-; Clobbers:
-;   B, C, D
-; Accepts @in BC as the 16-bit world row.
-; Accepts @in A as viewport X origin.
-; Returns @out A as the visible window byte.
-; Uses @clobbers B,C,D,F while shifting the world row.
-; Keeps @preserves E,HL,IX,IY stable for the caller.
+; WindowByteBc —
+; Extract the 8-bit viewport window from a 16-bit
+; world row.
+; BC holds the full 15-column row with bit 15 =
+; column 0 (MSB = leftmost wall).
+; Shifts left A times so B's MSB aligns with
+; ViewX, then returns B as the visible byte.
+; ========================== AZM
+; in        A
+; clobbers  A,D
+; ========================== AZM
 WindowByteBc:
         LD      D,A
         LD      A,D
@@ -287,13 +286,14 @@ WindowByteDone:
         LD      A,B
         RET
 
-; RendPwrPills
-; Input:
-;   ViewX/Y and PacPowerPills
-; Output:
-;   visible power pills rendered with PacColorPwrPill
-; Clobbers:
-;   A, BC, DE, HL
+; RendPwrPills —
+; Render all uneaten power pills for a full
+; frame rebuild.
+; Iterates PacPowerPills; skips entries with the
+; corresponding PacPwrPillsEat bit set.
+; ========================== AZM
+; clobbers  D,HL
+; ========================== AZM
 RendPwrPills:
         LD      HL,PacPowerPills
         LD      D,1
@@ -318,13 +318,13 @@ RendPwrPillNext:
         SLA     D
         JR      RendPwrPillLp
 
-; RendPwrPillRow
-; Input:
-;   A = screen row 0..7
-; Output:
-;   visible power pills on that row rendered into FramebufferBack
-; Clobbers:
-;   A, BC, DE, HL
+; RendPwrPillRow —
+; Render uneaten power pills on one screen row.
+; Used in the per-row cooperative render path.
+; ========================== AZM
+; in        A
+; clobbers  DE,HL
+; ========================== AZM
 RendPwrPillRow:
         LD      E,A                     ; E = target screen row
         LD      HL,PacPowerPills
@@ -354,14 +354,14 @@ RendPwrRowNext:
         SLA     D
         JR      RendPwrRowLoop
 
-; RendPwrPillBc
-; Input:
-;   B = world x
-;   C = world y
-; Output:
-;   if the cell is in the viewport, its Framebuffer cell is set to power-pill color
-; Clobbers:
-;   A, B, C, DE, HL
+; RendPwrPillBc —
+; Render one power pill if it is in the viewport.
+; Skips silently when world (B=x, C=y) is off
+; screen. Calls FbSetCell with PacColorPwrPill.
+; ========================== AZM
+; in        BC
+; clobbers  A,BC,DE,HL
+; ========================== AZM
 RendPwrPillBc:
         LD      A,(ViewY)
         LD      E,A
@@ -388,15 +388,17 @@ RendPwrPillBc:
         LD      A,PacColorPwrPill
         JP      FbSetCell
 
-; RendEnemyBack
-; Input:
-;   IX = monster record base
-;   monster X/Y, ViewX/Y, monster state, PacPowerTimerLo/HI, respawn timer
-; Output:
-;   enemy pixel rendered as attack color normally or flee color when enemy state is flee,
-;   replacing any path color at that cell; respawning enemy is not rendered
-; Clobbers:
-;   A, B, C, DE, HL
+; RendEnemyBack —
+; Render one Monster pixel into FramebufferBack.
+; Skips respawning Monsters (MonRespTimer > 0).
+; Flee colour shown only when state = flee AND
+; power timer is active above the warning mask;
+; otherwise attack colour. Calls FbSetCell,
+; replacing whatever was at that cell.
+; ========================== AZM
+; in        IX
+; clobbers  A,BC,DE,HL
+; ========================== AZM
 RendEnemyBack:
         LD      A,(IX + MonRespTimer)
         OR      A
@@ -452,13 +454,14 @@ RendEnemyFlee:
         LD      A,PacColorEnFlee
         JP      FbSetCell
 
-; RendMonsRow
-; Input:
-;   A = screen row 0..7
-; Output:
-;   visible Monsters on that row rendered into FramebufferBack
-; Clobbers:
-;   A, BC, DE, HL, IX
+; RendMonsRow —
+; Render all active Monsters on one screen row.
+; Calls RendEnemyIfRow for Monster0 and Monster1.
+; Monster2 is skipped before level 2.
+; ========================== AZM
+; in        A,IX
+; clobbers  IX,A,BC,E,HL
+; ========================== AZM
 RendMonsRow:
         LD      C,A
         PUSH    BC
@@ -479,14 +482,15 @@ RendMonsRow:
         LD      IX,Monster2
         JP      RendEnemyIfRow
 
-; RendEnemyIfRow
-; Input:
-;   E = target screen row 0..7
-;   IX = monster record base
-; Output:
-;   enemy rendered only when it is active and occupies target screen row
-; Clobbers:
-;   A, BC, DE, HL
+; RendEnemyIfRow —
+; Render a Monster only when it is on screen row E.
+; Skips when the Monster is respawning or when its
+; world Y does not map to row E.
+; Delegates to RendEnemyBack when matched.
+; ========================== AZM
+; in        IX,E
+; clobbers  A,BC,HL
+; ========================== AZM
 RendEnemyIfRow:
         LD      A,(IX + MonRespTimer)
         OR      A
@@ -506,14 +510,15 @@ RendEnemyIfRow:
         POP     DE
         RET
 
-; RendPlyBack
-; Input:
-;   PlayerX/Y, ViewX/Y
-; Output:
-;   player pixel rendered with palette colors; yellow normally, white when the
-;   round is complete, red when caught
-; Clobbers:
-;   A, B, C, DE, HL
+; RendPlyBack —
+; Render the player pixel into FramebufferBack.
+; Colour: yellow (PacColorPlayer) normally;
+; white (PacColorRound) when round is complete;
+; red (PacColorEnAtk) when caught.
+; Skips silently when the player is off-screen.
+; ========================== AZM
+; clobbers  A,BC,DE,HL
+; ========================== AZM
 RendPlyBack:
         LD      A,(PlayerY)
         LD      B,A
@@ -557,13 +562,13 @@ RendPlyCaught:
         LD      A,PacColorEnAtk
         JP      FbSetCell
 
-; RendPlyRow
-; Input:
-;   A = screen row 0..7
-; Output:
-;   player rendered into FramebufferBack only when it occupies that row
-; Clobbers:
-;   A, BC, DE, HL
+; RendPlyRow —
+; Render the player only when it is on screen row A.
+; Tail-calls RendPlyBack (JP) when matched.
+; ========================== AZM
+; in        A
+; clobbers  A,BC,DE,HL
+; ========================== AZM
 RendPlyRow:
         LD      E,A
         LD      A,(PlayerY)

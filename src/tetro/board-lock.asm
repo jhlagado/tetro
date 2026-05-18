@@ -1,11 +1,17 @@
-; LockActPiece
-; Input:
-;   active piece state (PlayerX/Y, CURRENT_PIECE_*), BoardRows / BOARD_*
-; Output:
-;   active piece merged into board; line-clear queued, next piece spawned,
-;   or top-out -> EnterGameOver
-; Clobbers:
-;   A, BC, DE, HL
+; LockActPiece —
+; Commit the active piece to the landed board.
+; Top-out check runs first: if any occupied row
+; is above the visible field, merges the piece
+; then branches to EnterGameOver.
+; On a completed row: triggers clear sound,
+; disables the active piece, and sets ClearPending
+; and ClearTimer for the hold delay.
+; On no clear: triggers lock sound, spawns next.
+; ========================== AZM
+; in        carry
+; out       DE,HL,B,carry,zero
+; clobbers  A,C
+; ========================== AZM
 LockActPiece:
         CALL    CheckTopOut
         JR      C,LockGameOver
@@ -31,13 +37,16 @@ LockGameOver:
         CALL    EnterGameOver
         RET
 
-; EnterGameOver
-; Input:
-;   A = game-over reason code
-; Output:
-;   GameOver latched, active piece disabled, Framebuffer rebuilt, LCD updated
-; Clobbers:
-;   A, BC, DE, HL
+; EnterGameOver —
+; Latch game-over state and show the game-over
+; screen.
+; Disables active piece, sets GameOver, arms
+; GOverKeyGateLo for the restart-input delay.
+; Tail-calls SndTrigGOver, RebuildFb, then
+; LcdShowGOver (JP; does not return to caller).
+; ========================== AZM
+; clobbers  A,BC,DE,HL
+; ========================== AZM
 EnterGameOver:
         PUSH    AF
         XOR     A
@@ -51,13 +60,16 @@ EnterGameOver:
         CALL    RebuildFb
         JP      LcdShowGOver
 
-; SplashState
-; Input:
-;   SplashTimer / FramePhase
-; Output:
-;   waits for a fresh key press, then seeds the RNG and starts a new game
-; Clobbers:
-;   A, BC, DE, HL
+; SplashState —
+; Wait for a fresh key press on the splash screen.
+; Seeds RngSeed from FramePhase (0 replaced with
+; RngSeedInit), draws the first NextPiece, locks
+; input, and starts the game via SpawnActPiece
+; then RebuildFb (JP).
+; ========================== AZM
+; out       A,carry
+; clobbers  C
+; ========================== AZM
 SplashState:
         LD      C,ApiScanKeys
         RST     0x10
@@ -79,14 +91,16 @@ SplashSeedReady:
         CALL    LcdShowRunning
         JP      RebuildFb
 
-; LineClearState
-; Input:
-;   ClearPending / ClearTimer / LogicSlice in RAM
-; Output:
-;   advances clear-hold countdown once per full logic cycle
-;   collapses full rows and spawns next piece when timer expires
-; Clobbers:
-;   A, BC, DE, HL
+; LineClearState —
+; Manage the post-clear hold delay.
+; Only advances on slice 0 (one tick per full
+; logic cycle). On ClearTimer expiry: collapses
+; filled rows, awards score, clears ClearPending,
+; then tail-calls SpawnActPiece (JP).
+; ========================== AZM
+; out       B,H
+; clobbers  A,C,DE,L
+; ========================== AZM
 LineClearState:
         LD      A,(LogicSlice)
         OR      A
@@ -102,14 +116,15 @@ LineClearState:
         CALL    BoardEmptyScan
         JP      SpawnActPiece
 
-; CheckFullRows
-; Input:
-;   BoardRows
-; Output:
-;   ClearMask updated
-;   carry set if one or more rows are full
-; Clobbers:
-;   A, BC, E, HL
+; CheckFullRows —
+; Scan BoardRows for 0xFF (completely full) rows.
+; Builds ClearMask: bit N set when row N is full.
+; Returns carry set when any row is full,
+; carry clear otherwise.
+; ========================== AZM
+; out       BC,HL,E,carry,zero
+; clobbers  A
+; ========================== AZM
 CheckFullRows:
         LD      HL,BoardRows
         LD      B,RowCount
@@ -137,13 +152,14 @@ CheckRowsNone:
         OR      A
         RET
 
-; CountClearRows
-; Input:
-;   ClearMask
-; Output:
-;   A = number of set bits in ClearMask (0..8)
-; Clobbers:
-;   A, BC
+; CountClearRows —
+; Count the set bits in ClearMask.
+; Returns the count in A (0..8).
+; ========================== AZM
+; maybe-out A
+; out       BC
+; clobbers  A
+; ========================== AZM
 CountClearRows:
         LD      A,(ClearMask)
         LD      C,A
@@ -160,14 +176,16 @@ CountClearDone:
         LD      A,B
         RET
 
-; ApplyClearScore
-; Input:
-;   ClearMask
-; Output:
-;   LinesClearTotal incremented by number of cleared rows
-;   Score updated using 100/300/500/800 for 1/2/3/4+ rows (from ClearScoreTbl)
-; Clobbers:
-;   A, BC, DE, HL
+; ApplyClearScore —
+; Award score for a completed-row event.
+; Increments LinesClearTotal by the cleared count.
+; Score delta is looked up in ClearScoreTbl:
+; 100, 300, 500, or 800 for 1, 2, 3, or 4+ rows.
+; Tail-calls UpdGravByScore then UpdScoreDisplay.
+; ========================== AZM
+; out       BC,A,zero
+; clobbers  E
+; ========================== AZM
 ApplyClearScore:
         CALL    CountClearRows
         OR      A
@@ -196,13 +214,14 @@ ApplyClearLookup:
         CALL    UpdGravByScore
         JP      UpdScoreDisplay
 
-; UpdGravByScore
-; Input:
-;   ScoreLo / ScoreHi
-; Output:
-;   CurGravPeriod updated from Score threshold(s)
-; Clobbers:
-;   A, HL
+; UpdGravByScore —
+; Increase gravity when Score crosses a threshold.
+; Updates CurGravPeriod: GravityPeriod below the
+; threshold, GravPeriodStep1 at or above it.
+; ========================== AZM
+; out       A,zero
+; clobbers  HL
+; ========================== AZM
 UpdGravByScore:
         LD      HL,(ScoreLo)
         LD      A,H
@@ -221,13 +240,15 @@ UpdateGpStore:
         LD      (CurGravPeriod),A
         RET
 
-; CollapseRows
-; Input:
-;   ClearMask, BoardRows, BoardRed, BoardGreen, BoardBlue
-; Output:
-;   completed rows removed, rows above collapsed downward
-; Clobbers:
-;   A, BC, DE, HL
+; CollapseRows —
+; Remove cleared rows and compact the board.
+; Scans bottom-to-top; rows not in ClearMask are
+; copied downward into the vacated slots.
+; Top rows left vacant are zeroed in BoardRows
+; and all three landed colour planes.
+; ========================== AZM
+; out       DE,B
+; ========================== AZM
 CollapseRows:
         LD      B,RowCount
         LD      D,RowCount - 1
@@ -271,14 +292,16 @@ CollapseTopLoop:
         DJNZ    CollapseTopLoop
         RET
 
-; CopyBoardRow
-; Input:
-;   D = source row index
-;   E = destination row index
-; Output:
-;   BoardRows and landed RGB planes copied from D to E
-; Clobbers:
-;   A
+; CopyBoardRow —
+; Copy one row across all four board arrays.
+; Copies occupancy (BoardRows) then the three
+; colour planes (BoardRed, BoardGreen, BoardBlue)
+; from row D to row E. Each array is RowCount
+; bytes wide; the stride between arrays is
+; RowCount bytes.
+; ========================== AZM
+; out       HL,C
+; ========================== AZM
 CopyBoardRow:
         PUSH    HL
         PUSH    BC
@@ -316,13 +339,14 @@ CopyBrAdvNc:
         POP     HL
         RET
 
-; ClearBoardRow
-; Input:
-;   D = row index
-; Output:
-;   row cleared in occupancy and RGB planes
-; Clobbers:
-;   A, BC, HL
+; ClearBoardRow —
+; Zero one row in BoardRows and all three colour
+; planes. Uses the same RowCount stride as
+; CopyBoardRow.
+; ========================== AZM
+; out       BC,HL,carry,zero
+; clobbers  A
+; ========================== AZM
 ClearBoardRow:
         XOR     A
         LD      B,A
@@ -348,13 +372,12 @@ ClearBrAdvNc:
         JR      NZ,ClearBrNext
         RET
 
-; BoardEmptyScan
-; Input:
-;   BoardRows
-; Output:
-;   BoardEmpty updated from occupancy rows
-; Clobbers:
-;   A, B, HL
+; BoardEmptyScan —
+; Set BoardEmpty=1 when all BoardRows bytes are
+; zero; set BoardEmpty=0 otherwise.
+; ========================== AZM
+; out       HL,B
+; ========================== AZM
 BoardEmptyScan:
         LD      HL,BoardRows
         LD      B,RowCount
@@ -372,15 +395,16 @@ BoardNotEmpty:
         LD      (BoardEmpty),A
         RET
 
-; MergeRgbRow
-; Input:
-;   H = 0, L = landed row index within playfield (same cell row used for BoardRows)
-;   C = shifted occupancy mask already ORed into BoardRows for this row
-; Output:
-;   colour planes optionally ORed — controlled by CurPieceColor bits
-; Clobbers:
-;   A; preserves HL, DE, BC (B is caller's DJNZ counter)
-; Relies on BoardRed/GREEN/BLUE being contiguous RowCount-sized arrays.
+; MergeRgbRow —
+; OR column mask C into the landed colour planes
+; for the row at index L.
+; Only the planes enabled by CurPieceColor bits
+; are touched; plane stride is RowCount bytes.
+; Call after ORing C into BoardRows for this row.
+; ========================== AZM
+; in        L
+; out       DE,HL,A,B
+; ========================== AZM
 MergeRgbRow:
         PUSH    BC
         PUSH    DE
@@ -411,13 +435,16 @@ MergeOrExit:
         POP     BC
         RET
 
-; MergeActBoard
-; Input:
-;   PlayerX, PlayerY, CurPiecePtr, CurPieceColor
-; Output:
-;   active piece ORed into BoardRows and landed RGB planes
-; Clobbers:
-;   A
+; MergeActBoard —
+; Stamp the active piece into the landed board.
+; ORs each occupied row of the 4-row piece bitmap
+; (shifted by PlayerX) into BoardRows, then calls
+; MergeRgbRow to update the three colour planes.
+; Clears BoardEmpty as a side effect.
+; ========================== AZM
+; out       DE,HL,B,carry,zero
+; clobbers  A
+; ========================== AZM
 MergeActBoard:
         PUSH    BC
         PUSH    DE

@@ -24,8 +24,10 @@ KeyDrop:         EQU     0x00
 KeyPause:        EQU     0x00
 NoKey:         EQU     0xFF
 
-; Matrix / display constants. RowCount is the 8x8 matrix dimension; the name
-; is historical from Tetro's original single-game source layout.
+; Matrix / display constants. RowCount is the 8x8
+; matrix dimension; the name
+; is historical from Tetro's original single-game
+; source layout.
 RowCount:      EQU     8
 BytesPerRow:  EQU     4
 FramebufferBytes: EQU  32

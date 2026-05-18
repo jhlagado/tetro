@@ -1,14 +1,15 @@
-; Output one scanline, then advance persistent scan state.
-; ScanTick
-; Input:
-;   uses ScanPtr / ScanMask from RAM
-; Output:
-;   one matrix row emitted to hardware ports
-;   one seven-segment digit emitted to hardware ports
-; Clobbers:
-;   A, BC, DE, HL
-; Uses @clobbers A,BC,DE,HL,F while scanning display and sound state.
-; Keeps @preserves IX,IY stable for the caller.
+; Cooperative scanline driver.
+; Emits one matrix row and one HUD digit per call.
+
+; ScanTick —
+; Emit one matrix row using ScanPtr / ScanMask.
+; Also services the speaker (SndService) and
+; advances the HUD scan (HudScanDig) every call.
+; Delegates scan-state advance to ScanNext.
+; ========================== AZM
+; out       HL,carry
+; clobbers  A,BC,DE
+; ========================== AZM
 ScanTick:
         XOR     A
         OUT     (PortRow),A
@@ -34,16 +35,16 @@ ScanTick:
         CALL    ScanNext
         RET
 
-; ScanNext
-; Input:
-;   uses ScanMask / ScanPtr from RAM
-; Output:
-;   updated ScanMask / ScanPtr
-;   FramePhase: see ram.asm label — incremented once per full Framebuffer wrap only.
-; Clobbers:
-;   A, DE, HL
-; Uses @clobbers A,DE,HL,F while advancing scan state.
-; Keeps @preserves BC,IX,IY stable for the caller.
+; ScanNext —
+; Step ScanMask (RLC) and ScanPtr (+BytesPerRow).
+; On wrap back to ScanMaskStart: resets ScanPtr
+; to Framebuffer base and increments FramePhase.
+; FramePhase is the splash-screen RNG entropy
+; source; it is not used for pacing elsewhere.
+; ========================== AZM
+; out       HL,carry
+; clobbers  A,DE
+; ========================== AZM
 ScanNext:
         LD      A,(ScanMask)
         RLC     A

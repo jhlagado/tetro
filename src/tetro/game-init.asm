@@ -1,10 +1,13 @@
-; InitState
-; Input:
-;   none
-; Output:
-;   initialized runtime state in RAM
-; Clobbers:
-;   A, BC, DE, HL
+; InitState —
+; Cold-start entry point.
+; Calls InitStateBase, sets SplashTimer=1, shows
+; the splash screen, then rebuilds the Framebuffer.
+; Use for first launch only; restart uses
+; InitRestart.
+; ========================== AZM
+; in        DE
+; clobbers  A,BC,DE,HL
+; ========================== AZM
 InitState:
         CALL    InitStateBase
         LD      A,1
@@ -12,13 +15,15 @@ InitState:
         CALL    LcdShowSplash
         JP      RebuildFb
 
-; InitRestart
-; Input:
-;   none
-; Output:
-;   initialized runtime state for immediate post-game restart
-; Clobbers:
-;   A, BC, DE, HL
+; InitRestart —
+; Restart entry point (after game-over).
+; Calls InitStateBase then immediately spawns the
+; first piece and shows the running HUD.
+; Skips the splash screen; RNG state is preserved
+; from when the seed was set at splash time.
+; ========================== AZM
+; clobbers  A,BC,DE,HL
+; ========================== AZM
 InitRestart:
         CALL    InitStateBase
         XOR     A
@@ -30,13 +35,14 @@ InitRestart:
         CALL    LcdShowRunning
         JP      RebuildFb
 
-; InitStateBase
-; Input:
-;   none
-; Output:
-;   common runtime state initialized in RAM
-; Clobbers:
-;   A, B, HL
+; InitStateBase —
+; Zero or reset all mutable play-state variables.
+; Sets movement and gravity periods, clears all
+; game flags, resets score, initialises scan
+; state, and clears the board and HUD buffer.
+; ========================== AZM
+; out       HL,A,B,carry,zero
+; ========================== AZM
 InitStateBase:
         LD      A,MovePeriod
         LD      (MoveCooldown),A

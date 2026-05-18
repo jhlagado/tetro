@@ -1,14 +1,16 @@
 ; Generic seven-segment HUD scan helpers.
 
-; HudScanDig
-; Input:
-;   HudSegBuffer / HudScanIndex / SpeakerPort
-; Output:
-;   one seven-segment digit refreshed
-; Clobbers:
-;   A, BC, DE, HL
-; Uses @clobbers A,BC,DE,HL,F while refreshing one HUD digit.
-; Keeps @preserves IX,IY stable for the caller.
+; HudScanDig —
+; Strobe one seven-segment digit.
+; Clears PortDigits first to suppress ghosting,
+; outputs the segment byte from HudSegBuffer,
+; then asserts the digit-select bit from
+; HudMaskTbl. Advances HudScanIndex 0..5,
+; wrapping to 0 after digit 5.
+; ========================== AZM
+; out       A,carry,zero
+; clobbers  BC,DE,HL
+; ========================== AZM
 HudScanDig:
         LD      A,(HudScanIndex)
         LD      C,A
@@ -42,15 +44,11 @@ HudScanSave:
         LD      (HudScanIndex),A
         RET
 
-; HudBlankDig
-; Input:
-;   none
-; Output:
-;   HudSegBuffer[0..5] = 0
-; Clobbers:
-;   A, B, HL
-; Uses @clobbers A,B,HL,F while clearing the HUD digit buffer.
-; Keeps @preserves C,DE,IX,IY stable for the caller.
+; HudBlankDig —
+; Zero all six bytes of HudSegBuffer.
+; ========================== AZM
+; out       HL,A,B,carry,zero
+; ========================== AZM
 HudBlankDig:
         LD      HL,HudSegBuffer
         LD      B,6
@@ -61,17 +59,14 @@ HudBlankLp:
         DJNZ    HudBlankLp
         RET
 
-; HudWriteU16
-; Input:
-;   HL = unsigned 16-bit value
-; Output:
-;   HudSegBuffer[0] = zero glyph
-;   HudSegBuffer[1..5] = decimal digits for 10000,1000,100,10,1
-; Clobbers:
-;   A, BC, DE, HL
-; Accepts @in HL as the unsigned value.
-; Uses @clobbers A,BC,DE,HL,F while formatting the decimal display.
-; Keeps @preserves IX,IY stable for the caller.
+; HudWriteU16 —
+; Encode a 16-bit value as decimal into
+; HudSegBuffer.
+; Slot 0 always shows the zero glyph; slots 1–5
+; hold the 10000, 1000, 100, 10, and 1 digits.
+; ========================== AZM
+; out       BC,DE,A
+; ========================== AZM
 HudWriteU16:
         LD      A,(HudGlyphTbl)
         LD      (HudSegBuffer),A
@@ -89,13 +84,14 @@ HudWriteU16:
         CALL    HudDecDigit
         RET
 
-; HudDecDigit
-; Accepts @in HL as the value remainder.
-; Accepts @in DE as the decimal divisor.
-; Accepts @in BC as destination digit in HudSegBuffer.
-; Returns @out HL as the updated value remainder.
-; Returns @out BC advanced to the next destination.
-; Uses @clobbers A,DE,F while subtracting and formatting.
+; HudDecDigit —
+; Extract one decimal place-value digit from HL.
+; Subtracts DE from HL until HL < DE, counting
+; iterations. Writes the glyph to (BC), advances
+; BC to the next slot.
+; ========================== AZM
+; out       A,carry,zero
+; ========================== AZM
 HudDecDigit:
         XOR     A
 HudDecLp:

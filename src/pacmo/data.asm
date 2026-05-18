@@ -161,9 +161,12 @@ ScriptPacDone:
         DW      LcdTextPacWait
         DB      0
 
-; 15-bit scrolling test bitmap.  Bit 15 is world column 0; bit 1 is column 14.
-; This is deliberately a visual pattern, not a colliding maze yet.
-; Each row is stored high byte first, low byte second for RendWorldBack.
+; 15-bit scrolling test bitmap. Bit 15 is world
+; column 0; bit 1 is column 14.
+; This is deliberately a visual pattern, not a
+; colliding maze yet.
+; Each row is stored high byte first, low byte
+; second for RendWorldBack.
 PacWorldRows:
         DB      %11111111,%11111110
         DB      %10000010,%00000010
@@ -181,9 +184,12 @@ PacWorldRows:
         DB      %10000000,%00000010
         DB      %11111111,%11111110
 
-; Power-pill coordinates, stored as x,y pairs and terminated by 0xFF.
-; These are placed on open cells away from the player Start and near broad
-; maze regions so they are visible test landmarks before consumption exists.
+; Power-pill coordinates, stored as x,y pairs and
+; terminated by 0xFF.
+; These are placed on open cells away from the
+; player Start and near broad
+; maze regions so they are visible test landmarks
+; before consumption exists.
 PacPowerPills:
         DB      1,3
         DB      13,3
@@ -191,9 +197,12 @@ PacPowerPills:
         DB      13,11
         DB      0xFF
 
-; Enemy respawn candidates, stored as x,y pairs and terminated by 0xFF.
-; All entries must be open maze cells.  The respawn routine picks the entry
-; with the largest Manhattan distance from the current player position.
+; Enemy respawn candidates, stored as x,y pairs
+; and terminated by 0xFF.
+; All entries must be open maze cells. The respawn
+; routine picks the entry
+; with the largest Manhattan distance from the
+; current player position.
 PacEnemySpawns:
         DB      1,3
         DB      13,3

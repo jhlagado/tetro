@@ -1,6 +1,7 @@
 ; RAM layout.
-; These bytes are mutable program state. InitState sets explicit defaults
-; and clears the buffers that need a known startup value.
+; Mutable program state. InitState sets explicit
+; defaults and clears buffers that need a known
+; startup value.
 RamStart:
 PlayerX:
         DB      0
@@ -59,8 +60,9 @@ DropLockout:
 GameOver:
         DB      0
 
-; 16-bit restart-delay countdown; LO is the 16-bit address used by
-; LD HL,(GOverKeyGateLo) and written back as HL.
+; 16-bit restart-delay countdown.
+; Accessed as a word via LD HL,(GOverKeyGateLo)
+; and written back as HL.
 GOverKeyGate:
         DW      0
 GOverKeyGateLo   EQU     GOverKeyGate
@@ -81,8 +83,10 @@ ClearTimer:
 LinesClearTotal:
         DB      0
 
-; 16-bit Score (ScoreLo is the low-byte address used by LD HL,(ScoreLo);
-; ScoreHi is the high byte, cleared by InitStateBase).
+; 16-bit Score.
+; Accessed as a word via LD HL,(ScoreLo);
+; ScoreHi is the high byte, cleared by
+; InitStateBase.
 Score:
         DW      0
 ScoreLo        EQU     Score
@@ -115,8 +119,10 @@ SndDivCount:
 HudSegBuffer:
         DS      6
 
-; Full-matrix wrap counter: advanced in ScanNext when scan wraps to top of Framebuffer.
-; Splash RNG seed helper only — not gravity / input / pacing (those use dedicated RAM timers).
+; Full-matrix wrap counter.
+; ScanNext increments on each framebuffer wrap.
+; Used only by SplashState for RNG entropy;
+; not used for gravity, input, or pacing timers.
 FramePhase:
         DB      0
 
@@ -147,7 +153,9 @@ BoardEmpty:
 Framebuffer:
         DS      FramebufferBytes
 
-; Off-screen compose buffer; visible FB is updated atomically from here in slice 7.
+; Off-screen compose buffer.
+; The live Framebuffer is updated atomically
+; from here in slice 7.
 FramebufferBack:
         DS      FramebufferBytes
 

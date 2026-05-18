@@ -1,12 +1,11 @@
-; Generic double-buffer helpers for the 8x8 RGB matrix Framebuffer.
+; Generic double-buffer helpers for the
+; 8x8 RGB matrix Framebuffer.
 
-; FbClearAll
-; Input:
-;   none
-; Output:
-;   FramebufferBack cleared to zero
-; Clobbers:
-;   A, B, HL
+; FbClearAll —
+; Zero all of FramebufferBack.
+; ========================== AZM
+; out       HL,A,B,carry,zero
+; ========================== AZM
 FbClearAll:
         LD      HL,FramebufferBack
         LD      B,FramebufferBytes
@@ -17,13 +16,14 @@ FbClrLoop:
         DJNZ    FbClrLoop
         RET
 
-; FbClearRow
-; Input:
-;   A = byte offset into FramebufferBack, expected 0,4,8,...,28
-; Output:
-;   selected 4-byte row cleared
-; Clobbers:
-;   A, DE, HL
+; FbClearRow —
+; Clear one RGB row in FramebufferBack.
+; Row offset is 4 bytes per row: 0, 4, 8 … 28.
+; ========================== AZM
+; in        A
+; out       carry
+; clobbers  A,DE,HL
+; ========================== AZM
 FbClearRow:
         LD      E,A
         LD      D,0
@@ -39,13 +39,12 @@ FbClearRow:
         LD      (HL),A
         RET
 
-; FbCopyAll
-; Input:
-;   FramebufferBack contains completed image
-; Output:
-;   Framebuffer overwritten from FramebufferBack
-; Clobbers:
-;   BC, DE, HL
+; FbCopyAll —
+; Copy FramebufferBack to the live Framebuffer.
+; LDIR copies the full FramebufferBytes block.
+; ========================== AZM
+; clobbers  BC,DE,HL
+; ========================== AZM
 FbCopyAll:
         LD      HL,FramebufferBack
         LD      DE,Framebuffer
@@ -53,13 +52,13 @@ FbCopyAll:
         LDIR
         RET
 
-; FbCopyRow
-; Input:
-;   A = byte offset into both framebuffers, expected 0,4,8,...,28
-; Output:
-;   selected 4-byte row copied from FramebufferBack to Framebuffer
-; Clobbers:
-;   A, DE, HL
+; FbCopyRow —
+; Copy one RGB row from back to live Framebuffer.
+; Row offset A is 4 bytes per row: 0, 4, 8 … 28.
+; ========================== AZM
+; in        A
+; clobbers  A,DE,HL
+; ========================== AZM
 FbCopyRow:
         LD      E,A
         LD      D,0

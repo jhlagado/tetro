@@ -1,10 +1,17 @@
-; Candidate placement test (same MSB-left column convention per ShiftRowMask / boarded occupancy nibbles).
-; Accepts @in D as candidate x.
-; Accepts @in E as candidate y.
-; Returns @out carry set if placement collides or is out of bounds.
-;   carry clear if placement is legal
-; Uses @clobbers A,F as scratch and result flags.
-; Keeps @preserves BC,DE,HL stable for the caller.
+; CheckCollAtDe —
+; Test candidate piece placement at (D, E).
+; Checks X bounds against XMin and CurPieceRight.
+; Checks each occupied piece row against BoardRows
+; using the MSB-left column convention.
+; Returns carry set on collision or out-of-bounds,
+; carry clear when the placement is legal.
+; Preserves BC, DE, HL.
+; ========================== AZM
+; in        D
+; maybe-out carry
+; out       DE,B,H,zero
+; clobbers  A,C,L
+; ========================== AZM
 CheckCollAtDe:
         PUSH    BC
         PUSH    DE
@@ -24,9 +31,17 @@ CheckCollAtDe:
         LD      H,0
         LD      B,4
         LD      DE,(CurPiecePtr)
-        ; Empty-board fast path removed: CheckCollRow handles it correctly
-        ; (BoardRows=0 -> AND yields 0 -> no overlap), at the cost of ~12 cycles
-        ; per collision on an empty board (only at first spawn after reset).
+        ; Empty-board fast path removed:
+        ; CheckCollRow handles it correctly
+        ; (BoardRows=0 -> AND yields 0 -> no
+        ; overlap), at the cost of ~12 cycles
+        ; per collision on an empty board (only at
+        ; first spawn after reset).
+; ========================== AZM
+; in        DE,L
+; out       A
+; clobbers  C
+; ========================== AZM
 CheckCollRow:
         LD      A,(DE)
         CALL    ShiftRowMask
@@ -71,15 +86,16 @@ CollExitOk:
         POP     BC
         RET
 
-; CheckTopOut
-; Input:
-;   PlayerY, CurPiecePtr
-; Output:
-;   carry set if any occupied row of the active piece is still above the
-;   visible field when the piece is about to lock
-;   carry clear otherwise
-; Clobbers:
-;   A
+; CheckTopOut —
+; Detect an above-field lock that causes game-over.
+; Scans the active piece's 4 rows; if any occupied
+; row has bit 7 set in L (Y is negative, meaning
+; the row is above the visible playfield), carry
+; is set. Carry clear means the piece is in-bounds.
+; ========================== AZM
+; out       DE,HL,B
+; clobbers  A
+; ========================== AZM
 CheckTopOut:
         PUSH    BC
         PUSH    DE

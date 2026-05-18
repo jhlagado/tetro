@@ -1,8 +1,9 @@
-; Generic HD44780 LCD primitives for the TEC-1G MON-3 hardware mapping.
+; Generic HD44780 LCD primitives for the TEC-1G
+; MON-3 hardware mapping.
 
-; LcdBusy
-;   waits until LCD busy flag clears
-; Keeps @preserves AF,BC,DE,HL,IX,IY stable for the caller.
+; LcdBusy —
+; Spin until the HD44780 busy flag clears.
+; Fully preserves all registers (PUSH/POP AF).
 LcdBusy:
         PUSH    AF
 LcdBusyLp:
@@ -12,10 +13,12 @@ LcdBusyLp:
         POP     AF
         RET
 
-; LcdCmd
-; Accepts @in B as LCD instruction byte.
-;   instruction sent to LCD
-; Keeps @preserves AF,BC,DE,HL,IX,IY stable for the caller.
+; LcdCmd —
+; Wait for LCD ready then send B as an
+; instruction byte to PortLcdInst.
+; ========================== AZM
+; in        B
+; ========================== AZM
 LcdCmd:
         PUSH    AF
         CALL    LcdBusy
@@ -24,24 +27,26 @@ LcdCmd:
         POP     AF
         RET
 
-; LcdClear
-; Input:
-;   none
-; Output:
-;   LCD cleared, cursor home
-; Clobbers:
-;   B
+; LcdClear —
+; Send the clear-display command (0x01).
+; Cursor homes to position 0 after the command.
+; Tail-calls LcdCmd (JP).
+; ========================== AZM
+; clobbers  B
+; ========================== AZM
 LcdClear:
         LD      B,0x01
         JP      LcdCmd
 
-; LcdString
-; Input:
-;   HL = zero-terminated ASCII string
-; Output:
-;   string written at current LCD cursor position
-; Clobbers:
-;   A, HL
+; LcdString —
+; Write a zero-terminated string to the LCD.
+; Starts at the current cursor position and
+; returns when the NUL terminator is consumed.
+; ========================== AZM
+; in        HL
+; out       HL,carry
+; clobbers  A
+; ========================== AZM
 LcdString:
         LD      A,(HL)
         INC     HL
@@ -51,13 +56,17 @@ LcdString:
         OUT     (PortLcdData),A
         JR      LcdString
 
-; LcdScript
-; Input:
-;   HL = pointer to script table (DB row_cmd, DW text_ptr, ..., DB 0)
-; Output:
-;   LCD cleared, then each (row_cmd, text_ptr) pair rendered in order
-; Clobbers:
-;   A  (BC, DE, HL pushed/popped)
+; LcdScript —
+; Execute an LCD screen script from ROM.
+; Script format: DB row_cmd, DW text_ptr, …,
+; terminated by DB 0.
+; Clears the display first, then for each entry
+; positions the cursor and writes the string.
+; ========================== AZM
+; in        HL,DE
+; out       DE,HL
+; clobbers  B
+; ========================== AZM
 LcdScript:
         PUSH    BC
         PUSH    DE
@@ -85,13 +94,12 @@ LcdScrDone:
         POP     BC
         RET
 
-; LcdPutc
-; Input:
-;   A = ASCII character
-; Output:
-;   character written at current LCD cursor position
-; Clobbers:
-;   none
+; LcdPutc —
+; Write one character to the LCD at the current
+; cursor position.
+; ========================== AZM
+; in        A
+; ========================== AZM
 LcdPutc:
         PUSH    AF
         CALL    LcdBusy
@@ -99,28 +107,27 @@ LcdPutc:
         OUT     (PortLcdData),A
         RET
 
-; LcdRowStr
-; Input:
-;   B = row DDRAM command
-;   HL = zero-terminated string
-; Output:
-;   cursor moved and string written
-; Clobbers:
-;   A, HL
+; LcdRowStr —
+; Position cursor via DDRAM command in B then
+; write the zero-terminated string from HL.
+; Tail-calls LcdString (JP).
+; ========================== AZM
+; in        B,HL
+; out       HL
+; clobbers  A
+; ========================== AZM
 LcdRowStr:
         CALL    LcdCmd
         JP      LcdString
 
-; LcdPutcTbl
-; Input:
-;   A = unsigned table index
-;   DE = byte table base
-; Output:
-;   table byte at DE+A written
-; Clobbers:
-;   A, HL
-; Notes:
-;   no bounds check
+; LcdPutcTbl —
+; Write the byte at DE+A to the LCD cursor.
+; No bounds check on A.
+; Tail-calls LcdPutc (JP).
+; ========================== AZM
+; in        A,DE
+; clobbers  A,HL
+; ========================== AZM
 LcdPutcTbl:
         LD      L,A
         LD      H,0

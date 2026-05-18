@@ -1,4 +1,5 @@
-; Score delta per line-clear count. Index 0 unused (early-exit on count=0);
+; Score delta per line-clear count. Index 0 unused
+; (early-exit on count=0);
 ; counts >=4 clamp to entry 4 ('tetris').
 ClearScoreTbl:
         DW      0, 100, 300, 500, 800
@@ -28,9 +29,12 @@ LcdTextTetPause:
 LcdTextTetOver:
         DB      "TETRO GAME OVER",0
 
-; LcdScript tables: null-terminated (DB row_cmd, DW text_ptr)+ DB 0
-; HUD scripts leave the cursor at end of "NEXT: " on row 2 so the wrapper
-; can append the dynamic preview letter via LcdAppendPrev.
+; LcdScript tables: null-terminated (DB row_cmd,
+; DW text_ptr)+ DB 0
+; HUD scripts leave the cursor at end of "NEXT: "
+; on row 2 so the wrapper
+; can append the dynamic preview letter via
+; LcdAppendPrev.
 ScriptGameOver:
         DB      LcdRow1
         DW      LcdTextTetOver
@@ -78,9 +82,12 @@ LcdTextSplash3:
 LcdTextSplash4:
         DB      "GO DROP 0 PAUSE",0
 
-; Default 3x3-scale piece set with precomputed clockwise rotations.
-; Shapes are centered in a 3x3 local frame where practical; the engine still
-; stores them as 4 row bytes and shifts them horizontally at runtime.
+; Default 3x3-scale piece set with precomputed
+; clockwise rotations.
+; Shapes are centered in a 3x3 local frame where
+; practical; the engine still
+; stores them as 4 row bytes and shifts them
+; horizontally at runtime.
 PieceIR0:
         DB      %00000000
         DB      %11100000
@@ -124,8 +131,10 @@ PieceTR3:
         DB      %01000000
         DB      %00000000
 
-; S/Z and J/L were previously swapped vs SRS lettering (same MSB-left row bytes,
-; but labels did not match the canonical shapes named on LCD / previews).
+; S/Z and J/L were previously swapped vs SRS
+; lettering (same MSB-left row bytes,
+; but labels did not match the canonical shapes
+; named on LCD / previews).
 PieceSR0:
         DB      %11000000
         DB      %01100000

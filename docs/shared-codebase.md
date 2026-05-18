@@ -43,7 +43,7 @@ The shared layer is deliberately low-level. It contains hardware facts and buffe
 
 Currently shared and generic:
 
-- `src/shared/inc/constants.asm`: hardware ports, MON-3 API constants, key codes, matrix dimensions, colour bits, composite colour names, and speaker bit
+- `src/shared/constants.asm`: hardware ports, MON-3 API constants, key codes, matrix dimensions, colour bits, composite colour names, and speaker bit
 - `src/shared/scan-tick.asm`: matrix row scanout and scan-state advance
 - `src/shared/framebuffer-core.asm`: back-buffer clear and copy helpers
 - `src/shared/framebuffer-draw.asm`: matrix x-to-mask conversion and RGB Framebuffer drawing primitives
