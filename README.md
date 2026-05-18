@@ -106,7 +106,7 @@ Movement repeats slowly while held; tapping moves faster than waiting for repeat
 
 ## Build
 
-Requires [asm80](https://www.npmjs.com/package/asm80). Assemble from `src/`, because `.include` paths are relative to the main source file.
+Requires [asm80](https://www.npmjs.com/package/asm80). Assemble from `src/`, because `.include` paths are relative to the main source file. `asm80` resolves the `-o` path relative to the entry file's directory, so these commands use `../../build` from `src/tetro/` or `src/pacmo/`.
 
 ```bash
 mkdir -p build
