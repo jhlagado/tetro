@@ -1,118 +1,117 @@
 ; Pacmo-specific LCD status screens.
-; Shared LCD primitives live in src/shared/lcd.asm; this file selects Pacmo
-; status scripts and writes Pacmo-specific dynamic LCD rows.
+; Shared LCD primitives live in src/shared/lcd.asm;
+; this file selects Pacmo scripts and writes
+; Pacmo-specific dynamic LCD rows.
 
-; LcdShowPacSplash
-; Input:
-;   none
-; Output:
-;   Pacmo splash and control hint shown on LCD
-; Clobbers:
-;   A, HL
+; LcdShowPacSplash —
+; Show the Pacmo splash and control-hint screen.
+; Tail-calls LcdScript (JP).
+; ========================== AZM
+; in        A,BC,DE,IX,IY,SP,carry,zero,sign,parity,halfCarry
+; clobbers  IX,IY,A,BC,DE,HL
+; ========================== AZM
 LcdShowPacSplash:
         LD      HL,ScriptPacSplash
         JP      LcdScript
 
-; LcdShowPacRun
-; Input:
-;   none
-; Output:
-;   Pacmo running status shown on LCD
-; Clobbers:
-;   A, DE, HL
+; LcdShowPacRun —
+; Show the running HUD script (ScriptPacRun).
+; Refreshes LEVEL and LIVES rows after.
+; ========================== AZM
+; in        A,BC,DE,IX,IY,SP,carry,zero,sign,parity,halfCarry
+; clobbers  IX,IY,A,BC,DE,HL
+; ========================== AZM
 LcdShowPacRun:
         LD      HL,ScriptPacRun
         CALL    LcdScript
         JP      LcdRefStatus
 
-; LcdShowPacPause
-; Input:
-;   none
-; Output:
-;   Pacmo Paused status shown on LCD
-; Clobbers:
-;   A, DE, HL
+; LcdShowPacPause —
+; Show the paused HUD script (ScriptPacPause).
+; Refreshes LEVEL and LIVES rows after.
+; ========================== AZM
+; in        A,BC,DE,IX,IY,SP,carry,zero,sign,parity,halfCarry
+; clobbers  IX,IY,A,BC,DE,HL
+; ========================== AZM
 LcdShowPacPause:
         LD      HL,ScriptPacPause
         CALL    LcdScript
         JP      LcdRefStatus
 
-; LcdShowPower
-; Input:
-;   none
-; Output:
-;   Pacmo power-mode status shown on LCD
-; Clobbers:
-;   A, DE, HL
+; LcdShowPower —
+; Show the power-mode HUD script during pill timer.
+; Refreshes LEVEL and LIVES rows after.
+; ========================== AZM
+; in        A,BC,DE,IX,IY,SP,carry,zero,sign,parity,halfCarry
+; clobbers  IX,IY,A,BC,DE,HL
+; ========================== AZM
 LcdShowPower:
         LD      HL,ScriptPacPower
         CALL    LcdScript
         JP      LcdRefStatus
 
-; LcdShowEatEnemy
-; Input:
-;   none
-; Output:
-;   Pacmo enemy-eaten status shown on LCD
-; Clobbers:
-;   A, DE, HL
+; LcdShowEatEnemy —
+; Show the Monster-eaten scripted cue.
+; Refreshes LEVEL and LIVES rows after.
+; ========================== AZM
+; in        A,BC,DE,IX,IY,SP,carry,zero,sign,parity,halfCarry
+; clobbers  IX,IY,A,BC,DE,HL
+; ========================== AZM
 LcdShowEatEnemy:
         LD      HL,ScriptPacEaten
         CALL    LcdScript
         JP      LcdRefStatus
 
-; LcdShowCaught
-; Input:
-;   none
-; Output:
-;   Pacmo caught status shown on LCD
-; Clobbers:
-;   A, DE, HL
+; LcdShowCaught —
+; Show the life-loss script (ScriptPacCaught).
+; Refreshes the LIVES row only (JP LcdRefLives).
+; ========================== AZM
+; in        A,BC,DE,IX,IY,SP,carry,zero,sign,parity,halfCarry
+; clobbers  IX,IY,A,BC,DE,HL
+; ========================== AZM
 LcdShowCaught:
         LD      HL,ScriptPacCaught
         CALL    LcdScript
         JP      LcdRefLives
 
-; LcdShowPacOver
-; Input:
-;   none
-; Output:
-;   Pacmo game-over status shown on LCD
-; Clobbers:
-;   A, HL
+; LcdShowPacOver —
+; Show the Pacmo game-over screen.
+; Tail-calls LcdScript (JP).
+; ========================== AZM
+; in        A,BC,DE,IX,IY,SP,carry,zero,sign,parity,halfCarry
+; clobbers  IX,IY,A,BC,DE,HL
+; ========================== AZM
 LcdShowPacOver:
         LD      HL,ScriptPacOver
         JP      LcdScript
 
-; LcdShowComplete
-; Input:
-;   none
-; Output:
-;   Pacmo level-complete status shown on LCD
-; Clobbers:
-;   A, HL
+; LcdShowComplete —
+; Show the round-complete / maze-clear screen.
+; Tail-calls LcdScript (JP).
+; ========================== AZM
+; in        A,BC,DE,IX,IY,SP,carry,zero,sign,parity,halfCarry
+; clobbers  IX,IY,A,BC,DE,HL
+; ========================== AZM
 LcdShowComplete:
         LD      HL,ScriptPacDone
         JP      LcdScript
 
-; LcdRefStatus
-; Input:
-;   PacLevel, PacLives
-; Output:
-;   row 2 rewritten as LEVEL X; row 3 rewritten as LIVES N
-; Clobbers:
-;   A, DE, HL
+; LcdRefStatus —
+; Refresh rows 2–3 LEVEL and LIVES from
+; PacLevel and PacLives.
+; ========================== AZM
+; clobbers  A,DE,HL
+; ========================== AZM
 LcdRefStatus:
         CALL    LcdRefLevel
         JP      LcdRefLives
 
-; LcdRefLevel
-; Input:
-;   PacLevel
-; Output:
-;   row 2 rewritten as LEVEL X
-; Clobbers:
-;   A, DE, HL
+; LcdRefLevel —
+; Write row 2 LEVEL banner plus PacLevel digit.
+; Uses PacLevelChars table for the nybble glyph.
+; ========================== AZM
+; clobbers  A,DE,HL
+; ========================== AZM
 LcdRefLevel:
         PUSH    BC
         LD      B,LcdRow2
@@ -125,13 +124,12 @@ LcdRefLevel:
         POP     BC
         RET
 
-; LcdRefLives
-; Input:
-;   PacLives
-; Output:
-;   row 3 rewritten as LIVES N
-; Clobbers:
-;   A, DE, HL
+; LcdRefLives —
+; Write row 3 LIVES banner plus PacLives digit.
+; Uses PacLevelChars table for the nybble glyph.
+; ========================== AZM
+; clobbers  A,DE,HL
+; ========================== AZM
 LcdRefLives:
         PUSH    BC
         LD      B,LcdRow3

@@ -1,19 +1,18 @@
 ; Generic speaker divider state machine.
-; Game-local sound event wrappers set duration/divider values and tail-call
+; Game-local sound event wrappers load
+; duration and divider values then tail-call
 ; SndStart.
 
-; SndStart
-; Input:
-;   A = duration in scan ticks
-;   C = divider reload / half-period
-; Output:
-;   speaker state machine restarted
-; Clobbers:
-;   A
-; Accepts @in A as duration in scan ticks.
-; Accepts @in C as divider reload / half-period.
-; Uses @clobbers A,F while restarting the state machine.
-; Keeps @preserves BC,DE,HL,IX,IY stable for the caller.
+; SndStart —
+; (Re)start a sound cue.
+; Duration is in scan ticks; smaller divider C
+; means a shorter half-period (higher pitch).
+; Resets SpeakerPort to off before the new cue.
+; ========================== AZM
+; in        A,C
+; out       carry,zero
+; clobbers  A
+; ========================== AZM
 SndStart:
         LD      (SoundTimer),A
         LD      A,C
@@ -23,15 +22,15 @@ SndStart:
         LD      (SpeakerPort),A
         RET
 
-; SndService
-; Input:
-;   SoundTimer / SndDivReload / SndDivCount
-; Output:
-;   SpeakerPort toggled while the active sound cue is running
-; Clobbers:
-;   A
-; Uses @clobbers A,F while updating the active sound cue.
-; Keeps @preserves BC,DE,HL,IX,IY stable for the caller.
+; SndService —
+; Tick the speaker state machine once per scan.
+; Decrements SoundTimer; silences when it hits
+; zero. While active, counts SndDivCount down
+; and toggles SpeakerBit on each reload.
+; ========================== AZM
+; out       carry,zero
+; clobbers  A
+; ========================== AZM
 SndService:
         LD      A,(SoundTimer)
         OR      A

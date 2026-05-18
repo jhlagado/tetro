@@ -1,10 +1,11 @@
-; HorizProbeX
-; Input:
-;   PendingX/Y set for candidate lateral move (PlayerY echoed into PendingY)
-; Output:
-;   on success, PlayerX := PendingX
-; Clobbers:
-;   A, DE
+; HorizProbeX —
+; Test PendingX at current PlayerY via collision.
+; PendingY must be pre-set to the current PlayerY.
+; On no collision, commits PendingX to PlayerX.
+; ========================== AZM
+; out       DE,B,H
+; clobbers  A,C,L
+; ========================== AZM
 HorizProbeX:
         LD      A,(PlayerY)
         LD      (PendingY),A
@@ -17,26 +18,27 @@ HorizCommitX:
         LD      (PlayerX),A
         RET
 
-; MoveRight
-; Input:
-;   none
-; Output:
-;   may increment PlayerX if candidate placement is legal
-; Clobbers:
-;   A, DE
+; MoveRight —
+; Attempt to shift the piece one column right.
+; Increments PlayerX if the candidate is legal.
+; ========================== AZM
+; out       DE,B,H
+; clobbers  A,C,L
+; ========================== AZM
 MoveRight:
         LD      A,(PlayerX)
         INC     A
         LD      (PendingX),A
         JP      HorizProbeX
 
-; MoveLeft
-; Input:
-;   none
-; Output:
-;   may decrement PlayerX if candidate placement is legal
-; Clobbers:
-;   A, DE
+; MoveLeft —
+; Attempt to shift the piece one column left.
+; Decrements PlayerX if the candidate is legal;
+; returns immediately at column 0.
+; ========================== AZM
+; out       DE,B,H
+; clobbers  A,C,L
+; ========================== AZM
 MoveLeft:
         LD      A,(PlayerX)
         OR      A
@@ -45,13 +47,15 @@ MoveLeft:
         LD      (PendingX),A
         JP      HorizProbeX
 
-; StepActDown
-; Input:
-;   PlayerX / PlayerY
-; Output:
-;   pending one row down; Carry from CheckCollAtDe (CY = collision/block)
-; Clobbers:
-;   A, DE
+; StepActDown —
+; Load the candidate position one row below.
+; Returns carry from CheckCollAtDe unchanged.
+; Does not commit PlayerY on its own.
+; ========================== AZM
+; maybe-out carry
+; out       DE,B,H
+; clobbers  A,C,L
+; ========================== AZM
 StepActDown:
         LD      A,(PlayerX)
         LD      (PendingX),A
@@ -62,13 +66,15 @@ StepActDown:
         CALL    CheckCollAtDe
         RET
 
-; ApplyGravity
-; Input:
-;   none
-; Output:
-;   may update PlayerY, or lock and respawn active piece on collision
-; Clobbers:
-;   A, DE on commit; A, BC, DE, HL on lock (tail-calls LockActPiece)
+; ApplyGravity —
+; Periodic drop when GravityCooldown expires.
+; Decrements the countdown; reloads from
+; CurGravPeriod on expiry and calls StepActDown.
+; On collision: tail-calls LockActPiece (JP).
+; ========================== AZM
+; out       DE,HL,B
+; clobbers  A,C
+; ========================== AZM
 ApplyGravity:
         LD      A,(GravityCooldown)
         DEC     A
@@ -86,13 +92,16 @@ GravityCommit:
         LD      (PlayerY),A
         RET
 
-; SoftDrop
-; Input:
-;   none
-; Output:
-;   may update PlayerY, or lock and respawn active piece on collision
-; Clobbers:
-;   A, DE on commit; A, BC, DE, HL on lock (tail-calls LockActPiece)
+; SoftDrop —
+; Immediately step the piece down one row.
+; On collision: sets DropLockout and tail-calls
+; LockActPiece (JP).
+; On success: commits PendingY and resets
+; GravityCooldown to CurGravPeriod.
+; ========================== AZM
+; out       DE,HL,B
+; clobbers  A,C
+; ========================== AZM
 SoftDrop:
         CALL    StepActDown
         JR      NC,SoftDropCommit
@@ -105,14 +114,16 @@ SoftDropCommit:
         LD      A,(CurGravPeriod)
         LD      (GravityCooldown),A
         RET
-; SanitizeActPos
-; Input:
-;   PlayerX, PlayerY in RAM
-; Output:
-;   PlayerX clamped to XMin..X_MAX
-;   PlayerY clamped to YMax (negative spawn rows preserved)
-; Clobbers:
-;   A, HL
+
+; SanitizeActPos —
+; Clamp player position to legal field bounds.
+; PlayerX is clamped so the piece stays within
+; columns 0..7, accounting for CurPieceRight.
+; PlayerY is only clamped if it is non-negative;
+; negative Y (above-field spawn rows) is kept.
+; ========================== AZM
+; clobbers  A,HL
+; ========================== AZM
 SanitizeActPos:
         LD      A,(PlayerX)
         LD      HL,CurPieceRight
@@ -133,15 +144,16 @@ SanitizeXDone:
 SanitizeYDone:
         RET
 
-; SelectNextPiece
-; Input:
-;   NextPieceIndex in RAM
-; Output:
-;   CurPieceIndex / CurrentRotation updated
-;   CurPiecePtr / CurPieceRight / CurPieceColor updated
-;   NextPieceIndex advanced modulo PieceCount
-; Clobbers:
-;   A, BC, DE, HL
+; SelectNextPiece —
+; Promote NextPiece to current and advance RNG.
+; Resets rotation to 0 and calls LoadCurRot to
+; update CurPiecePtr, CurPieceRight,
+; and CurPieceColor.
+; Draws a new NextPieceIndex from the RNG.
+; ========================== AZM
+; out       zero
+; clobbers  A,BC,DE,HL
+; ========================== AZM
 SelectNextPiece:
         LD      A,(NextPieceIndex)
         LD      (CurPieceIndex),A
@@ -153,14 +165,15 @@ SelectNextPiece:
         LD      (NextPieceIndex),A
         RET
 
-; RngNextPiece
-; Input:
-;   RngSeed
-; Output:
-;   A = next piece index 0..6
-;   RngSeed advanced
-; Clobbers:
-;   A, B
+; RngNextPiece —
+; Draw the next piece index (0..PieceCount-1).
+; Folds high bits into low bits then masks to 3;
+; retries when the result >= PieceCount so the
+; output is uniformly in range.
+; ========================== AZM
+; out       A,zero
+; clobbers  B
+; ========================== AZM
 RngNextPiece:
         CALL    RngNext8
         LD      B,A
@@ -173,14 +186,14 @@ RngNextPiece:
         JR      NC,RngNextPiece
         RET
 
-; RngNext8
-; Input:
-;   RngSeed
-; Output:
-;   A = next pseudo-random byte
-;   RngSeed advanced
-; Clobbers:
-;   A
+; RngNext8 —
+; Step the 8-bit Galois LFSR and return a byte.
+; Polynomial: XOR 0xB8 when the shifted-out bit
+; is 1. Seed 0 is replaced with RngSeedInit to
+; prevent the zero lock-up state.
+; ========================== AZM
+; out       A,carry
+; ========================== AZM
 RngNext8:
         LD      A,(RngSeed)
         OR      A
@@ -194,15 +207,18 @@ RngNext8Save:
         LD      (RngSeed),A
         RET
 
-; LoadCurRot
-; Input:
-;   CurPieceIndex / CurrentRotation in RAM
-; Output:
-;   CurPiecePtr / CurPieceRight / CurPieceColor updated
-; Clobbers:
-;   A, C, DE, HL
+; LoadCurRot —
+; Reload piece-state caches from ROM tables.
+; Updates CurPieceColor (from PieceColorTbl),
+; CurPieceRight (from PieceRightTbl), and
+; CurPiecePtr (from PiecePtrTable).
+; Table index: piece_index * 4 + rotation.
+; ========================== AZM
+; clobbers  A,C,DE,HL
+; ========================== AZM
 LoadCurRot:
-        ; COLOR lookup first (indexed by piece only) so DE is still free.
+        ; COLOR lookup first; piece-indexed so DE
+        ; stays free.
         LD      A,(CurPieceIndex)
         LD      E,A
         LD      D,0
@@ -211,7 +227,8 @@ LoadCurRot:
         LD      A,(HL)
         LD      (CurPieceColor),A
 
-        ; Now DE = piece_index*4 + rotation for the remaining tables.
+        ; Now DE = piece_index*4 + rotation for
+        ; the remaining tables.
         LD      A,(CurPieceIndex)
         ADD     A,A
         ADD     A,A
@@ -238,16 +255,18 @@ LoadCurRot:
         LD      (HL),D
         RET
 
-; RotateTestDone
-; Prerequisites: tentative rotation loaded via LoadCurRot,
-; CurrentRotation = candidate; COLLISION_AT(PlayerX, PlayerY) decides accept.
-; Rotates back (restore PendingRotation) + reload if illegal.
-; Input:
-;   CurrentRotation (candidate), PendingRotation (previous), PlayerX/Y
-; Output:
-;   commit on legal; revert + reload on collision
-; Clobbers:
-;   A, C, DE, HL
+; RotateTestDone —
+; Finalize or revert a tentative rotation.
+; Tests the candidate CurrentRotation at the
+; current PlayerX/Y via CheckCollAtDe.
+; On collision: restores PendingRotation and
+; reloads the original piece state via LoadCurRot.
+; On legal: plays rotate sound and resets
+; GravityCooldown to CurGravPeriod.
+; ========================== AZM
+; out       B
+; clobbers  A,C,DE,HL
+; ========================== AZM
 RotateTestDone:
         LD      A,(PlayerX)
         LD      D,A
@@ -264,13 +283,14 @@ RotateAccept:
         LD      (GravityCooldown),A
         RET
 
-; RotateCw
-; Input:
-;   current active piece state in RAM
-; Output:
-;   may update CurrentRotation if rotated placement is legal
-; Clobbers:
-;   A, C, DE, HL
+; RotateCw —
+; Attempt clockwise rotation (increment mod 4).
+; Saves current rotation as PendingRotation,
+; applies the candidate, calls RotateTestDone.
+; ========================== AZM
+; out       B
+; clobbers  A,C,DE,HL
+; ========================== AZM
 RotateCw:
         LD      A,(CurrentRotation)
         LD      (PendingRotation),A
@@ -280,13 +300,14 @@ RotateCw:
         CALL    LoadCurRot
         JP      RotateTestDone
 
-; RotateLeft
-; Input:
-;   current active piece state in RAM
-; Output:
-;   may update CurrentRotation if rotated placement is legal
-; Clobbers:
-;   A, C, DE, HL
+; RotateLeft —
+; Attempt counter-clockwise rotation (dec mod 4).
+; Saves current rotation as PendingRotation,
+; applies the candidate, calls RotateTestDone.
+; ========================== AZM
+; out       B
+; clobbers  A,C,DE,HL
+; ========================== AZM
 RotateLeft:
         LD      A,(CurrentRotation)
         LD      (PendingRotation),A
@@ -296,16 +317,18 @@ RotateLeft:
         CALL    LoadCurRot
         JP      RotateTestDone
 
-; SpawnActPiece
-; Input:
-;   none
-; Output:
-;   active-piece state reset to spawn position
-;   returns fault if spawn collides immediately
-;   (Full `LcdShowRunning` left to splash/restart; each successful spawn
-;    refreshes row 3 next-piece preview via LcdRefNextPrev.)
-; Clobbers:
-;   A, BC, DE, HL
+; SpawnActPiece —
+; Select next piece and place at spawn position.
+; Spawn is at column 3, row SpawnY (above the
+; visible field). Immediately checks collision;
+; if the spawn is blocked, tail-calls
+; EnterGameOver (reason code 0).
+; On success: enables the piece and updates the
+; LCD next-piece preview via LcdRefNextPrev.
+; ========================== AZM
+; out       B,H
+; clobbers  A,C,DE,L
+; ========================== AZM
 SpawnActPiece:
         CALL    SelectNextPiece
         LD      A,3

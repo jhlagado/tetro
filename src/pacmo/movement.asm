@@ -1,26 +1,26 @@
-; Poll keypad and move the Pacmo cursor at a controlled repeat rate.
+; Pacmo player input and movement.
 ;
-; Direction mapping for this first scrolling experiment:
-;   KeyLeft  (0x11) = PacDirRight
-;   KeyRight (0x10) = PacDirLeft
-;   ADD     (0x13) = up
-;   GO      (0x12) = down
-;   key 6   (0x06) = up
-;   key 2   (0x02) = down
-;   key 1   (0x01) = PacDirRight
-;   key 3   (0x03) = PacDirLeft
-;   key 0   (0x00) = pause
+; Key-to-direction mapping (world coordinates
+; are flipped: left key increases world X):
+;   KeyLeft / key 1  → PacDirRight (X+1)
+;   KeyRight / key 3 → PacDirLeft  (X-1)
+;   ADD / key 6      → PacDirUp    (Y-1)
+;   GO / key 2       → PacDirDown  (Y+1)
+;   key 0            → pause
 ;
-; Raw keypad codes are normalized into PACMO_DIR_* intents before movement
-; dispatch. Later game logic should consume directions, not physical keys.
-;
-; PollInput
-; Input:
-;   none
-; Output:
-;   may update PlayerX/Y, ViewX/Y, MoveCooldown, LastKey
-; Clobbers:
-;   A, BC, DE, HL, IX
+; Raw keypad codes are normalised into PACMO_DIR_*
+; intents by NormInputDir before movement dispatch.
+
+; PollInput —
+; Read keypad and dispatch movement or game flow.
+; On splash: routes to PollSplashStart.
+; On caught: routes to CaughtRestart.
+; On round-done: returns immediately.
+; Otherwise: normalises key to direction and
+; dispatches via HandleDirKey or ClearInputRpt.
+; ========================== AZM
+; clobbers  A,C,E
+; ========================== AZM
 PollInput:
         LD      A,(PacSplashActive)
         OR      A
@@ -52,13 +52,13 @@ PollNoNewKey:
         JR      C,HandleDirKey
         JP      ClearInputRpt
 
-; PollSplashStart
-; Input:
-;   PacSplashActive is nonzero
-; Output:
-;   starts Pacmo on any key press
-; Clobbers:
-;   A, BC, DE, HL when starting; A, C otherwise
+; PollSplashStart —
+; Wait for any key on the splash screen.
+; Clears PacSplashActive and shows running HUD.
+; ========================== AZM
+; in        B,DE,IX,IY,SP
+; clobbers  IX,IY,A,BC,DE,HL
+; ========================== AZM
 PollSplashStart:
         LD      C,ApiScanKeys
         RST     0x10
@@ -67,13 +67,15 @@ PollSplashStart:
         LD      (PacSplashActive),A
         JP      LcdShowPacRun
 
-; CaughtRestart
-; Input:
-;   PacPlayerCaught is nonzero
-; Output:
-;   waits for PacGOverGate, then restarts or resumes when any key is pressed
-; Clobbers:
-;   A, BC, DE, HL, IX when restarting; A, C, HL otherwise
+; CaughtRestart —
+; Handle input while the player is caught.
+; Counts down PacGOverGate before accepting keys.
+; On game-over (PacGameOver set): tail-calls
+; InitState (JP). Otherwise: tail-calls
+; ResumeCaught (JP).
+; ========================== AZM
+; clobbers  A,HL
+; ========================== AZM
 CaughtRestart:
         LD      HL,(PacGOverGateLo)
         LD      A,H
@@ -91,13 +93,14 @@ CaughtRestartKey:
         JP      Z,ResumeCaught
         JP      InitState
 
-; ResumeCaught
-; Input:
-;   PacLives is nonzero and caught gate has opened
-; Output:
-;   player and Monsters reset; level progress, Score, eaten paths, and lives preserved
-; Clobbers:
-;   A, BC, DE, HL, IX
+; ResumeCaught —
+; Resume after a life loss (lives remain).
+; Resets player and Monsters via InitPlyMons;
+; preserves Score, level, eaten paths, and lives.
+; ========================== AZM
+; in        BC,DE,IX,IY,SP
+; clobbers  IX,IY,A,BC,DE,HL
+; ========================== AZM
 ResumeCaught:
         CALL    InitPlyMons
         XOR     A
@@ -106,26 +109,29 @@ ResumeCaught:
         CALL    LcdShowPacRun
         JP      RebuildFb
 
-; HandlePauseKey
-; Input:
-;   new KeyPause press has been detected
-; Output:
-;   PacPaused set; LCD status updated; input repeat state reset
-; Clobbers:
-;   A
+; HandlePauseKey —
+; Pause the game on a fresh pause-key press.
+; Sets PacPaused, shows the pause screen, then
+; tail-calls ClearInputRpt (JP).
+; ========================== AZM
+; in        BC,DE,IX,IY,SP,carry,zero,sign,parity,halfCarry
+; clobbers  IX,IY,A,BC,DE,HL
+; ========================== AZM
 HandlePauseKey:
         LD      A,1
         LD      (PacPaused),A
         CALL    LcdShowPacPause
         JP      ClearInputRpt
 
-; HandleUnpause
-; Input:
-;   PacPaused is nonzero and a new key press has been detected
-; Output:
-;   PacPaused cleared; LCD status restored; input repeat state reset
-; Clobbers:
-;   A, DE, HL
+; HandleUnpause —
+; Resume from pause on any new key press.
+; Restores power-mode LCD if PacPowerTimer is
+; active; otherwise shows running HUD.
+; Tail-calls ClearInputRpt (JP).
+; ========================== AZM
+; in        BC,D,IX,IY,SP
+; clobbers  IX,IY,A,BC,DE,HL
+; ========================== AZM
 HandleUnpause:
         XOR     A
         LD      (PacPaused),A
@@ -170,14 +176,14 @@ HeldSameKey:
         JR      Z,MovePlayerDown
         RET
 
-; NormInputDir
-; Input:
-;   A = raw MON-3 keypad code from ApiScanKeys
-; Output:
-;   Carry set and E = PACMO_DIR_* for accepted movement keys
-;   Carry clear if the key is not a Pacmo movement key
-; Clobbers:
-;   A, E
+; NormInputDir —
+; Map a raw keypad code to a PACMO_DIR_* intent.
+; Returns carry set and E = direction for valid
+; movement keys; carry clear for all others.
+; ========================== AZM
+; in        A
+; clobbers  A
+; ========================== AZM
 NormInputDir:
         CP      KeyLeft
         JR      Z,NormalizeLeft
@@ -214,13 +220,13 @@ NormalizeDown:
         SCF
         RET
 
-; ClearInputRpt
-; Input:
-;   none
-; Output:
-;   resets repeat timing so the next valid key moves promptly
-; Clobbers:
-;   A
+; ClearInputRpt —
+; Reset key-repeat state to a full period.
+; Resets MoveCooldown to PacMovePeriod and
+; sets LastKey to NoKey.
+; ========================== AZM
+; clobbers  A
+; ========================== AZM
 ClearInputRpt:
         LD      A,PacMovePeriod
         LD      (MoveCooldown),A
@@ -228,13 +234,16 @@ ClearInputRpt:
         LD      (LastKey),A
         RET
 
-; MovePlayerLeft
-; Input:
-;   PlayerX
-; Output:
-;   applies the PacDirLeft world-step unless already at the horizontal edge or target is a wall
-; Clobbers:
-;   A, BC, DE, HL, IX
+; MovePlayerLeft —
+; Step the player in the PacDirLeft direction.
+; In world coordinates this increments X (moving
+; left on screen increases world X).
+; Returns immediately at the world boundary.
+; Tail-calls TryMovePlyBc (JP).
+; ========================== AZM
+; in        IX,IY,SP
+; clobbers  IX,IY,A,BC,DE,HL
+; ========================== AZM
 MovePlayerLeft:
         LD      A,(PlayerX)
         CP      PacWorldMax
@@ -245,13 +254,16 @@ MovePlayerLeft:
         LD      C,A
         JP      TryMovePlyBc
 
-; MovePlyRight
-; Input:
-;   PlayerX
-; Output:
-;   applies the PacDirRight world-step unless already at the horizontal edge or target is a wall
-; Clobbers:
-;   A, BC, DE, HL, IX
+; MovePlyRight —
+; Step the player in the PacDirRight direction.
+; In world coordinates this decrements X (moving
+; right on screen decreases world X).
+; Returns immediately when PlayerX is 0.
+; Tail-calls TryMovePlyBc (JP).
+; ========================== AZM
+; in        IX,IY,SP
+; clobbers  IX,IY,A,BC,DE,HL
+; ========================== AZM
 MovePlyRight:
         LD      A,(PlayerX)
         OR      A
@@ -262,13 +274,14 @@ MovePlyRight:
         LD      C,A
         JP      TryMovePlyBc
 
-; MovePlayerUp
-; Input:
-;   PlayerY
-; Output:
-;   decrements PlayerY unless already at world row 0 or target is a wall
-; Clobbers:
-;   A, BC, DE, HL, IX
+; MovePlayerUp —
+; Step the player upward (decrement PlayerY).
+; Returns immediately when PlayerY is 0.
+; Tail-calls TryMovePlyBc (JP).
+; ========================== AZM
+; in        IX,IY,SP
+; clobbers  IX,IY,A,BC,DE,HL
+; ========================== AZM
 MovePlayerUp:
         LD      A,(PlayerY)
         OR      A
@@ -279,13 +292,14 @@ MovePlayerUp:
         LD      B,A
         JP      TryMovePlyBc
 
-; MovePlayerDown
-; Input:
-;   PlayerY
-; Output:
-;   increments PlayerY unless already at world row 14 or target is a wall
-; Clobbers:
-;   A, BC, DE, HL, IX
+; MovePlayerDown —
+; Step the player downward (increment PlayerY).
+; Returns immediately at PacWorldMax.
+; Tail-calls TryMovePlyBc (JP).
+; ========================== AZM
+; in        IX,IY,SP
+; clobbers  IX,IY,A,BC,DE,HL
+; ========================== AZM
 MovePlayerDown:
         LD      A,(PlayerY)
         CP      PacWorldMax
@@ -296,15 +310,16 @@ MovePlayerDown:
         LD      B,A
         JP      TryMovePlyBc
 
-; TryMovePlyBc
-; Input:
-;   B = candidate world x
-;   C = candidate world y
-; Output:
-;   if target is open, PlayerX/Y committed and viewport adjusted
-;   if target is a wall, PlayerX/Y unchanged
-; Clobbers:
-;   A, BC, DE, HL, IX
+; TryMovePlyBc —
+; Commit a player move if the target is passable.
+; Calls IsWallAtBc; returns on wall.
+; On open cell: updates PlayerX/Y, eats path and
+; power pills, checks round completion and caught
+; state, then adjusts viewport via UpdViewPly.
+; ========================== AZM
+; in        BC,IX,IY,SP
+; clobbers  IX,IY,A,BC,DE,HL
+; ========================== AZM
 TryMovePlyBc:
         CALL    IsWallAtBc
         RET     C
@@ -325,16 +340,15 @@ TryMovePlyBc:
         CALL    CheckPlyCaught
         JP      UpdViewPly
 
-; CheckPlyCaught
-; Input:
-;   IX = monster record base
-;   PlayerX/Y, monster X/Y, state, respawn timer
-; Output:
-;   PacPlayerCaught = 1 when player and active enemy occupy the same world cell
-;   outside enemy flee mode; in enemy flee mode, enemy is consumed and starts respawning
-; Clobbers:
-;   A, BC, DE, HL, IX when the enemy is consumed or caught state is entered;
-;   A, B otherwise
+; CheckPlyCaught —
+; Test player-Monster collision at the same cell.
+; Skips when the Monster is respawning.
+; Flee state: eat the Monster and award score.
+; Attack state: call EnterCaught.
+; ========================== AZM
+; in        IX,DE,IY,SP
+; clobbers  IX,IY,A,BC,DE,HL
+; ========================== AZM
 CheckPlyCaught:
         LD      A,(PacPlayerCaught)
         OR      A
@@ -357,13 +371,15 @@ CheckPlyCaught:
         JR      Z,EatEnemy
         JP      EnterCaught
 
-; EnterCaught
-; Input:
-;   player has collided with an attacking monster
-; Output:
-;   life count reduced; caught or game-over state entered; Framebuffer rebuilt
-; Clobbers:
-;   A, BC, DE, HL, IX
+; EnterCaught —
+; Process a player-Monster collision.
+; Decrements PacLives; if no lives remain, sets
+; PacGameOver and shows the game-over screen.
+; Always rebuilds the Framebuffer in caught colour.
+; ========================== AZM
+; in        B,DE,IX,IY,SP
+; clobbers  IX,IY,A,BC,DE,HL
+; ========================== AZM
 EnterCaught:
         LD      A,1
         LD      (PacPlayerCaught),A
@@ -387,14 +403,15 @@ EnterFinalOver:
         CALL    LcdShowPacOver
         JP      RebuildFb
 
-; EatEnemy
-; Input:
-;   IX = monster record base
-;   player and enemy occupy the same world cell while power mode is active
-; Output:
-;   enemy hidden until EnemyRespTimer expires; Score increased
-; Clobbers:
-;   A, BC, DE, HL
+; EatEnemy —
+; Consume a fleeing Monster.
+; Starts the respawn countdown, plays the eat
+; sound, shows the eat-enemy LCD cue, and
+; tail-calls AddScoreA with PacScoreEnemy (JP).
+; ========================== AZM
+; in        IX,B,DE,IY,SP
+; clobbers  IX,IY,A,BC,DE,HL
+; ========================== AZM
 EatEnemy:
         LD      A,PacEnemyRespawn
         LD      (IX + MonsterState),A
@@ -407,14 +424,15 @@ EatEnemy:
         LD      A,PacScoreEnemy
         JP      AddScoreA
 
-; EatPwrPillBc
-; Input:
-;   B = world x coordinate
-;   C = world y coordinate
-; Output:
-;   matching bit set in PacPwrPillsEat when B/C is a power-pill cell
-; Clobbers:
-;   A, DE, HL; B and C are preserved
+; EatPwrPillBc —
+; Consume a power pill at (B=x, C=y) if present
+; and not yet eaten.
+; Sets the corresponding bit in PacPwrPillsEat,
+; awards PacScorePower, starts power sound and
+; timer, and sets all Monsters to flee mode.
+; ========================== AZM
+; clobbers  D,HL
+; ========================== AZM
 EatPwrPillBc:
         LD      HL,PacPowerPills
         LD      D,1
@@ -452,14 +470,17 @@ EatPwrPillNext:
         SLA     D
         JR      EatPwrPillLoop
 
-; MarkEatenBc
-; Input:
-;   B = world x coordinate, expected 0..14
-;   C = world y coordinate, expected 0..14
-; Output:
-;   corresponding bit set in PacEatenRows
-; Clobbers:
-;   A, BC, DE, HL
+; MarkEatenBc —
+; Record path consumption at world cell (B=x,
+; C=y, both expected 0..14).
+; Sets the column bit in PacEatenRows for row C.
+; B < 8 maps to the high byte of the two-byte
+; row; B >= 8 maps to the low byte (B minus 8).
+; Awards PacScorePath on first visit.
+; ========================== AZM
+; in        BC
+; clobbers  A,BC,DE,HL
+; ========================== AZM
 MarkEatenBc:
         LD      A,C
         ADD     A,A
@@ -505,13 +526,13 @@ MarkEatenLow:
         LD      (HL),A
         RET
 
-; AddScoreA
-; Input:
-;   A = unsigned Score increment
-; Output:
-;   PacScore increased by A; HUD Score display refreshed
-; Clobbers:
-;   A, BC, DE, HL
+; AddScoreA —
+; Add A to PacScore (16-bit) and refresh the HUD.
+; Tail-calls UpdScoreDisplay (JP).
+; ========================== AZM
+; in        A
+; clobbers  A,BC,DE,HL
+; ========================== AZM
 AddScoreA:
         LD      E,A
         LD      D,0
@@ -520,13 +541,18 @@ AddScoreA:
         LD      (PacScore),HL
         JP      UpdScoreDisplay
 
-; CheckRoundDone
-; Input:
-;   PacWorldRows / PacEatenRows
-; Output:
-;   PacRoundDone = 1 when every open cell has been consumed
-; Clobbers:
-;   A, BC, DE, HL
+; CheckRoundDone —
+; Detect level completion.
+; ORs each PacWorldRows pair with PacEatenRows;
+; all rows must be 0xFF to pass (bit 0 of the
+; low byte is masked out as it is outside the
+; 15-column maze).
+; On completion: sets PacRoundDone, starts the
+; level-done timer and sound, and shows the
+; complete LCD screen.
+; ========================== AZM
+; clobbers  A,B,DE,HL
+; ========================== AZM
 CheckRoundDone:
         LD      A,(PacRoundDone)
         OR      A
@@ -557,20 +583,17 @@ CheckRoundRow:
         CALL    LcdShowComplete
         RET
 
-; IsWallAtBc
-; Input:
-;   B = world x coordinate, expected 0..14
-;   C = world y coordinate, expected 0..14
-; Output:
-;   Carry set if PacWorldRows has a wall bit at (B,C)
-;   Carry clear if the cell is open
-; Clobbers:
-;   A, DE, HL
-; Accepts @in B as world x coordinate.
-; Accepts @in C as world y coordinate.
-; Returns @out carry set when the target cell is a wall.
-; Uses @clobbers A,DE,HL,F while reading the world map.
-; Keeps @preserves BC,IX,IY stable for the caller.
+; IsWallAtBc —
+; Test the wall bit at world cell (B=x, C=y).
+; PacWorldRows stores each row as two bytes: 15
+; bits with bit 15 = column 0 (MSB = left wall).
+; Shifts the 16-bit pair left B times so column
+; B lands in bit 7 of D; tests that bit.
+; Returns carry set for wall, clear for open.
+; ========================== AZM
+; in        BC
+; clobbers  A,DE,HL
+; ========================== AZM
 IsWallAtBc:
         LD      A,C
         ADD     A,A
@@ -599,14 +622,14 @@ PacWallOpen:
         OR      A
         RET
 
-; UpdViewPly
-; Input:
-;   PlayerX/Y and ViewX/Y in RAM
-; Output:
-;   ViewX/Y adjusted so player screen position stays in cells 3..4 when
-;   possible, then clamped to the 15x15 world / 8x8 viewport bounds.
-; Clobbers:
-;   A, B, C
+; UpdViewPly —
+; Scroll the viewport to keep the player centred.
+; Calls AdjustViewAxis for X and Y independently.
+; ViewX/Y track so player stays near screen
+; columns/rows 3–4 within the world boundary.
+; ========================== AZM
+; clobbers  A,BC
+; ========================== AZM
 UpdViewPly:
         LD      A,(PlayerX)
         LD      B,A
@@ -621,14 +644,16 @@ UpdViewPly:
         LD      (ViewY),A
         RET
 
-; AdjustViewAxis
-; Input:
-;   A = current view origin for one axis
-;   B = player coordinate on the same axis
-; Output:
-;   A = adjusted view origin, clamped to 0..7
-; Clobbers:
-;   C
+; AdjustViewAxis —
+; Adjust one viewport axis to follow the player.
+; Player screen position = B - A (current view).
+; Shifts view when position < 3 or > 4.
+; Clamps to 0 at the low end and PacViewMax at
+; the high end.
+; ========================== AZM
+; in        A,B
+; clobbers  A,C
+; ========================== AZM
 AdjustViewAxis:
         LD      C,A
         LD      A,B

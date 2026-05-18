@@ -34,7 +34,7 @@
 
         ORG     0x4000
 
-        .include "../shared/inc/constants.asm"
+        .include "../shared/constants.asm"
         .include "constants.asm"
 
 Start:

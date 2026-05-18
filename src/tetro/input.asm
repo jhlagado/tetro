@@ -1,17 +1,15 @@
-; Poll MON-3 keypad state and update PlayerX at a controlled rate.
-;
+; PollInput —
+; Read the keypad and dispatch to action handlers.
 ; scanKeys return contract:
-;   Z  = key is pressed
-;   C  = new key press
-;   NZ = no key / invalid key
-;   A  = key code
-; PollInput
-; Input:
-;   none
-; Output:
-;   may update PlayerX / MoveCooldown / LastKey / SoftDrop via keyed handlers, or JR to ClearInputRpt when no key is pressed (idle / repeat reset path).
-; Clobbers:
-;   A, BC, DE, HL (rotate/soft-drop paths cascade through LoadCurRot / LockActPiece)
+;   Z  = key held, C = new press, NZ = no key.
+; Rotation is edge-triggered (new press only).
+; Left, right, and drop repeat via HandleHeldDir.
+; Skips movement when paused but still allows
+; un-pause via HandleUnpause.
+; ========================== AZM
+; out       A,carry
+; clobbers  C,E
+; ========================== AZM
 PollInput:
         LD      C,ApiScanKeys
         RST     0x10
@@ -66,15 +64,14 @@ HandleDirKey:
         CP      TetKeyDropAlt
         JP      Z,HandleKeyDrop
 
-; ClearInputRpt
-; Restores MoveCooldown full period, clears LastKey and soft-drop latch.
-; Used when leaving held-autorepeat path (invalid/no key, pause, rotate presses, etc.).
-; Input:
-;   none
-; Output:
-;   MoveCooldown = MovePeriod; LastKey = NoKey; DropLockout = 0
-; Clobbers:
-;   A
+; ClearInputRpt —
+; Reset repeat state after a non-repeating event.
+; Restores MoveCooldown to MovePeriod and clears
+; both LastKey and DropLockout.
+; ========================== AZM
+; out       carry,zero
+; clobbers  A
+; ========================== AZM
 ClearInputRpt:
         LD      A,MovePeriod
         LD      (MoveCooldown),A
@@ -84,15 +81,14 @@ ClearInputRpt:
         LD      (DropLockout),A
         RET
 
-; WaitGOverGate
-; Count down main-loop iterations before PollGOverRestart (PRESS ANY KEY) during GameOver.
-; Chirps SndTrigReady exactly when the counter reaches zero.
-; Input:
-;   GOverKeyGateLo/HI
-; Output:
-;   GOverKeyGateLo decremented; tail-calls PollGOverRestart once gate = 0
-; Clobbers:
-;   A, C, HL
+; WaitGOverGate —
+; Enforce a delay before accepting restart input.
+; Counts down the 16-bit GOverKeyGateLo counter.
+; Fires SndTrigReady exactly once when it reaches
+; zero, then falls through to PollGOverRestart.
+; ========================== AZM
+; clobbers  A,C,HL
+; ========================== AZM
 WaitGOverGate:
         LD      HL,(GOverKeyGateLo)
         LD      A,H
@@ -108,26 +104,26 @@ WaitGOverGate:
         CALL    SndTrigReady
         RET
 
-; PollGOverRestart
-; Input:
-;   none
-; Output:
-;   restarts the game on a fresh key press
-; Clobbers:
-;   A, C
+; PollGOverRestart —
+; Poll for a key press after game-over.
+; A fresh key press (carry set) tail-calls
+; InitRestart (JP).
+; ========================== AZM
+; clobbers  A,BC,DE,HL
+; ========================== AZM
 PollGOverRestart:
         LD      C,ApiScanKeys
         RST     0x10
         RET     NC
         JP      InitRestart
 
-; WaitKeyRelease
-; Input:
-;   InputLockout
-; Output:
-;   clears InputLockout once no key is pressed
-; Clobbers:
-;   A, C
+; WaitKeyRelease —
+; Clear InputLockout once no key is being held.
+; Prevents accidental input at spawn and start.
+; ========================== AZM
+; out       carry,zero
+; clobbers  A,C
+; ========================== AZM
 WaitKeyRelease:
         LD      C,ApiScanKeys
         RST     0x10
@@ -136,10 +132,13 @@ WaitKeyRelease:
         LD      (InputLockout),A
         RET
 
-; HandlePauseKey
-; Toggles Paused; swaps LCD between RUNNING/Paused banner.
-; Clobbers:
-;   A
+; HandlePauseKey —
+; Toggle pause state and update the LCD banner.
+; Tail-calls ClearInputRpt (JP) when done.
+; ========================== AZM
+; out       HL,carry,zero
+; clobbers  A
+; ========================== AZM
 HandlePauseKey:
         LD      A,(Paused)
         XOR     1
@@ -152,55 +151,67 @@ PauseShowRun:
         CALL    LcdShowRunning
         JP      ClearInputRpt
 
-; HandleUnpause
-; Clears Paused, restores RUNNING banner.
-; Clobbers:
-;   A
+; HandleUnpause —
+; Clear pause and restore the running LCD banner.
+; Tail-calls ClearInputRpt (JP).
+; ========================== AZM
+; out       HL,carry,zero
+; clobbers  A
+; ========================== AZM
 HandleUnpause:
         XOR     A
         LD      (Paused),A
         CALL    LcdShowRunning
         JP      ClearInputRpt
 
-; HandleRotPress
-; Keyboard dispatch for clockwise rotation with collision check.
-; Clobbers:
-;   A, C, DE, HL
+; HandleRotPress —
+; Dispatch clockwise rotation (CW).
+; Calls RotateCw then tail-calls ClearInputRpt.
+; ========================== AZM
+; out       B
+; clobbers  A,C,DE,HL
+; ========================== AZM
 HandleRotPress:
         CALL    RotateCw
         JP      ClearInputRpt
 
-; HandleCcwPress
-; Keyboard dispatch for counter-clockwise rotation with collision check.
-; Clobbers:
-;   A, C, DE, HL
+; HandleCcwPress —
+; Dispatch counter-clockwise rotation (CCW).
+; Calls RotateLeft then tail-calls ClearInputRpt.
+; ========================== AZM
+; out       B
+; clobbers  A,C,DE,HL
+; ========================== AZM
 HandleCcwPress:
         CALL    RotateLeft
         JP      ClearInputRpt
 
-; HandleKeyRight
-; Tail-calls HandleHeldDir with A = KeyRight.
-; Clobbers:
-;   A, DE
+; HandleKeyRight —
+; Load KeyRight into A then tail-call HandleHeldDir.
+; ========================== AZM
+; clobbers  A,E
+; ========================== AZM
 HandleKeyRight:
         LD      A,KeyRight
         JP      HandleHeldDir
 
-; HandleKeyLeft
-; Tail-calls HandleHeldDir with A = KeyLeft.
-; Clobbers:
-;   A, DE
+; HandleKeyLeft —
+; Load KeyLeft into A then tail-call HandleHeldDir.
+; ========================== AZM
+; clobbers  A,E
+; ========================== AZM
 HandleKeyLeft:
         LD      A,KeyLeft
         JP      HandleHeldDir
 
-; HandleKeyDrop
-; Input:
-;   none (DropLockout gates repeat firing)
-; Output:
-;   tail-calls HandleHeldDir with A = KeyDrop once lockout clears
-; Clobbers:
-;   A, DE
+; HandleKeyDrop —
+; Gate soft-drop on DropLockout then dispatch.
+; DropLockout prevents repeated locking on a held
+; drop key; clears when ClearInputRpt is called.
+; ========================== AZM
+; out       carry
+; clobbers  A,E
+; ========================== AZM
 HandleKeyDrop:
         LD      A,(DropLockout)
         OR      A
@@ -208,13 +219,16 @@ HandleKeyDrop:
         LD      A,KeyDrop
         JP      HandleHeldDir
 
-; HandleHeldDir
-; Input:
-;   A = KeyLeft, KeyRight, or KeyDrop (held/repeat timing path via LastKey/MoveCooldown)
-; Output:
-;   may update PlayerX / PlayerY / MoveCooldown / LastKey
-; Clobbers:
-;   A, DE on MoveLeft/RIGHT; A, BC, DE, HL on SoftDrop lock-path
+; HandleHeldDir —
+; Manage autorepeat for left, right, and drop.
+; First press of a new key fires immediately then
+; waits MovePeriod ticks before repeating.
+; Drop uses DropPeriod; lateral uses MovePeriod.
+; ========================== AZM
+; in        A
+; out       carry
+; clobbers  A,E
+; ========================== AZM
 HandleHeldDir:
         LD      E,A
         LD      A,(LastKey)

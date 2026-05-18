@@ -19,7 +19,7 @@ The shared codebase is described in [docs/shared-codebase.md](docs/shared-codeba
 - Six-digit seven-segment display on `PortDigits` / `PortSegs`.
 - Speaker driven from bit 7 of `PortDigits`.
 
-Port assignments and shared hardware/display constants live in [src/shared/inc/constants.asm](src/shared/inc/constants.asm).
+Port assignments and shared hardware/display constants live in [src/shared/constants.asm](src/shared/constants.asm).
 
 ## Tetro
 
@@ -160,8 +160,7 @@ src/
 |   |-- data.asm
 |   `-- ram.asm
 |-- shared/
-|   |-- inc/
-|   |   `-- constants.asm      ; ports, key codes, shared colour constants
+|   |-- constants.asm          ; ports, key codes, shared colour constants
 |   |-- framebuffer-core.asm   ; generic back-buffer clear/copy helpers
 |   |-- framebuffer-draw.asm   ; matrix masks and RGB draw primitives
 |   |-- hud.asm                ; seven-segment scan and decimal formatting

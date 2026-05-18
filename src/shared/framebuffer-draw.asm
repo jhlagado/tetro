@@ -1,8 +1,10 @@
-; MxMask
-; Accepts @in A as matrix x coordinate, expected 0..7.
-; Returns @out A as a bit mask with column 0 as MSB.
-; Uses @clobbers B,C,F while shifting.
-; Keeps @preserves DE,HL stable for the caller.
+; MxMask —
+; Produce a column bitmask for matrix column A.
+; Column 0 is bit 7 (MSB); column 7 is bit 0.
+; ========================== AZM
+; in        A
+; out       A,carry,BC
+; ========================== AZM
 MxMask:
         LD      C,A
         OR      A
@@ -15,16 +17,18 @@ MxMaskLp:
 MxMaskDone:
         RET
 
-; FbSetCell
-; Input:
-;   HL = red plane byte for the target row
-;   C  = target cell bit mask
-;   A  = COLOR_* bitfield
-; Output:
-;   target cell set to the requested color, replacing previous RGB bits
-;   HL = blue plane byte for the target row
-; Clobbers:
-;   A, B, D, HL
+; FbSetCell —
+; Set or clear one column bit across the R/G/B
+; plane bytes for a single row.
+; HL must enter on the red plane byte of the row
+; and exits on the blue byte (no further INC).
+; Planes whose bit is set in A are OR'd with C;
+; absent planes are AND'd with CPL(C) to clear.
+; ========================== AZM
+; in        C,A,HL
+; out       A,D
+; clobbers  B
+; ========================== AZM
 FbSetCell:
         LD      B,A
         LD      A,C
@@ -67,14 +71,14 @@ FbBluSet:
         LD      (HL),A
         RET
 
-; FbOrRow
-; Accepts @in HL as Framebuffer row red-byte address.
-; Accepts @in C as row mask.
-; Accepts @in A as COLOR_* bitfield.
-;   mask ORed into enabled red, green, blue bytes
-; Returns @out HL as the blue-byte address.
-; Uses @clobbers A,F while applying colour planes.
-; Keeps @preserves BC,DE stable for the caller.
+; FbOrRow —
+; OR column mask C into selected R/G/B planes.
+; Low 3 bits of A select planes: bit 0 = red,
+; bit 1 = green, bit 2 = blue (RRCA each iter).
+; HL must enter on the red plane byte of the row.
+; ========================== AZM
+; out       B
+; ========================== AZM
 FbOrRow:
         PUSH    BC
         LD      B,3                     ; 3 planes: R, G, B

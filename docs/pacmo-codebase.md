@@ -21,7 +21,7 @@ That file owns the `ORG`, the reset entry, the main loop, and the include order.
 The current Pacmo include order is:
 
 ```asm
-.include "../shared/inc/constants.asm"
+.include "../shared/constants.asm"
 
 Start:
     CALL    InitState
@@ -362,7 +362,7 @@ The Framebuffer is the same shape used by Tetro and the shared scanout: eight ro
 
 Currently shared and generic:
 
-- `shared/inc/constants.asm`: hardware ports, MON-3 keys, colours, dimensions
+- `shared/constants.asm`: hardware ports, MON-3 keys, colours, dimensions
 - `shared/scan-tick.asm`: matrix scanout and scan-state advance
 - `shared/framebuffer-core.asm`: back-buffer clear and copy
 - `shared/framebuffer-draw.asm`: matrix x-to-mask conversion and RGB Framebuffer draw primitives

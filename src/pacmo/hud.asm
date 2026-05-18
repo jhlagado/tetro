@@ -1,13 +1,13 @@
-; Pacmo-local Score formatting helpers. Seven-segment scan helpers live in
+; Pacmo-local Score formatting helpers.
+; Seven-segment scan helpers live in
 ; shared/hud.asm.
 
-; UpdScoreDisplay
-; Input:
-;   PacScore
-; Output:
-;   HudSegBuffer updated with a six-digit decimal Score display
-; Clobbers:
-;   A, BC, DE, HL
+; UpdScoreDisplay —
+; Format PacScore into HudSegBuffer.
+; Tail-calls HudWriteU16 (JP).
+; ========================== AZM
+; clobbers  A,BC,DE,HL
+; ========================== AZM
 UpdScoreDisplay:
         LD      HL,(PacScore)
         JP      HudWriteU16

@@ -1,58 +1,49 @@
-; SndTrigRotate
-; Input:
-;   none
-; Output:
-;   short rotate buzz started
-; Clobbers:
-;   A, C
+; SndTrigRotate —
+; Start the short rotate-key sound cue.
+; ========================== AZM
+; clobbers  A,C
+; ========================== AZM
 SndTrigRotate:
         LD      A,SoundRotateLen
         LD      C,SoundRotateDiv
         JP      SndStart
 
-; SndTrigLock
-; Input:
-;   none
-; Output:
-;   short lock buzz started
-; Clobbers:
-;   A, C
+; SndTrigLock —
+; Start the short piece-lock sound cue.
+; ========================== AZM
+; clobbers  A,C
+; ========================== AZM
 SndTrigLock:
         LD      A,SoundLockLen
         LD      C,SoundLockDiv
         JP      SndStart
 
-; SndTrigClear
-; Input:
-;   none
-; Output:
-;   line-clear buzz started
-; Clobbers:
-;   A, C
+; SndTrigClear —
+; Start the line-clear sound cue.
+; ========================== AZM
+; clobbers  A,C
+; ========================== AZM
 SndTrigClear:
         LD      A,SoundClearLen
         LD      C,SoundClearDiv
         JP      SndStart
 
-; SndTrigGOver
-; Input:
-;   none
-; Output:
-;   game-over buzz started
-; Clobbers:
-;   A, C
+; SndTrigGOver —
+; Start the game-over sound cue.
+; ========================== AZM
+; clobbers  A,C
+; ========================== AZM
 SndTrigGOver:
         LD      A,SndGOverLen
         LD      C,SndGOverDiv
         JP      SndStart
 
-; SndTrigReady
-; Input:
-;   none
-; Output:
-;   short chirp once key-delay finishes (speaker restarts PWM)
-; Clobbers:
-;   A, C
+; SndTrigReady —
+; Start the short ready-chirp when the game-over
+; key-delay expires and input is accepted again.
+; ========================== AZM
+; clobbers  A,C
+; ========================== AZM
 SndTrigReady:
         LD      A,SndReadyLen
         LD      C,SndReadyDiv

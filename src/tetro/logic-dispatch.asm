@@ -1,12 +1,16 @@
-; Run one slice of logic per main-loop pass (1 slice per scanline, 0..7 then wrap).
-; Distributes work so each inter-row interval is similar, helping even brightness/POV.
-; LogicTick
-; Input:
-;   uses LogicSlice from RAM
-; Output:
-;   one logic slice executed, LogicSlice advanced
-; Clobbers:
-;   A, HL, and whatever the called slice routines clobber
+; Tetro cooperative logic dispatcher.
+
+; LogicTick —
+; Run one logic slice per main-loop pass.
+; Slices 2–6 each clear one FramebufferBack row.
+; Slice 0: poll input, clear row 0.
+; Slice 1: apply gravity, clear row 4.
+; Slice 7: clear row 28, render board and piece,
+;   copy back-buffer to live Framebuffer.
+; LogicSlice wraps 0..7 at the end of each call.
+; ========================== AZM
+; clobbers  A,C,HL
+; ========================== AZM
 LogicTick:
         CALL    SanitizeActPos
         LD      A,(GameOver)
@@ -52,7 +56,13 @@ LogicLockDone:
         ADD     A,8
         CALL    FbClearRow
         JR      LogicSliceNext
-; --- slice 7: final 4B clear, render to back buffer, copy to live Framebuffer
+
+; LogicSl7 —
+; Clear row 28, render board and active piece to
+; the back-buffer, then copy to live Framebuffer.
+; ========================== AZM
+; clobbers  A,BC,DE,HL
+; ========================== AZM
 LogicSl7:
         LD      A,28
         CALL    FbClearRow

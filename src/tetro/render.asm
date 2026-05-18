@@ -1,24 +1,26 @@
-; Full rebuild (used at init). Build in back buffer, then copy to live FB.
-; RebuildFb
-; Input:
-;   current board and active-piece state in RAM
-; Output:
-;   Framebuffer rebuilt from scratch
-; Clobbers:
-;   A, BC, DE, HL
+; RebuildFb —
+; Full Framebuffer rebuild from current board
+; and active-piece state.
+; Used at init, restart, and game-over transitions.
+; Clears back-buffer, renders board then piece,
+; then copies to the live Framebuffer (JP).
+; ========================== AZM
+; maybe-out DE
+; clobbers  A,BC,DE,HL
+; ========================== AZM
 RebuildFb:
         CALL    FbClearAll
         CALL    RendBoardBack
         CALL    RendActBack
         JP      FbCopyAll
 
-; ClearBoard
-; Input:
-;   none
-; Output:
-;   BoardRows and landed RGB planes cleared to zero
-; Clobbers:
-;   A, B, HL
+; ClearBoard —
+; Zero BoardRows and all three colour planes.
+; Sets BoardEmpty=1 after clearing.
+; Clears RowCount*4 bytes starting at BoardRows.
+; ========================== AZM
+; out       HL,A,B,carry,zero
+; ========================== AZM
 ClearBoard:
         LD      HL,BoardRows
         LD      B,RowCount * 4
@@ -30,14 +32,18 @@ ClearBoardLoop:
         LD      A,1
         LD      (BoardEmpty),A
         RET
-; RendBoardBack
-; Input:
-;   BoardRed / BoardGreen / BoardBlue / BoardRows, FramebufferBack, GameOver
-; Output:
-;   landed board copied into FramebufferBack in native RGB, except during GameOver
-;   landed cells shown as occupancy on red only (G/B cleared) — uniform red silhouette.
-; Clobbers:
-;   A
+
+; RendBoardBack —
+; Render the landed board into FramebufferBack.
+; Normal mode: copies BoardRed, BoardGreen,
+; BoardBlue per row.
+; GameOver mode: renders BoardRows occupancy in
+; red only (silhouette effect).
+; Rows set in ClearMask flash white (all planes
+; forced to 0xFF) during the line-clear hold.
+; ========================== AZM
+; out       BC,HL
+; ========================== AZM
 RendBoardBack:
         PUSH    BC
         PUSH    DE
@@ -127,14 +133,15 @@ RendBoardExit:
         POP     BC
         RET
 
-; Draw the active 4x4 bitmap into the back buffer (same layout as live FB).
-; RendActBack
-; Input:
-;   PlayerX, PlayerY, CurPiecePtr, CurPieceColor
-; Output:
-;   active piece ORed into FramebufferBack in piece colour
-; Clobbers:
-;   A
+; RendActBack —
+; OR the active piece into FramebufferBack.
+; No-op when ActPieceEnabled is zero.
+; Uses CurPiecePtr bitmap, PlayerX/Y position,
+; and CurPieceColor for selecting colour planes.
+; ========================== AZM
+; out       DE,HL,B,carry
+; clobbers  A
+; ========================== AZM
 RendActBack:
         LD      A,(ActPieceEnabled)
         OR      A
