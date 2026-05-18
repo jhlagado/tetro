@@ -1,106 +1,129 @@
 ; Generic HD44780 LCD primitives for the TEC-1G MON-3 hardware mapping.
 
-; LCD_BUSY
-; Waits until LCD busy flag clears.
-LCD_BUSY:
+; LcdBusy
+;   waits until LCD busy flag clears
+; Keeps @preserves AF,BC,DE,HL,IX,IY stable for the caller.
+LcdBusy:
         PUSH    AF
-LCD_BUSY_LOOP:
-        IN      A,(PORT_LCD_INST)
+LcdBusyLp:
+        IN      A,(PortLcdInst)
         RLCA
-        JR      C,LCD_BUSY_LOOP
+        JR      C,LcdBusyLp
         POP     AF
         RET
 
-; LCD_COMMAND
-; @in B LCD instruction byte.
-; Sends the instruction to LCD.
-LCD_COMMAND:
+; LcdCmd
+; Accepts @in B as LCD instruction byte.
+;   instruction sent to LCD
+; Keeps @preserves AF,BC,DE,HL,IX,IY stable for the caller.
+LcdCmd:
         PUSH    AF
-        CALL    LCD_BUSY
+        CALL    LcdBusy
         LD      A,B
-        OUT     (PORT_LCD_INST),A
+        OUT     (PortLcdInst),A
         POP     AF
         RET
 
-; LCD_CLEAR_DISPLAY
-; LCD cleared, cursor home.
-; @clobbers B.
-LCD_CLEAR_DISPLAY:
+; LcdClear
+; Input:
+;   none
+; Output:
+;   LCD cleared, cursor home
+; Clobbers:
+;   B
+LcdClear:
         LD      B,0x01
-        JP      LCD_COMMAND
+        JP      LcdCmd
 
-; LCD_STRING
-; @in HL zero-terminated ASCII string.
-; String written at current LCD cursor position.
-; @clobbers A,HL.
-LCD_STRING:
+; LcdString
+; Input:
+;   HL = zero-terminated ASCII string
+; Output:
+;   string written at current LCD cursor position
+; Clobbers:
+;   A, HL
+LcdString:
         LD      A,(HL)
         INC     HL
         OR      A
         RET     Z
-        CALL    LCD_BUSY
-        OUT     (PORT_LCD_DATA),A
-        JR      LCD_STRING
+        CALL    LcdBusy
+        OUT     (PortLcdData),A
+        JR      LcdString
 
-; LCD_SHOW_SCRIPT
-; @in HL pointer to script table (DB row_cmd, DW text_ptr, ..., DB 0).
-; LCD cleared, then each (row_cmd, text_ptr) pair rendered in order.
-; @clobbers A while walking the script.
-LCD_SHOW_SCRIPT:
+; LcdScript
+; Input:
+;   HL = pointer to script table (DB row_cmd, DW text_ptr, ..., DB 0)
+; Output:
+;   LCD cleared, then each (row_cmd, text_ptr) pair rendered in order
+; Clobbers:
+;   A  (BC, DE, HL pushed/popped)
+LcdScript:
         PUSH    BC
         PUSH    DE
         PUSH    HL
         EX      DE,HL                   ; DE = script cursor
-        CALL    LCD_CLEAR_DISPLAY
-LCD_SCRIPT_LOOP:
+        CALL    LcdClear
+LcdScrLp:
         LD      A,(DE)                  ; row cmd (0 = end of script)
         OR      A
-        JR      Z,LCD_SCRIPT_DONE
+        JR      Z,LcdScrDone
         LD      B,A
         INC     DE
-        CALL    LCD_COMMAND
+        CALL    LcdCmd
         LD      A,(DE)                  ; text ptr lo
         LD      L,A
         INC     DE
         LD      A,(DE)                  ; text ptr hi
         LD      H,A
         INC     DE
-        CALL    LCD_STRING
-        JR      LCD_SCRIPT_LOOP
-LCD_SCRIPT_DONE:
+        CALL    LcdString
+        JR      LcdScrLp
+LcdScrDone:
         POP     HL
         POP     DE
         POP     BC
         RET
 
-; LCD_PUTC
-; @in A ASCII character.
-; Character written at current LCD cursor position.
-LCD_PUTC:
+; LcdPutc
+; Input:
+;   A = ASCII character
+; Output:
+;   character written at current LCD cursor position
+; Clobbers:
+;   none
+LcdPutc:
         PUSH    AF
-        CALL    LCD_BUSY
+        CALL    LcdBusy
         POP     AF
-        OUT     (PORT_LCD_DATA),A
+        OUT     (PortLcdData),A
         RET
 
-; LCD_WRITE_ROW_STRING
-; @in B row DDRAM command.
-; @in HL zero-terminated string.
-; Cursor moved and string written.
-; @clobbers A,HL.
-LCD_WRITE_ROW_STRING:
-        CALL    LCD_COMMAND
-        JP      LCD_STRING
+; LcdRowStr
+; Input:
+;   B = row DDRAM command
+;   HL = zero-terminated string
+; Output:
+;   cursor moved and string written
+; Clobbers:
+;   A, HL
+LcdRowStr:
+        CALL    LcdCmd
+        JP      LcdString
 
-; LCD_PUTC_FROM_TABLE
-; @in A unsigned table index.
-; @in DE byte table base.
-; Table byte at DE+A written.
-; @clobbers A,HL.
-; Note: no bounds check.
-LCD_PUTC_FROM_TABLE:
+; LcdPutcTbl
+; Input:
+;   A = unsigned table index
+;   DE = byte table base
+; Output:
+;   table byte at DE+A written
+; Clobbers:
+;   A, HL
+; Notes:
+;   no bounds check
+LcdPutcTbl:
         LD      L,A
         LD      H,0
         ADD     HL,DE
         LD      A,(HL)
-        JP      LCD_PUTC
+        JP      LcdPutc

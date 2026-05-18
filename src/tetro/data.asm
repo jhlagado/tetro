@@ -1,9 +1,9 @@
 ; Score delta per line-clear count. Index 0 unused (early-exit on count=0);
 ; counts >=4 clamp to entry 4 ('tetris').
-CLEAR_SCORE_TABLE:
+ClearScoreTbl:
         DW      0, 100, 300, 500, 800
 
-ROW_BIT_TABLE:
+RowBitTable:
         DB      0x01
         DB      0x02
         DB      0x04
@@ -13,112 +13,112 @@ ROW_BIT_TABLE:
         DB      0x40
         DB      0x80
 
-LCD_TEXT_RESET:
+LcdTextReset:
         DB      "PRESS ANY KEY",0
 
-LCD_TEXT_NEXT:
+LcdTextNext:
         DB      "NEXT: ",0
 
-LCD_TEXT_TETRO_RUNNING:
+LcdTextTetRun:
         DB      "TETRO RUNNING",0
 
-LCD_TEXT_TETRO_PAUSED:
+LcdTextTetPause:
         DB      "TETRO PAUSED",0
 
-LCD_TEXT_TETRO_GAME_OVER:
+LcdTextTetOver:
         DB      "TETRO GAME OVER",0
 
-; LCD_SHOW_SCRIPT tables: null-terminated (DB row_cmd, DW text_ptr)+ DB 0
+; LcdScript tables: null-terminated (DB row_cmd, DW text_ptr)+ DB 0
 ; HUD scripts leave the cursor at end of "NEXT: " on row 2 so the wrapper
-; can append the dynamic preview letter via LCD_APPEND_NEXT_PREVIEW_LETTER.
-SCRIPT_GAME_OVER:
-        DB      LCD_ROW1
-        DW      LCD_TEXT_TETRO_GAME_OVER
-        DB      LCD_ROW2
-        DW      LCD_TEXT_RESET
+; can append the dynamic preview letter via LcdAppendPrev.
+ScriptGameOver:
+        DB      LcdRow1
+        DW      LcdTextTetOver
+        DB      LcdRow2
+        DW      LcdTextReset
         DB      0
 
-SCRIPT_PAUSED:
-        DB      LCD_ROW1
-        DW      LCD_TEXT_TETRO_PAUSED
-        DB      LCD_ROW2
-        DW      LCD_TEXT_NEXT
+ScriptPaused:
+        DB      LcdRow1
+        DW      LcdTextTetPause
+        DB      LcdRow2
+        DW      LcdTextNext
         DB      0
 
-SCRIPT_SPLASH:
-        DB      LCD_ROW1
-        DW      LCD_TEXT_SPLASH_TITLE
-        DB      LCD_ROW2
-        DW      LCD_TEXT_SPLASH_MOVE
-        DB      LCD_ROW3
-        DW      LCD_TEXT_SPLASH_ROTATE
-        DB      LCD_ROW4
-        DW      LCD_TEXT_SPLASH_DROP
+ScriptSplash:
+        DB      LcdRow1
+        DW      LcdTextSplash1
+        DB      LcdRow2
+        DW      LcdTextSplash2
+        DB      LcdRow3
+        DW      LcdTextSplash3
+        DB      LcdRow4
+        DW      LcdTextSplash4
         DB      0
 
-SCRIPT_RUNNING:
-        DB      LCD_ROW1
-        DW      LCD_TEXT_TETRO_RUNNING
-        DB      LCD_ROW2
-        DW      LCD_TEXT_NEXT
+ScriptRunning:
+        DB      LcdRow1
+        DW      LcdTextTetRun
+        DB      LcdRow2
+        DW      LcdTextNext
         DB      0
 
-PIECE_NAME_TABLE:
+PieceNameTable:
         DB      'I','O','T','S','Z','J','L'
 
-LCD_TEXT_SPLASH_TITLE:
+LcdTextSplash1:
         DB      "TETRO (PRESS A KEY)",0
 
-LCD_TEXT_SPLASH_MOVE:
+LcdTextSplash2:
         DB      "< > MOVE",0
 
-LCD_TEXT_SPLASH_ROTATE:
+LcdTextSplash3:
         DB      "AD/C ROTATE",0
 
-LCD_TEXT_SPLASH_DROP:
+LcdTextSplash4:
         DB      "GO DROP 0 PAUSE",0
 
 ; Default 3x3-scale piece set with precomputed clockwise rotations.
 ; Shapes are centered in a 3x3 local frame where practical; the engine still
 ; stores them as 4 row bytes and shifts them horizontally at runtime.
-PIECE_I_R0:
+PieceIR0:
         DB      %00000000
         DB      %11100000
         DB      %00000000
         DB      %00000000
-PIECE_I_R1:
+PieceIR1:
         DB      %10000000
         DB      %10000000
         DB      %10000000
         DB      %00000000
-PIECE_I_R2             EQU PIECE_I_R0
-PIECE_I_R3             EQU PIECE_I_R1
+PieceIR2             EQU PieceIR0
+PieceIR3             EQU PieceIR1
 
-PIECE_O_R0:
+PieceOR0:
         DB      %11000000
         DB      %11000000
         DB      %00000000
         DB      %00000000
-PIECE_O_R1            EQU PIECE_O_R0
-PIECE_O_R2            EQU PIECE_O_R0
-PIECE_O_R3            EQU PIECE_O_R0
+PieceOR1            EQU PieceOR0
+PieceOR2            EQU PieceOR0
+PieceOR3            EQU PieceOR0
 
-PIECE_T_R0:
+PieceTR0:
         DB      %11100000
         DB      %01000000
         DB      %00000000
         DB      %00000000
-PIECE_T_R1:
+PieceTR1:
         DB      %10000000
         DB      %11000000
         DB      %10000000
         DB      %00000000
-PIECE_T_R2:
+PieceTR2:
         DB      %00000000
         DB      %01000000
         DB      %11100000
         DB      %00000000
-PIECE_T_R3:
+PieceTR3:
         DB      %01000000
         DB      %11000000
         DB      %01000000
@@ -126,92 +126,92 @@ PIECE_T_R3:
 
 ; S/Z and J/L were previously swapped vs SRS lettering (same MSB-left row bytes,
 ; but labels did not match the canonical shapes named on LCD / previews).
-PIECE_S_R0:
+PieceSR0:
         DB      %11000000
         DB      %01100000
         DB      %00000000
         DB      %00000000
-PIECE_S_R1:
+PieceSR1:
         DB      %01000000
         DB      %11000000
         DB      %10000000
         DB      %00000000
-PIECE_S_R2:
+PieceSR2:
         DB      %00000000
         DB      %11000000
         DB      %01100000
         DB      %00000000
-PIECE_S_R3            EQU PIECE_S_R1
+PieceSR3            EQU PieceSR1
 
-PIECE_Z_R0:
+PieceZR0:
         DB      %01100000
         DB      %11000000
         DB      %00000000
         DB      %00000000
-PIECE_Z_R1:
+PieceZR1:
         DB      %10000000
         DB      %11000000
         DB      %01000000
         DB      %00000000
-PIECE_Z_R2:
+PieceZR2:
         DB      %00000000
         DB      %01100000
         DB      %11000000
         DB      %00000000
-PIECE_Z_R3            EQU PIECE_Z_R1
+PieceZR3            EQU PieceZR1
 
-PIECE_J_R0:
+PieceJR0:
         DB      %00100000
         DB      %11100000
         DB      %00000000
         DB      %00000000
-PIECE_J_R1:
+PieceJR1:
         DB      %10000000
         DB      %10000000
         DB      %11000000
         DB      %00000000
-PIECE_J_R2:
+PieceJR2:
         DB      %00000000
         DB      %11100000
         DB      %10000000
         DB      %00000000
-PIECE_J_R3:
+PieceJR3:
         DB      %11000000
         DB      %01000000
         DB      %01000000
         DB      %00000000
 
-PIECE_L_R0:
+PieceLR0:
         DB      %10000000
         DB      %11100000
         DB      %00000000
         DB      %00000000
-PIECE_L_R1:
+PieceLR1:
         DB      %11000000
         DB      %10000000
         DB      %10000000
         DB      %00000000
-PIECE_L_R2:
+PieceLR2:
         DB      %00000000
         DB      %11100000
         DB      %00100000
         DB      %00000000
-PIECE_L_R3:
+PieceLR3:
         DB      %01000000
         DB      %01000000
         DB      %11000000
         DB      %00000000
 
-PIECE_PTR_TABLE:
-        DW      PIECE_I_R0, PIECE_I_R1, PIECE_I_R2, PIECE_I_R3
-        DW      PIECE_O_R0, PIECE_O_R1, PIECE_O_R2, PIECE_O_R3
-        DW      PIECE_T_R0, PIECE_T_R1, PIECE_T_R2, PIECE_T_R3
-        DW      PIECE_S_R0, PIECE_S_R1, PIECE_S_R2, PIECE_S_R3
-        DW      PIECE_Z_R0, PIECE_Z_R1, PIECE_Z_R2, PIECE_Z_R3
-        DW      PIECE_J_R0, PIECE_J_R1, PIECE_J_R2, PIECE_J_R3
-        DW      PIECE_L_R0, PIECE_L_R1, PIECE_L_R2, PIECE_L_R3
+PiecePtrTable:
+        DW      PieceIR0, PieceIR1, PieceIR2, PieceIR3
+        DW      PieceOR0, PieceOR1, PieceOR2, PieceOR3
+        DW      PieceTR0, PieceTR1, PieceTR2, PieceTR3
+        DW      PieceSR0, PieceSR1, PieceSR2, PieceSR3
+        DW      PieceZR0, PieceZR1, PieceZR2, PieceZR3
+        DW      PieceJR0, PieceJR1, PieceJR2, PieceJR3
+        DW      PieceLR0, PieceLR1, PieceLR2, PieceLR3
 
-PIECE_RIGHT_TABLE:
+PieceRightTbl:
         DB      2,0,2,0
         DB      1,1,1,1
         DB      2,1,2,1
@@ -220,11 +220,11 @@ PIECE_RIGHT_TABLE:
         DB      2,1,2,1
         DB      2,1,2,1
 
-PIECE_COLOR_TABLE:
-        DB      COLOR_CYAN                         ; I = cyan
-        DB      COLOR_WHITE                        ; O  = white
-        DB      COLOR_MAGENTA                      ; T  = magenta
-        DB      COLOR_GREEN                        ; S  = green
-        DB      COLOR_RED                          ; Z  = red
-        DB      COLOR_BLUE                         ; J  = blue
-        DB      COLOR_YELLOW                       ; L  = yellow
+PieceColorTbl:
+        DB      ColorCyan                         ; I = cyan
+        DB      ColorWhite                        ; O  = white
+        DB      ColorMagenta                      ; T  = magenta
+        DB      ColorGreen                        ; S  = green
+        DB      ColorRed                          ; Z  = red
+        DB      ColorBlue                         ; J  = blue
+        DB      ColorYellow                       ; L  = yellow

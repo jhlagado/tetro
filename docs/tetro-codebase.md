@@ -1,10 +1,10 @@
 # Tetro: a tour of the code
 
-Tetro is a falling-block game for the TEC-1G single-board Z80 computer. It runs under MON-3, draws an 8x8 RGB LED matrix, scans a six-digit seven-segment score display, writes an HD44780 LCD, reads the MON-3 keypad, and drives a speaker.
+Tetro is a falling-block game for the TEC-1G single-board Z80 computer. It runs under MON-3, draws an 8x8 RGB LED matrix, scans a six-digit seven-segment Score display, writes an HD44780 LCD, reads the MON-3 keypad, and drives a speaker.
 
-The important constraint is that there are no interrupts. The matrix is visible only because the CPU keeps scanning it. Sound and score display only continue because the same loop keeps servicing them. Game logic has to fit around that hardware maintenance.
+The important constraint is that there are no interrupts. The matrix is visible only because the CPU keeps scanning it. Sound and Score display only continue because the same loop keeps servicing them. Game logic has to fit around that hardware maintenance.
 
-This tour follows the Tetro code as it now stands. The shared loop, scan tick, LCD, HUD, sound, and framebuffer contracts are covered in [shared-codebase.md](shared-codebase.md).
+This tour follows the Tetro code as it now stands. The shared loop, scan tick, LCD, HUD, sound, and Framebuffer contracts are covered in [shared-codebase.md](shared-codebase.md).
 
 ---
 
@@ -13,7 +13,7 @@ This tour follows the Tetro code as it now stands. The shared loop, scan tick, L
 The Debug80 target is still the top-level file:
 
 ```text
-src/tetro.z80
+src/tetro/tetro.z80
 ```
 
 That file owns the `ORG`, the reset entry, the main loop, and the include order. Debug80 can treat it as the Tetro target without needing to know how the internal files are arranged.
@@ -21,64 +21,64 @@ That file owns the `ORG`, the reset entry, the main loop, and the include order.
 The current Tetro include order is:
 
 ```asm
-.include "shared/inc/constants.asm"
-.include "games/tetro/constants.asm"
+.include "../shared/inc/constants.asm"
+.include "constants.asm"
 
-START:
-    CALL    INIT_STATE
+Start:
+    CALL    InitState
 
-MAIN_LOOP:
-    CALL    SCAN_TICK
-    CALL    LOGIC_TICK
-    JR      MAIN_LOOP
+MainLoop:
+    CALL    ScanTick
+    CALL    LogicTick
+    JR      MainLoop
 
-.include "games/tetro/geometry_helpers.asm"
-.include "games/tetro/collision.asm"
-.include "shared/framebuffer_core.asm"
-.include "shared/framebuffer_draw.asm"
-.include "games/tetro/render.asm"
-.include "games/tetro/piece_active.asm"
-.include "games/tetro/board_lock.asm"
-.include "games/tetro/game_init.asm"
-.include "shared/scan_tick.asm"
-.include "shared/sound.asm"
-.include "games/tetro/sound.asm"
-.include "shared/hud.asm"
-.include "games/tetro/hud.asm"
-.include "shared/lcd.asm"
-.include "games/tetro/ui.asm"
-.include "games/tetro/logic_dispatch.asm"
-.include "games/tetro/input.asm"
-.include "games/tetro/data.asm"
-.include "games/tetro/ram.asm"
+.include "geometry-helpers.asm"
+.include "collision.asm"
+.include "../shared/framebuffer-core.asm"
+.include "../shared/framebuffer-draw.asm"
+.include "render.asm"
+.include "piece-active.asm"
+.include "board-lock.asm"
+.include "game-init.asm"
+.include "../shared/scan-tick.asm"
+.include "../shared/sound.asm"
+.include "sound.asm"
+.include "../shared/hud.asm"
+.include "hud.asm"
+.include "../shared/lcd.asm"
+.include "ui.asm"
+.include "logic-dispatch.asm"
+.include "input.asm"
+.include "data.asm"
+.include "ram.asm"
 ```
 
-The include order is deliberate. `shared/scan_tick.asm` calls `SERVICE_SOUND` and `SCAN_SCORE_DIGIT` before their labels appear in the include stream. `asm80` resolves those forward references. The pattern keeps scanout generic while letting the program decide which sound and HUD services satisfy the calls.
+The include order is deliberate. `shared/scan-tick.asm` calls `SndService` and `HudScanDig` before their labels appear in the include stream. `asm80` resolves those forward references. The pattern keeps scanout generic while letting the program decide which sound and HUD services satisfy the calls.
 
-The split is intentional. Files under `src/shared/` are generic hardware or buffer routines that can serve more than one game. Files under `src/games/tetro/` contain Tetro's rules, state, tables, and game-specific wrappers.
+The split is intentional. Files under `src/shared/` are generic hardware or buffer routines that can serve more than one game. Files under `src/tetro/` contain Tetro's rules, state, tables, and game-specific wrappers.
 
-This is still a careful harmonisation, not a large engine abstraction. Shared files are the small, stable pieces: scan tick, LCD primitives, score digit scanning, sound state machine, and framebuffer core helpers. Tetro keeps its own rules, board representation, scoring events, piece data, and presentation choices.
+This is still a careful harmonisation, not a large engine abstraction. Shared files are the small, stable pieces: scan tick, LCD primitives, Score digit scanning, sound state machine, and Framebuffer core helpers. Tetro keeps its own rules, board representation, scoring events, piece data, and presentation choices.
 
 ---
 
 ## Runtime model
 
 ```asm
-MAIN_LOOP:
-    CALL    SCAN_TICK
-    CALL    LOGIC_TICK
-    JR      MAIN_LOOP
+MainLoop:
+    CALL    ScanTick
+    CALL    LogicTick
+    JR      MainLoop
 ```
 
-Those three instructions in `src/tetro.z80` are the whole runtime. Tetro uses the shared cooperative loop described in [shared-codebase.md](shared-codebase.md): `SCAN_TICK` keeps the hardware alive, and `LOGIC_TICK` performs one slice of game work.
+Those three instructions in `src/tetro/tetro.z80` are the whole runtime. Tetro uses the shared cooperative loop described in [shared-codebase.md](shared-codebase.md): `ScanTick` keeps the hardware alive, and `LogicTick` performs one slice of game work.
 
-This means the display, score digits, speaker, keypad, gravity, rendering, and line-clear timing all share the same cooperative clock.
+This means the display, Score digits, speaker, keypad, gravity, rendering, and line-clear timing all share the same cooperative clock.
 
 ---
 
 ## Logic dispatch
 
-`LOGIC_TICK` lives in `games/tetro/logic_dispatch.asm`. It starts by sanitizing the active piece position, then chooses the highest-priority game mode.
+`LogicTick` lives in `tetro/logic-dispatch.asm`. It starts by sanitizing the active piece position, then chooses the highest-priority game mode.
 
 The priority is:
 
@@ -91,22 +91,22 @@ The priority is:
 
 The order is part of the design. During game over, only restart gating matters. During a line-clear hold, the active piece is disabled and the next spawn waits. During input lockout, the key that dismissed the splash or restarted the game is not allowed to become a gameplay move.
 
-In active play, `LOGIC_SLICE` selects one of eight slices:
+In active play, `LogicSlice` selects one of eight slices:
 
 ```text
-slice 0      poll input, clear framebuffer-back row 0
+slice 0      poll input, clear Framebuffer-back row 0
 slice 1      apply gravity, clear row 1
 slices 2-6   clear one back-buffer row each
 slice 7      clear row 7, render board, render active piece, copy back to front
 ```
 
-The back buffer is cleared gradually so no single loop pass does all the work. Slice 7 composes the finished frame and copies it to `FRAMEBUFFER`, which the next scan pass reads.
+The back buffer is cleared gradually so no single loop pass does all the work. Slice 7 composes the finished frame and copies it to `Framebuffer`, which the next scan pass reads.
 
 ---
 
 ## RAM layout
 
-Tetro's mutable state is in `games/tetro/ram.asm`.
+Tetro's mutable state is in `tetro/ram.asm`.
 
 The RAM file is arranged around the systems that mutate it:
 
@@ -114,7 +114,7 @@ The RAM file is arranged around the systems that mutate it:
 - pending movement and rotation state
 - input repeat state
 - pause, splash, game-over, and line-clear flags
-- score and line counters
+- Score and line counters
 - HUD and speaker state
 - frame/slice counters
 - scan state and framebuffers
@@ -122,34 +122,34 @@ The RAM file is arranged around the systems that mutate it:
 
 The active piece state includes:
 
-- `PLAYER_X`, `PLAYER_Y`
-- `CURRENT_PIECE_PTR`
-- `CURRENT_PIECE_INDEX`
-- `CURRENT_ROTATION`
-- `CURRENT_PIECE_RIGHT`
-- `CURRENT_PIECE_COLOR`
-- `ACTIVE_PIECE_ENABLED`
+- `PlayerX`, `PlayerY`
+- `CurPiecePtr`
+- `CurPieceIndex`
+- `CurrentRotation`
+- `CurPieceRight`
+- `CurPieceColor`
+- `ActPieceEnabled`
 
 The pending fields are a small transaction buffer:
 
-- `PENDING_X`
-- `PENDING_Y`
-- `PENDING_ROTATION`
-- `SHIFT_COUNT`
+- `PendingX`
+- `PendingY`
+- `PendingRotation`
+- `ShiftCount`
 
 Movement and rotation write candidates into pending state, run collision, and commit only if the placement is legal. That keeps failed moves invisible.
 
 The board is split into four planes:
 
-- `BOARD_ROWS` is the occupancy plane.
-- `BOARD_RED`, `BOARD_GREEN`, and `BOARD_BLUE` are colour planes.
+- `BoardRows` is the occupancy plane.
+- `BoardRed`, `BoardGreen`, and `BoardBlue` are colour planes.
 
-Collision reads only `BOARD_ROWS`. Rendering reads colour planes directly. This avoids unpacking colour data during collision and avoids reconstructing colour during rendering.
+Collision reads only `BoardRows`. Rendering reads colour planes directly. This avoids unpacking colour data during collision and avoids reconstructing colour during rendering.
 
-The framebuffer is double-buffered:
+The Framebuffer is double-buffered:
 
-- `FRAMEBUFFER_BACK` is composed by the logic slices.
-- `FRAMEBUFFER` is read by `SCAN_TICK`.
+- `FramebufferBack` is composed by the logic slices.
+- `Framebuffer` is read by `ScanTick`.
 
 Both buffers are 32 bytes: eight rows, four bytes per row. The first three bytes are red, green, and blue. The fourth byte is padding.
 
@@ -159,23 +159,23 @@ The shared scanout does not know what these bytes represent as game state. It on
 
 ## Initialization and restart
 
-`games/tetro/game_init.asm` owns startup and restart.
+`tetro/game-init.asm` owns startup and restart.
 
-`INIT_STATE` calls `INIT_STATE_BASE`, enables the splash state, shows the splash LCD script, and rebuilds the framebuffer.
+`InitState` calls `InitStateBase`, enables the splash state, shows the splash LCD script, and rebuilds the Framebuffer.
 
-`INIT_STATE_BASE` resets Tetro state: movement cooldown, gravity period, game-over flags, clear flags, score, LCD/HUD scan state, sound state, scan mask, scan pointer, board planes, and score digits.
+`InitStateBase` resets Tetro state: movement cooldown, gravity period, game-over flags, clear flags, Score, LCD/HUD scan state, sound state, scan mask, scan pointer, board planes, and Score digits.
 
-The splash screen is not idle. The main loop keeps scanning the matrix, servicing sound, scanning the score display, and incrementing `FRAME_PHASE` once per full matrix wrap. When the player presses a key, `HANDLE_SPLASH_STATE` uses `FRAME_PHASE` as `RNG_SEED`. If the key arrives before any wrap, it falls back to `RNG_SEED_INIT`.
+The splash screen is not idle. The main loop keeps scanning the matrix, servicing sound, scanning the Score display, and incrementing `FramePhase` once per full matrix wrap. When the player presses a key, `SplashState` uses `FramePhase` as `RngSeed`. If the key arrives before any wrap, it falls back to `RngSeedInit`.
 
-`INIT_STATE_RESTART` is the post-game-over path. It clears the board and score but does not reset the RNG seed. A restart continues the pseudo-random stream instead of returning to the same first pieces.
+`InitRestart` is the post-game-over path. It clears the board and Score but does not reset the RNG seed. A restart continues the pseudo-random stream instead of returning to the same first pieces.
 
 ---
 
 ## Collision
 
-`games/tetro/collision.asm` provides the placement test used by spawn, movement, rotation, gravity, and lock.
+`tetro/collision.asm` provides the placement test used by spawn, movement, rotation, gravity, and lock.
 
-`CHECK_COLLISION_AT_DE` takes:
+`CheckCollAtDe` takes:
 
 ```text
 D = candidate x
@@ -184,55 +184,55 @@ E = candidate y
 
 It returns carry set if the placement is illegal.
 
-The routine first checks horizontal bounds. `CURRENT_PIECE_RIGHT` lets it test the right edge without scanning the bitmap. If the piece is outside the left or right wall, it returns immediately.
+The routine first checks horizontal bounds. `CurPieceRight` lets it test the right edge without scanning the bitmap. If the piece is outside the left or right wall, it returns immediately.
 
-If the horizontal bounds pass, it walks the four rows of the current piece bitmap. Each bitmap row is shifted by `SHIFT_ROW_MASK` using the candidate x. Empty rows are skipped. Rows above the visible field are allowed, because pieces spawn partly above the display. Rows below the field are collisions.
+If the horizontal bounds pass, it walks the four rows of the current piece bitmap. Each bitmap row is shifted by `ShiftRowMask` using the candidate x. Empty rows are skipped. Rows above the visible field are allowed, because pieces spawn partly above the display. Rows below the field are collisions.
 
-For visible rows, the shifted mask is ANDed with the matching row in `BOARD_ROWS`. A non-zero result means the active piece overlaps a landed cell.
+For visible rows, the shifted mask is ANDed with the matching row in `BoardRows`. A non-zero result means the active piece overlaps a landed cell.
 
-`CHECK_TOP_OUT_ON_LOCK` is separate. It detects the loss condition where a piece locks while any occupied bitmap row is still above the visible field.
+`CheckTopOut` is separate. It detects the loss condition where a piece locks while any occupied bitmap row is still above the visible field.
 
 ---
 
 ## Movement, gravity, and rotation
 
-`games/tetro/piece_active.asm` owns active-piece movement, rotation, gravity, spawning, and random piece selection.
+`tetro/piece-active.asm` owns active-piece movement, rotation, gravity, spawning, and random piece selection.
 
 Every movement uses the same pattern:
 
 ```text
 write candidate position
-call CHECK_COLLISION_AT_DE
+call CheckCollAtDe
 commit only if carry is clear
 ```
 
-`MOVE_LEFT` and `MOVE_RIGHT` update `PENDING_X` and call `HORIZONTAL_PROBE_APPLY_PENDING_X`. That helper copies the current y into `PENDING_Y`, tests collision, and commits the candidate x only on success.
+`MoveLeft` and `MoveRight` update `PendingX` and call `HorizProbeX`. That helper copies the current y into `PendingY`, tests collision, and commits the candidate x only on success.
 
-Held horizontal movement reloads from `MOVE_PERIOD`, which is intentionally slow so repeat acts as a fallback while deliberate taps remain the responsive control path.
+Held horizontal movement reloads from `MovePeriod`, which is intentionally slow so repeat acts as a fallback while deliberate taps remain the responsive control path.
 
-`STEP_ACTIVE_DOWN_ONE_CELL` is shared by gravity and soft drop. `APPLY_GRAVITY` waits for `GRAVITY_COOLDOWN` to expire, then probes one row down. If the probe fails, it calls `LOCK_ACTIVE_PIECE`. `SOFT_DROP` skips the cooldown and probes immediately. If soft drop locks a piece, it sets `DROP_LOCKOUT` so a held drop key does not immediately force the next piece down.
+`StepActDown` is shared by gravity and soft drop. `ApplyGravity` waits for `GravityCooldown` to expire, then probes one row down. If the probe fails, it calls `LockActPiece`. `SoftDrop` skips the cooldown and probes immediately. If soft drop locks a piece, it sets `DropLockout` so a held drop key does not immediately force the next piece down.
 
-Rotation changes the bitmap, not the position. `ROTATE_CW` and `ROTATE_LEFT` save the previous rotation, load the candidate rotation state, then test collision at the current position. If the test fails, the old rotation and metadata are restored. There is no wall kick. On success, Tetro plays the rotate sound and resets the gravity cooldown.
+Rotation changes the bitmap, not the position. `RotateCw` and `RotateLeft` save the previous rotation, load the candidate rotation state, then test collision at the current position. If the test fails, the old rotation and metadata are restored. There is no wall kick. On success, Tetro plays the rotate sound and resets the gravity cooldown.
 
-`RNG_NEXT8` is an 8-bit shift-register generator. `RNG_NEXT_PIECE` folds higher bits into lower bits, masks to three bits, and retries when the value is 7. That gives piece indices 0 through 6.
+`RngNext8` is an 8-bit shift-register generator. `RngNextPiece` folds higher bits into lower bits, masks to three bits, and retries when the value is 7. That gives piece indices 0 through 6.
 
 ---
 
-## Lock, line clear, and score
+## Lock, line clear, and Score
 
-`games/tetro/board_lock.asm` owns the transition from active piece to board.
+`tetro/board-lock.asm` owns the transition from active piece to board.
 
-`LOCK_ACTIVE_PIECE` first calls `CHECK_TOP_OUT_ON_LOCK`. If the active piece is still partly above the visible field, Tetro merges it into the board and enters game over.
+`LockActPiece` first calls `CheckTopOut`. If the active piece is still partly above the visible field, Tetro merges it into the board and enters game over.
 
-Otherwise, `MERGE_ACTIVE_TO_BOARD` writes the shifted active piece into `BOARD_ROWS` and into the colour planes selected by `CURRENT_PIECE_COLOR`. It uses the same `SHIFT_ROW_MASK` routine as collision and rendering, so the cells that collide, draw, and merge are the same cells.
+Otherwise, `MergeActBoard` writes the shifted active piece into `BoardRows` and into the colour planes selected by `CurPieceColor`. It uses the same `ShiftRowMask` routine as collision and rendering, so the cells that collide, draw, and merge are the same cells.
 
-`CHECK_FULL_ROWS` scans `BOARD_ROWS` for `0xFF`. Full rows are recorded in `CLEAR_MASK`.
+`CheckFullRows` scans `BoardRows` for `0xFF`. Full rows are recorded in `ClearMask`.
 
 If no row is full, Tetro plays the lock sound and immediately spawns the next piece.
 
-If one or more rows are full, Tetro plays the clear sound, sets `CLEAR_PENDING`, loads `CLEAR_TIMER`, and disables the active piece. Rendering draws rows in `CLEAR_MASK` as white while the timer counts down. When the timer expires, `COLLAPSE_FULL_ROWS` removes the rows, `APPLY_CLEAR_SCORE` updates score and gravity speed, and the next piece spawns.
+If one or more rows are full, Tetro plays the clear sound, sets `ClearPending`, loads `ClearTimer`, and disables the active piece. Rendering draws rows in `ClearMask` as white while the timer counts down. When the timer expires, `CollapseRows` removes the rows, `ApplyClearScore` updates Score and gravity speed, and the next piece spawns.
 
-The score table is data-driven:
+The Score table is data-driven:
 
 ```text
 1 row  = 100
@@ -241,7 +241,7 @@ The score table is data-driven:
 4+ rows = 800
 ```
 
-When the score reaches the configured threshold, `CURRENT_GRAVITY_PERIOD` changes from `GRAVITY_PERIOD` to `GRAVITY_PERIOD_STEP1`.
+When the Score reaches the configured threshold, `CurGravPeriod` changes from `GravityPeriod` to `GravPeriodStep1`.
 
 ---
 
@@ -249,31 +249,31 @@ When the score reaches the configured threshold, `CURRENT_GRAVITY_PERIOD` change
 
 Rendering is split between shared buffer helpers, shared draw primitives, and Tetro-specific drawing.
 
-`shared/framebuffer_core.asm` provides:
+`shared/framebuffer-core.asm` provides:
 
-- `CLEAR_BACK_ALL`
-- `CLEAR_BACK_4`
-- `COPY_BACK_4_TO_FRONT`
-- `COPY_BACK_TO_FRONT`
+- `FbClearAll`
+- `FbClearRow`
+- `FbCopyRow`
+- `FbCopyAll`
 
-Those routines know only about the 8x8 RGB framebuffer layout.
+Those routines know only about the 8x8 RGB Framebuffer layout.
 
-`shared/framebuffer_draw.asm` provides game-neutral RGB draw primitives:
+`shared/framebuffer-draw.asm` provides game-neutral RGB draw primitives:
 
-- `MATRIX_X_TO_MASK`
-- `FB_SET_CELL_COLOR`
-- `FB_OR_ROW_COLOR_MASK`
+- `MxMask`
+- `FbSetCell`
+- `FbOrRow`
 
-`games/tetro/render.asm` contains Tetro-aware rendering:
+`tetro/render.asm` contains Tetro-aware rendering:
 
-- `REBUILD_FRAMEBUFFER`
-- `CLEAR_BOARD`
-- `RENDER_BOARD_TO_BACK`
-- `RENDER_ACTIVE_TO_BACK`
+- `RebuildFb`
+- `ClearBoard`
+- `RendBoardBack`
+- `RendActBack`
 
-`RENDER_BOARD_TO_BACK` copies landed colour planes into the back buffer. During a line-clear hold, rows in `CLEAR_MASK` become white. During game over, occupied cells are rendered as a red silhouette.
+`RendBoardBack` copies landed colour planes into the back buffer. During a line-clear hold, rows in `ClearMask` become white. During game over, occupied cells are rendered as a red silhouette.
 
-`RENDER_ACTIVE_TO_BACK` draws the falling piece on top. It shifts each bitmap row by `PLAYER_X`, skips rows outside the visible field, and calls `FB_OR_ROW_COLOR_MASK` to OR the row mask into the selected colour channels.
+`RendActBack` draws the falling piece on top. It shifts each bitmap row by `PlayerX`, skips rows outside the visible field, and calls `FbOrRow` to OR the row mask into the selected colour channels.
 
 The active piece is rendered after the board. Collision has already ensured it does not overlap landed cells, so the OR operation is safe.
 
@@ -285,18 +285,18 @@ The LCD stack is split into shared primitives and Tetro screens.
 
 `shared/lcd.asm` knows how to talk to the HD44780, execute a simple script table, write a string at a row command, and append a table-indexed character. A script is a list of row-command bytes and string pointers, terminated by zero.
 
-Tetro screen scripts live in `games/tetro/data.asm`:
+Tetro screen scripts live in `tetro/data.asm`:
 
 - splash
 - running
-- paused
+- Paused
 - game over
 
-`games/tetro/ui.asm` selects those scripts. Running and paused screens go through `LCD_SHOW_HUD`, which uses the shared LCD primitives to append the next-piece letter after the `NEXT: ` label. `LCD_REFRESH_NEXT_PREVIEW_ROW` updates only that preview row after a successful spawn.
+`tetro/ui.asm` selects those scripts. Running and Paused screens go through `LcdShowHud`, which uses the shared LCD primitives to append the next-piece letter after the `NEXT: ` label. `LcdRefNextPrev` updates only that preview row after a successful spawn.
 
-The seven-segment path is split the same way. `shared/hud.asm` scans one digit per `SCAN_TICK` and owns the shared decimal formatter. `games/tetro/hud.asm` wraps that formatter for Tetro's score variable and updates `HUD_SEG_BUFFER` when the score changes.
+The seven-segment path is split the same way. `shared/hud.asm` scans one digit per `ScanTick` and owns the shared decimal formatter. `tetro/hud.asm` wraps that formatter for Tetro's Score variable and updates `HudSegBuffer` when the Score changes.
 
-The sound path follows the same pattern. `shared/sound.asm` runs the speaker state machine. `games/tetro/sound.asm` names the Tetro events and loads their tuning constants.
+The sound path follows the same pattern. `shared/sound.asm` runs the speaker state machine. `tetro/sound.asm` names the Tetro events and loads their tuning constants.
 
 ---
 
@@ -305,84 +305,84 @@ The sound path follows the same pattern. `shared/sound.asm` runs the speaker sta
 Currently shared and generic:
 
 - `shared/inc/constants.asm`: hardware ports, MON-3 keys, colours, dimensions
-- `shared/scan_tick.asm`: matrix scanout and scan-state advance
-- `shared/framebuffer_core.asm`: back-buffer clear and copy
-- `shared/framebuffer_draw.asm`: matrix x-to-mask conversion and RGB framebuffer draw primitives
+- `shared/scan-tick.asm`: matrix scanout and scan-state advance
+- `shared/framebuffer-core.asm`: back-buffer clear and copy
+- `shared/framebuffer-draw.asm`: matrix x-to-mask conversion and RGB Framebuffer draw primitives
 - `shared/sound.asm`: speaker divider service
 - `shared/hud.asm`: seven-segment scan, blanking, digit/glyph tables, and decimal formatting
 - `shared/lcd.asm`: HD44780 primitive operations, script renderer, row string writer, and table-character writer
 
 Currently Tetro-specific:
 
-- `games/tetro/constants.asm`: movement, gravity, scoring, spawn, and sound tuning
-- `games/tetro/game_init.asm`: cold start, restart, and state initialization
-- `games/tetro/logic_dispatch.asm`: Tetro state priority and 8-slice schedule
-- `games/tetro/piece_active.asm`: movement, gravity, rotation, RNG, and spawn
-- `games/tetro/collision.asm`: active-piece placement and top-out checks
-- `games/tetro/board_lock.asm`: merge, line clear, scoring, and game-over entry
-- `games/tetro/geometry_helpers.asm`: pending-position and row-mask helpers
-- `games/tetro/render.asm`: board and active-piece rendering
-- `games/tetro/input.asm`: Tetro keypad mapping, repeat handling, pause, start, and restart gates
-- `games/tetro/sound.asm`: Tetro sound event wrappers
-- `games/tetro/hud.asm`: Tetro score display wrapper for the shared HUD formatter
-- `games/tetro/ui.asm`: Tetro LCD screens and next-piece preview
-- `games/tetro/data.asm`: pieces, colours, LCD scripts, score tables, and preview letters
-- `games/tetro/ram.asm`: Tetro state layout
+- `tetro/constants.asm`: movement, gravity, scoring, spawn, and sound tuning
+- `tetro/game-init.asm`: cold Start, restart, and state initialization
+- `tetro/logic-dispatch.asm`: Tetro state priority and 8-slice schedule
+- `tetro/piece-active.asm`: movement, gravity, rotation, RNG, and spawn
+- `tetro/collision.asm`: active-piece placement and top-out checks
+- `tetro/board-lock.asm`: merge, line clear, scoring, and game-over entry
+- `tetro/geometry-helpers.asm`: pending-position and row-mask helpers
+- `tetro/render.asm`: board and active-piece rendering
+- `tetro/input.asm`: Tetro keypad mapping, repeat handling, pause, Start, and restart gates
+- `tetro/sound.asm`: Tetro sound event wrappers
+- `tetro/hud.asm`: Tetro Score display wrapper for the shared HUD formatter
+- `tetro/ui.asm`: Tetro LCD screens and next-piece preview
+- `tetro/data.asm`: pieces, colours, LCD scripts, Score tables, and preview letters
+- `tetro/ram.asm`: Tetro state layout
 
-Tetro now uses shared HUD formatting, LCD row/table primitives, and framebuffer draw primitives. The game still owns its input meanings, board rendering, active-piece rendering, scoring events, and LCD screen choices.
+Tetro now uses shared HUD formatting, LCD row/table primitives, and Framebuffer draw primitives. The game still owns its input meanings, board rendering, active-piece rendering, scoring events, and LCD screen choices.
 
 ---
 
 ## Data tables
 
-`games/tetro/data.asm` contains display tables and piece data.
+`tetro/data.asm` contains display tables and piece data.
 
-Most static Tetro data lives here: piece bitmaps, rotation lookup tables, colour tables, LCD text, LCD scripts, score values, and row masks.
+Most static Tetro data lives here: piece bitmaps, rotation lookup tables, colour tables, LCD text, LCD scripts, Score values, and row masks.
 
 The piece tables are parallel:
 
-- `PIECE_PTR_TABLE` points to the 4-row bitmap for each piece and rotation.
-- `PIECE_RIGHT_TABLE` stores the rightmost occupied column for bounds checks.
-- `PIECE_COLOR_TABLE` stores the RGB colour mask for each piece.
+- `PiecePtrTable` points to the 4-row bitmap for each piece and rotation.
+- `PieceRightTbl` stores the rightmost occupied column for bounds checks.
+- `PieceColorTbl` stores the RGB colour mask for each piece.
 
-Each bitmap row is an 8-bit mask. The occupied cells are in the high bits before shifting, and `SHIFT_ROW_MASK` moves them into the board position at runtime.
+Each bitmap row is an 8-bit mask. The occupied cells are in the high bits before shifting, and `ShiftRowMask` moves them into the board position at runtime.
 
 The same file also contains:
 
 - row bit masks
-- line-clear score values
+- line-clear Score values
 - LCD strings
 - LCD script tables
 - piece preview letters
 
-Changing a message, score value, colour, piece bitmap, preview letter, or LCD screen is usually a data edit rather than a logic edit.
+Changing a message, Score value, colour, piece bitmap, preview letter, or LCD screen is usually a data edit rather than a logic edit.
 
 ---
 
 ## A piece from spawn to lock
 
-On boot, `INIT_STATE` clears Tetro state, shows the splash, and rebuilds the framebuffer. The main loop starts immediately. `SCAN_TICK` keeps the matrix alive, score digits blank, and frame counter moving.
+On boot, `InitState` clears Tetro state, shows the splash, and rebuilds the Framebuffer. The main loop starts immediately. `ScanTick` keeps the matrix alive, Score digits blank, and frame counter moving.
 
-When the player presses a key on the splash screen, `HANDLE_SPLASH_STATE` seeds the RNG, generates the first next-piece index, sets `INPUT_LOCKOUT`, spawns the first active piece, initializes the score display, shows the running LCD screen, and rebuilds the framebuffer.
+When the player presses a key on the splash screen, `SplashState` seeds the RNG, generates the first next-piece index, sets `InputLockout`, spawns the first active piece, initializes the Score display, shows the running LCD screen, and rebuilds the Framebuffer.
 
-`SPAWN_ACTIVE_PIECE` promotes `NEXT_PIECE_INDEX` to `CURRENT_PIECE_INDEX`, generates a new upcoming piece, sets the spawn position, resets movement and gravity cooldowns, and tests collision at the spawn point. If spawn collides immediately, Tetro enters game over.
+`SpawnActPiece` promotes `NextPieceIndex` to `CurPieceIndex`, generates a new upcoming piece, sets the spawn position, resets movement and gravity cooldowns, and tests collision at the spawn point. If spawn collides immediately, Tetro enters game over.
 
-During play, slice 0 polls input. The keypad mapping is handled locally in `games/tetro/input.asm`; that file calls Tetro movement and rotation routines directly. Left and right key codes stay as MON-3 hardware constants, while the movement handlers define what action each key performs for the current matrix orientation:
+During play, slice 0 polls input. The keypad mapping is handled locally in `tetro/input.asm`; that file calls Tetro movement and rotation routines directly. Left and right key codes stay as MON-3 hardware constants, while the movement handlers define what action each key performs for the current matrix orientation:
 
 ```asm
-K_LEFT:         EQU     0x11
-K_RIGHT:        EQU     0x10
+KeyLeft:         EQU     0x11
+KeyRight:        EQU     0x10
 ```
 
 Tetro also accepts an inverted-T numeric layout: `1` moves left, `3` moves right, `2` soft-drops, and `6` rotates clockwise. These aliases route through the same handlers as the dedicated movement, drop, and rotate keys.
 
-Slice 1 applies gravity. If the downward probe succeeds, the piece moves down. If it fails, `LOCK_ACTIVE_PIECE` merges or ends the game.
+Slice 1 applies gravity. If the downward probe succeeds, the piece moves down. If it fails, `LockActPiece` merges or ends the game.
 
-Slices 2 through 6 clear rows of the back buffer. Slice 7 finishes the clear, renders board and active piece, and copies the back buffer to the live framebuffer.
+Slices 2 through 6 clear rows of the back buffer. Slice 7 finishes the clear, renders board and active piece, and copies the back buffer to the live Framebuffer.
 
-When a piece locks, Tetro checks top-out, merges into the board, checks full rows, and either spawns immediately or enters the line-clear hold. Completed rows flash white, collapse, update the score, and then the next piece spawns.
+When a piece locks, Tetro checks top-out, merges into the board, checks full rows, and either spawns immediately or enters the line-clear hold. Completed rows flash white, collapse, update the Score, and then the next piece spawns.
 
-Game over leaves the loop running. The matrix, score display, LCD, and speaker are still serviced. After the key gate expires, a new key press calls `INIT_STATE_RESTART`.
+Game over leaves the loop running. The matrix, Score display, LCD, and speaker are still serviced. After the key gate expires, a new key press calls `InitRestart`.
 
 ---
 
@@ -390,54 +390,54 @@ Game over leaves the loop running. The matrix, score display, LCD, and speaker a
 
 ```text
 target
-  src/tetro.z80
-    ORG, START, MAIN_LOOP, include order
+  src/tetro/tetro.z80
+    ORG, Start, MainLoop, include order
 
 shared hardware helpers
-  shared/scan_tick.asm
-    SCAN_TICK -> SERVICE_SOUND, SCAN_SCORE_DIGIT, ADVANCE_SCAN_STATE
+  shared/scan-tick.asm
+    ScanTick -> SndService, HudScanDig, ScanNext
   shared/sound.asm
-    SOUND_START, SERVICE_SOUND
+    SndStart, SndService
   shared/hud.asm
-    SCAN_SCORE_DIGIT, BLANK_HUD_SCORE_DIGITS
+    HudScanDig, HudBlankDig
   shared/lcd.asm
-    LCD_BUSY, LCD_COMMAND, LCD_STRING, LCD_SHOW_SCRIPT, LCD_PUTC, LCD_WRITE_ROW_STRING, LCD_PUTC_FROM_TABLE
-  shared/framebuffer_core.asm
-    CLEAR_BACK_ALL, CLEAR_BACK_4, COPY_BACK_4_TO_FRONT, COPY_BACK_TO_FRONT
-  shared/framebuffer_draw.asm
-    MATRIX_X_TO_MASK, FB_SET_CELL_COLOR, FB_OR_ROW_COLOR_MASK
+    LcdBusy, LcdCmd, LcdString, LcdScript, LcdPutc, LcdRowStr, LcdPutcTbl
+  shared/framebuffer-core.asm
+    FbClearAll, FbClearRow, FbCopyRow, FbCopyAll
+  shared/framebuffer-draw.asm
+    MxMask, FbSetCell, FbOrRow
 
 Tetro wrappers and presentation
-  games/tetro/sound.asm
-    SOUND_TRIGGER_ROTATE, LOCK, CLEAR, GAME_OVER
-  games/tetro/hud.asm
-    UPDATE_SCORE_DISPLAY
-  games/tetro/ui.asm
-    LCD_SHOW_SPLASH, RUNNING, PAUSED, GAME_OVER, NEXT preview
-  games/tetro/input.asm
-    keypad mapping, repeat handling, pause/start/restart gates
+  tetro/sound.asm
+    SndTrigRotate, LOCK, CLEAR, GameOver
+  tetro/hud.asm
+    UpdScoreDisplay
+  tetro/ui.asm
+    LcdShowSplash, RUNNING, Paused, GameOver, NEXT preview
+  tetro/input.asm
+    keypad mapping, repeat handling, pause/Start/restart gates
 
 Tetro rules
-  games/tetro/constants.asm
+  tetro/constants.asm
     movement, gravity, scoring, spawn, and sound tuning
-  games/tetro/game_init.asm
-    cold start, restart, and state initialization
-  games/tetro/logic_dispatch.asm
-    LOGIC_TICK and 8-slice scheduler
-  games/tetro/piece_active.asm
+  tetro/game-init.asm
+    cold Start, restart, and state initialization
+  tetro/logic-dispatch.asm
+    LogicTick and 8-slice scheduler
+  tetro/piece-active.asm
     movement, gravity, rotation, RNG, spawn
-  games/tetro/collision.asm
-    CHECK_COLLISION_AT_DE, CHECK_TOP_OUT_ON_LOCK
-  games/tetro/board_lock.asm
-    lock, merge, line clear, score, game over
-  games/tetro/geometry_helpers.asm
+  tetro/collision.asm
+    CheckCollAtDe, CheckTopOut
+  tetro/board-lock.asm
+    lock, merge, line clear, Score, game over
+  tetro/geometry-helpers.asm
     pending-position loading and row-mask shifting
-  games/tetro/render.asm
-    Tetro board/active rendering over shared framebuffer core
+  tetro/render.asm
+    Tetro board/active rendering over shared Framebuffer core
 
 state and data
-  games/tetro/ram.asm
+  tetro/ram.asm
     all mutable Tetro state
-  games/tetro/data.asm
-    pieces, colours, score table, LCD scripts, preview letters
+  tetro/data.asm
+    pieces, colours, Score table, LCD scripts, preview letters
 ```

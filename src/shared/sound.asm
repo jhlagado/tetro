@@ -1,44 +1,56 @@
 ; Generic speaker divider state machine.
 ; Game-local sound event wrappers set duration/divider values and tail-call
-; SOUND_START.
+; SndStart.
 
-; SOUND_START
-; @in A duration in scan ticks.
-; @in C divider reload / half-period.
-; Speaker state machine restarted.
-; @clobbers A while restarting the state machine.
-SOUND_START:
-        LD      (SOUND_TIMER),A
+; SndStart
+; Input:
+;   A = duration in scan ticks
+;   C = divider reload / half-period
+; Output:
+;   speaker state machine restarted
+; Clobbers:
+;   A
+; Accepts @in A as duration in scan ticks.
+; Accepts @in C as divider reload / half-period.
+; Uses @clobbers A,F while restarting the state machine.
+; Keeps @preserves BC,DE,HL,IX,IY stable for the caller.
+SndStart:
+        LD      (SoundTimer),A
         LD      A,C
-        LD      (SOUND_DIVIDER_RELOAD),A
-        LD      (SOUND_DIVIDER_COUNT),A
+        LD      (SndDivReload),A
+        LD      (SndDivCount),A
         XOR     A
-        LD      (SPEAKER_PORT_STATE),A
+        LD      (SpeakerPort),A
         RET
 
-; SERVICE_SOUND
-; SOUND_TIMER / SOUND_DIVIDER_RELOAD / SOUND_DIVIDER_COUNT.
-; SPEAKER_PORT_STATE toggled while the active sound cue is running.
-; @clobbers A while updating the active sound cue.
-SERVICE_SOUND:
-        LD      A,(SOUND_TIMER)
+; SndService
+; Input:
+;   SoundTimer / SndDivReload / SndDivCount
+; Output:
+;   SpeakerPort toggled while the active sound cue is running
+; Clobbers:
+;   A
+; Uses @clobbers A,F while updating the active sound cue.
+; Keeps @preserves BC,DE,HL,IX,IY stable for the caller.
+SndService:
+        LD      A,(SoundTimer)
         OR      A
         RET     Z
         DEC     A
-        LD      (SOUND_TIMER),A
-        JR      NZ,SERVICE_SOUND_ACTIVE
+        LD      (SoundTimer),A
+        JR      NZ,SndActive
         XOR     A
-        LD      (SPEAKER_PORT_STATE),A
-        LD      (SOUND_DIVIDER_COUNT),A
+        LD      (SpeakerPort),A
+        LD      (SndDivCount),A
         RET
-SERVICE_SOUND_ACTIVE:
-        LD      A,(SOUND_DIVIDER_COUNT)
+SndActive:
+        LD      A,(SndDivCount)
         DEC     A
-        LD      (SOUND_DIVIDER_COUNT),A
+        LD      (SndDivCount),A
         RET     NZ
-        LD      A,(SOUND_DIVIDER_RELOAD)
-        LD      (SOUND_DIVIDER_COUNT),A
-        LD      A,(SPEAKER_PORT_STATE)
-        XOR     SPEAKER_BIT
-        LD      (SPEAKER_PORT_STATE),A
+        LD      A,(SndDivReload)
+        LD      (SndDivCount),A
+        LD      A,(SpeakerPort)
+        XOR     SpeakerBit
+        LD      (SpeakerPort),A
         RET
