@@ -107,8 +107,8 @@ HandleDirKey:
 
 ; PollGOverRestart —
 ; Poll for a key press after game-over.
-; A fresh key press (carry set) tail-calls
-; InitRestart (JP).
+; Carry set from scanKeys means a fresh key press;
+; that path jumps to InitRestart.
 ; ========================== AZM
 ; clobbers  A,BC,DE,HL
 ; ========================== AZM
@@ -135,7 +135,7 @@ HandleDirKey:
 
 ; HandlePauseKey —
 ; Toggle pause state and update the LCD banner.
-; Tail-calls ClearInputRpt (JP) when done.
+; ClearInputRpt resets key-repeat state afterward.
 ; ========================== AZM
 ; out       HL,carry,zero
 ; clobbers  A
@@ -154,7 +154,7 @@ PauseShowRun:
 
 ; HandleUnpause —
 ; Clear pause and restore the running LCD banner.
-; Tail-calls ClearInputRpt (JP).
+; ClearInputRpt resets key-repeat state afterward.
 ; ========================== AZM
 ; out       HL,carry,zero
 ; clobbers  A
@@ -167,7 +167,7 @@ PauseShowRun:
 
 ; HandleRotPress —
 ; Dispatch clockwise rotation (CW).
-; Calls RotateCw then tail-calls ClearInputRpt.
+; Calls RotateCw, then resets key-repeat state.
 ; ========================== AZM
 ; out       carry,zero
 ; clobbers  A,C,DE,HL
@@ -178,7 +178,7 @@ PauseShowRun:
 
 ; HandleCcwPress —
 ; Dispatch counter-clockwise rotation (CCW).
-; Calls RotateLeft then tail-calls ClearInputRpt.
+; Calls RotateLeft, then resets key-repeat state.
 ; ========================== AZM
 ; out       carry,zero
 ; clobbers  A,C,DE,HL
@@ -188,7 +188,7 @@ PauseShowRun:
         JP      ClearInputRpt
 
 ; HandleKeyRight —
-; Load KeyRight into A then tail-call HandleHeldDir.
+; A contains KeyRight for HandleHeldDir.
 ; ========================== AZM
 ; out       carry,zero
 ; clobbers  A,BC,DE,HL
@@ -198,7 +198,7 @@ PauseShowRun:
         JP      HandleHeldDir
 
 ; HandleKeyLeft —
-; Load KeyLeft into A then tail-call HandleHeldDir.
+; A contains KeyLeft for HandleHeldDir.
 ; ========================== AZM
 ; out       carry,zero
 ; clobbers  A,BC,DE,HL
@@ -211,6 +211,7 @@ PauseShowRun:
 ; Gate soft-drop on DropLockout then dispatch.
 ; DropLockout prevents repeated locking on a held
 ; drop key; clears when ClearInputRpt is called.
+; A contains KeyDrop for HandleHeldDir.
 ; ========================== AZM
 ; out       carry,zero
 ; clobbers  A,BC,DE,HL
@@ -224,6 +225,7 @@ PauseShowRun:
 
 ; HandleHeldDir —
 ; Manage autorepeat for left, right, and drop.
+; A contains the normalized key to process.
 ; First press of a new key fires immediately then
 ; waits MovePeriod ticks before repeating.
 ; Drop uses DropPeriod; lateral uses MovePeriod.

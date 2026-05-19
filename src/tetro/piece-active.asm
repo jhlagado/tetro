@@ -1,6 +1,6 @@
 ; HorizProbeX —
 ; Test PendingX at current PlayerY via collision.
-; PendingY must be pre-set to the current PlayerY.
+; PendingY contains the current PlayerY.
 ; On no collision, commits PendingX to PlayerX.
 ; ========================== AZM
 ; out       zero
@@ -33,8 +33,8 @@ HorizCommitX:
 
 ; MoveLeft —
 ; Attempt to shift the piece one column left.
-; Decrements PlayerX if the candidate is legal;
-; returns immediately at column 0.
+; Decrements PlayerX if the candidate is legal.
+; PlayerX=0 leaves the position unchanged.
 ; ========================== AZM
 ; out       zero
 ; clobbers  A,DE
@@ -49,7 +49,8 @@ HorizCommitX:
 
 ; StepActDown —
 ; Load the candidate position one row below.
-; Returns carry from CheckCollAtDe unchanged.
+; Carry from CheckCollAtDe is returned unchanged:
+; set means blocked, clear means legal.
 ; Does not commit PlayerY on its own.
 ; ========================== AZM
 ; out       carry,zero
@@ -69,7 +70,7 @@ HorizCommitX:
 ; Periodic drop when GravityCooldown expires.
 ; Decrements the countdown; reloads from
 ; CurGravPeriod on expiry and calls StepActDown.
-; On collision: tail-calls LockActPiece (JP).
+; Collision jumps to LockActPiece.
 ; ========================== AZM
 ; out       carry,zero
 ; clobbers  A,BC,DE,HL
@@ -93,8 +94,8 @@ GravityCommit:
 
 ; SoftDrop —
 ; Immediately step the piece down one row.
-; On collision: sets DropLockout and tail-calls
-; LockActPiece (JP).
+; Collision sets DropLockout and jumps to
+; LockActPiece.
 ; On success: commits PendingY and resets
 ; GravityCooldown to CurGravPeriod.
 ; ========================== AZM
@@ -187,7 +188,8 @@ SanitizeYDone:
         RET
 
 ; RngNext8 —
-; Step the 8-bit Galois LFSR and return a byte.
+; Step the 8-bit Galois LFSR. The new byte is
+; returned in A.
 ; Polynomial: XOR 0xB8 when the shifted-out bit
 ; is 1. Seed 0 is replaced with RngSeedInit to
 ; prevent the zero lock-up state.
@@ -321,8 +323,8 @@ RotateAccept:
 ; Select next piece and place at spawn position.
 ; Spawn is at column 3, row SpawnY (above the
 ; visible field). Immediately checks collision;
-; if the spawn is blocked, tail-calls
-; EnterGameOver (reason code 0).
+; blocked spawn jumps to EnterGameOver with reason
+; code 0 in A.
 ; On success: enables the piece and updates the
 ; LCD next-piece preview via LcdRefNextPrev.
 ; ========================== AZM
@@ -351,4 +353,4 @@ RotateAccept:
         RET
 SpawnFailed:
         XOR     A                      ; reason code 0 = immediate spawn collision
-        JP      EnterGameOver        ; tail-call; EnterGameOver tail-calls LCD_SHOW_*
+        JP      EnterGameOver        ; EnterGameOver jumps to game-over LCD

@@ -61,7 +61,7 @@ HudBlankLp:
 
 ; HudWriteU16 —
 ; Encode a 16-bit value as decimal into
-; HudSegBuffer.
+; HudSegBuffer. HL contains the value.
 ; Slot 0 always shows the zero glyph; slots 1–5
 ; hold the 10000, 1000, 100, 10, and 1 digits.
 ; ========================== AZM
@@ -88,9 +88,10 @@ HudBlankLp:
 
 ; HudDecDigit —
 ; Extract one decimal place-value digit from HL.
-; Subtracts DE from HL until HL < DE, counting
-; iterations. Writes the glyph to (BC), advances
-; BC to the next slot.
+; HL contains the remaining value. DE contains the
+; place value. BC points to the output slot. The
+; glyph is written to (BC), BC advances to the next
+; slot, and the reduced remainder is returned in HL.
 ; ========================== AZM
 ; in        HL,DE,BC
 ; out       BC,HL

@@ -1,12 +1,13 @@
 ; InitState —
 ; Cold-start: reset Score, level, and lives.
-; Sets PacLevel=1 and PacLives=PacLivesStart.
-; Calls InitLevelState then shows the splash.
+; Starts PacLevel at 1, restores PacLives, resets
+; the enemy speed, builds a fresh level, and shows
+; the splash screen. No semantic value is returned.
 ; ========================== AZM
-; in        IX,IY,SP
-; clobbers  IX,IY,A,BC,DE,HL
+; out       carry
+; clobbers  A,BC,DE,HL,IX
 ; ========================== AZM
-InitState:
+@InitState:
         XOR     A
         LD      (PacScore),A
         LD      (PacScore + 1),A
@@ -22,17 +23,14 @@ InitState:
         JP      LcdShowPacSplash
 
 ; InitLevelState —
-; Start one Pacmo level without touching Score
-; or level counter.
-; Resets all transient flags, scan state, and
-; power-pill and enemy state. Clears eaten paths,
-; marks the player start cell eaten, and rebuilds
-; the Framebuffer (JP RebuildFb).
+; Start one Pacmo level without touching Score or
+; PacLevel. Resets transient game, sound, input, and
+; enemy state; clears eaten paths; marks the player
+; start cell eaten; then rebuilds the Framebuffer.
 ; ========================== AZM
-; in        IX
-; clobbers  IX,A,BC,DE,HL
+; clobbers  A,BC,DE,HL,IX
 ; ========================== AZM
-InitLevelState:
+@InitLevelState:
         CALL    InitPlyMons
 
         XOR     A
@@ -86,13 +84,15 @@ InitLevelState:
 ; Places player at (7,7); Monster0 at its ROM
 ; start position moving right; Monster1 at (1,1)
 ; moving left; Monster2 at (13,1) moving down.
-; Viewport origin set to (3,3).
-; Resets movement cooldown and all transient
-; caught and power flags.
+; Viewport origin is reset to (3,3). Movement repeat,
+; caught state, power timer, sound state, and monster
+; respawn/flee state are also cleared. Final flags are
+; incidental; callers should not use them as status.
 ; ========================== AZM
+; out       carry,zero
 ; clobbers  A
 ; ========================== AZM
-InitPlyMons:
+@InitPlyMons:
         LD      A,7
         LD      (PlayerX),A
         LD      (PlayerY),A
@@ -147,13 +147,12 @@ InitPlyMons:
         RET
 
 ; ClearFrontBack —
-; Zero both Framebuffer and FramebufferBack.
-; Clears FramebufferBytes*2 bytes from
-; Framebuffer base.
+; Zero both Framebuffer and FramebufferBack by clearing
+; FramebufferBytes*2 bytes from Framebuffer.
 ; ========================== AZM
 ; clobbers  A,B,HL
 ; ========================== AZM
-ClearFrontBack:
+@ClearFrontBack:
         LD      HL,Framebuffer
         LD      B,FramebufferBytes * 2
         XOR     A
@@ -164,12 +163,12 @@ ClearFrontBackLp:
         RET
 
 ; ClearEatenPaths —
-; Zero PacEatenRows (PacEatenBytes bytes).
-; Call at level start; MarkEatenBc sets bits.
+; Zero PacEatenRows at level start. MarkEatenBc later
+; sets one bit per eaten path cell.
 ; ========================== AZM
 ; clobbers  A,B,HL
 ; ========================== AZM
-ClearEatenPaths:
+@ClearEatenPaths:
         LD      HL,PacEatenRows
         LD      B,PacEatenBytes
         XOR     A

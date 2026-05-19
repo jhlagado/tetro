@@ -2,7 +2,7 @@
 ; 8x8 RGB matrix Framebuffer.
 
 ; FbClearAll —
-; Zero all of FramebufferBack.
+; Zero all bytes in FramebufferBack.
 ; ========================== AZM
 ; clobbers  A,B,HL
 ; ========================== AZM
@@ -18,7 +18,8 @@ FbClrLoop:
 
 ; FbClearRow —
 ; Clear one RGB row in FramebufferBack.
-; Row offset is 4 bytes per row: 0, 4, 8 … 28.
+; A contains the row byte offset, normally 0, 4, 8,
+; ... 28. The carry flag is incidental.
 ; ========================== AZM
 ; in        A
 ; out       carry
@@ -54,8 +55,13 @@ FbClrLoop:
 
 ; FbCopyRow —
 ; Copy one RGB row from back to live Framebuffer.
-; Row offset A is 4 bytes per row: 0, 4, 8 … 28.
-FbCopyRow:
+; A contains the row byte offset, normally 0, 4, 8,
+; ... 28.
+; ========================== AZM
+; in        A
+; clobbers  A,DE,HL
+; ========================== AZM
+@FbCopyRow:
         LD      E,A
         LD      D,0
         LD      HL,FramebufferBack

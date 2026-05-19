@@ -3,7 +3,7 @@
 
 ; LcdBusy —
 ; Spin until the HD44780 busy flag clears.
-; Fully preserves all registers (PUSH/POP AF).
+; AF is preserved with PUSH/POP.
 @LcdBusy:
         PUSH    AF
 LcdBusyLp:
@@ -30,7 +30,7 @@ LcdBusyLp:
 ; LcdClear —
 ; Send the clear-display command (0x01).
 ; Cursor homes to position 0 after the command.
-; Tail-calls LcdCmd (JP).
+; B contains the command byte for LcdCmd.
 ; ========================== AZM
 ; clobbers  B
 ; ========================== AZM
@@ -40,8 +40,8 @@ LcdBusyLp:
 
 ; LcdString —
 ; Write a zero-terminated string to the LCD.
-; Starts at the current cursor position and
-; returns when the NUL terminator is consumed.
+; HL points to the string. Writing starts at the
+; current LCD cursor and stops after the NUL byte.
 ; ========================== AZM
 ; in        HL
 ; out       HL,carry
@@ -110,7 +110,7 @@ LcdScrDone:
 ; LcdRowStr —
 ; Position cursor via DDRAM command in B then
 ; write the zero-terminated string from HL.
-; Tail-calls LcdString (JP).
+; The updated string pointer is returned in HL.
 ; ========================== AZM
 ; in        B,HL
 ; out       HL,carry
@@ -123,7 +123,7 @@ LcdScrDone:
 ; LcdPutcTbl —
 ; Write the byte at DE+A to the LCD cursor.
 ; No bounds check on A.
-; Tail-calls LcdPutc (JP).
+; A contains the table index; DE points to the table.
 ; ========================== AZM
 ; in        A,DE
 ; clobbers  A,HL

@@ -1,6 +1,6 @@
 ; LcdShowGOver —
 ; Show the game-over LCD script.
-; Tail-calls LcdScript (JP); no NEXT preview row.
+; No NEXT preview row is appended.
 ; ========================== AZM
 ; out       carry
 ; clobbers  A,HL
@@ -21,7 +21,7 @@
 
 ; LcdShowSplash —
 ; Show the splash screen with control hints.
-; Tail-calls LcdScript (JP).
+; LcdScript's carry result is not Tetro status.
 ; ========================== AZM
 ; out       carry
 ; clobbers  A,HL
@@ -32,7 +32,7 @@
 
 ; LcdAppendPrev —
 ; Emit the NextPieceIndex letter glyph to the LCD.
-; Cursor must already sit after the NEXT: banner.
+; The LCD cursor is positioned after the NEXT: banner.
 ; ========================== AZM
 ; clobbers  A,DE,HL
 ; ========================== AZM

@@ -3,9 +3,9 @@
 ; Checks X bounds against XMin and CurPieceRight.
 ; Checks each occupied piece row against BoardRows
 ; using the MSB-left column convention.
-; Returns carry set on collision or out-of-bounds,
-; carry clear when the placement is legal.
-; Preserves BC, DE, HL.
+; Carry set means collision or out-of-bounds; carry
+; clear means the placement is legal.
+; BC, DE, and HL are preserved.
 ; ========================== AZM
 ; in        DE
 ; out       carry,zero
