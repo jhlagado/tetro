@@ -1,9 +1,7 @@
 ; SndTrigRotate —
 ; Start the short rotate-key sound cue.
-; ========================== AZM
-; out       carry,zero
-; clobbers  A,C
-; ========================== AZM
+;!      out       carry,zero
+;!      clobbers  A,C
 @SndTrigRotate:
         LD      A,SoundRotateLen
         LD      C,SoundRotateDiv
@@ -11,10 +9,8 @@
 
 ; SndTrigLock —
 ; Start the short piece-lock sound cue.
-; ========================== AZM
-; out       carry,zero
-; clobbers  A,C
-; ========================== AZM
+;!      out       carry,zero
+;!      clobbers  A,C
 @SndTrigLock:
         LD      A,SoundLockLen
         LD      C,SoundLockDiv
@@ -22,10 +18,8 @@
 
 ; SndTrigClear —
 ; Start the line-clear sound cue.
-; ========================== AZM
-; out       carry,zero
-; clobbers  A,C
-; ========================== AZM
+;!      out       carry,zero
+;!      clobbers  A,C
 @SndTrigClear:
         LD      A,SoundClearLen
         LD      C,SoundClearDiv
@@ -33,10 +27,8 @@
 
 ; SndTrigGOver —
 ; Start the game-over sound cue.
-; ========================== AZM
-; out       carry,zero
-; clobbers  A,C
-; ========================== AZM
+;!      out       carry,zero
+;!      clobbers  A,C
 @SndTrigGOver:
         LD      A,SndGOverLen
         LD      C,SndGOverDiv
@@ -45,10 +37,8 @@
 ; SndTrigReady —
 ; Start the short ready-chirp when the game-over
 ; key-delay expires and input is accepted again.
-; ========================== AZM
-; out       carry,zero
-; clobbers  A,C
-; ========================== AZM
+;!      out       carry,zero
+;!      clobbers  A,C
 @SndTrigReady:
         LD      A,SndReadyLen
         LD      C,SndReadyDiv

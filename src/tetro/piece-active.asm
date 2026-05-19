@@ -2,10 +2,8 @@
 ; Test PendingX at current PlayerY via collision.
 ; PendingY contains the current PlayerY.
 ; On no collision, commits PendingX to PlayerX.
-; ========================== AZM
-; out       zero
-; clobbers  A,DE
-; ========================== AZM
+;!      out       zero
+;!      clobbers  A,DE
 @HorizProbeX:
         LD      A,(PlayerY)
         LD      (PendingY),A
@@ -21,10 +19,8 @@ HorizCommitX:
 ; MoveRight —
 ; Attempt to shift the piece one column right.
 ; Increments PlayerX if the candidate is legal.
-; ========================== AZM
-; out       zero
-; clobbers  A,DE
-; ========================== AZM
+;!      out       zero
+;!      clobbers  A,DE
 @MoveRight:
         LD      A,(PlayerX)
         INC     A
@@ -35,10 +31,8 @@ HorizCommitX:
 ; Attempt to shift the piece one column left.
 ; Decrements PlayerX if the candidate is legal.
 ; PlayerX=0 leaves the position unchanged.
-; ========================== AZM
-; out       zero
-; clobbers  A,DE
-; ========================== AZM
+;!      out       zero
+;!      clobbers  A,DE
 @MoveLeft:
         LD      A,(PlayerX)
         OR      A
@@ -52,10 +46,8 @@ HorizCommitX:
 ; Carry from CheckCollAtDe is returned unchanged:
 ; set means blocked, clear means legal.
 ; Does not commit PlayerY on its own.
-; ========================== AZM
-; out       carry,zero
-; clobbers  A,DE
-; ========================== AZM
+;!      out       carry,zero
+;!      clobbers  A,DE
 @StepActDown:
         LD      A,(PlayerX)
         LD      (PendingX),A
@@ -71,10 +63,8 @@ HorizCommitX:
 ; Decrements the countdown; reloads from
 ; CurGravPeriod on expiry and calls StepActDown.
 ; Collision jumps to LockActPiece.
-; ========================== AZM
-; out       carry,zero
-; clobbers  A,BC,DE,HL
-; ========================== AZM
+;!      out       carry,zero
+;!      clobbers  A,BC,DE,HL
 @ApplyGravity:
         LD      A,(GravityCooldown)
         DEC     A
@@ -98,10 +88,8 @@ GravityCommit:
 ; LockActPiece.
 ; On success: commits PendingY and resets
 ; GravityCooldown to CurGravPeriod.
-; ========================== AZM
-; out       carry,zero
-; clobbers  A,BC,DE,HL
-; ========================== AZM
+;!      out       carry,zero
+;!      clobbers  A,BC,DE,HL
 @SoftDrop:
         CALL    StepActDown
         JR      NC,SoftDropCommit
@@ -121,10 +109,8 @@ SoftDropCommit:
 ; columns 0..7, accounting for CurPieceRight.
 ; PlayerY is only clamped if it is non-negative;
 ; negative Y (above-field spawn rows) is kept.
-; ========================== AZM
-; out       zero
-; clobbers  A,HL
-; ========================== AZM
+;!      out       zero
+;!      clobbers  A,HL
 @SanitizeActPos:
         LD      A,(PlayerX)
         LD      HL,CurPieceRight
@@ -151,10 +137,8 @@ SanitizeYDone:
 ; update CurPiecePtr, CurPieceRight,
 ; and CurPieceColor.
 ; Draws a new NextPieceIndex from the RNG.
-; ========================== AZM
-; out       zero
-; clobbers  A,BC,DE,HL
-; ========================== AZM
+;!      out       zero
+;!      clobbers  A,BC,DE,HL
 @SelectNextPiece:
         LD      A,(NextPieceIndex)
         LD      (CurPieceIndex),A
@@ -171,10 +155,8 @@ SanitizeYDone:
 ; Folds high bits into low bits then masks to 3;
 ; retries when the result >= PieceCount so the
 ; output is uniformly in range.
-; ========================== AZM
-; out       A,zero
-; clobbers  B
-; ========================== AZM
+;!      out       A,zero
+;!      clobbers  B
 @RngNextPiece:
         CALL    RngNext8
         LD      B,A
@@ -193,9 +175,7 @@ SanitizeYDone:
 ; Polynomial: XOR 0xB8 when the shifted-out bit
 ; is 1. Seed 0 is replaced with RngSeedInit to
 ; prevent the zero lock-up state.
-; ========================== AZM
-; out       A
-; ========================== AZM
+;!      out       A
 @RngNext8:
         LD      A,(RngSeed)
         OR      A
@@ -215,9 +195,7 @@ RngNext8Save:
 ; CurPieceRight (from PieceRightTbl), and
 ; CurPiecePtr (from PiecePtrTable).
 ; Table index: piece_index * 4 + rotation.
-; ========================== AZM
-; clobbers  A,C,DE,HL
-; ========================== AZM
+;!      clobbers  A,C,DE,HL
 @LoadCurRot:
         ; COLOR lookup first; piece-indexed so DE
         ; stays free.
@@ -265,10 +243,8 @@ RngNext8Save:
 ; reloads the original piece state via LoadCurRot.
 ; On legal: plays rotate sound and resets
 ; GravityCooldown to CurGravPeriod.
-; ========================== AZM
-; out       carry,zero
-; clobbers  A,C,DE,HL
-; ========================== AZM
+;!      out       carry,zero
+;!      clobbers  A,C,DE,HL
 @RotateTestDone:
         LD      A,(PlayerX)
         LD      D,A
@@ -289,10 +265,8 @@ RotateAccept:
 ; Attempt clockwise rotation (increment mod 4).
 ; Saves current rotation as PendingRotation,
 ; applies the candidate, calls RotateTestDone.
-; ========================== AZM
-; out       carry,zero
-; clobbers  A,C,DE,HL
-; ========================== AZM
+;!      out       carry,zero
+;!      clobbers  A,C,DE,HL
 @RotateCw:
         LD      A,(CurrentRotation)
         LD      (PendingRotation),A
@@ -306,10 +280,8 @@ RotateAccept:
 ; Attempt counter-clockwise rotation (dec mod 4).
 ; Saves current rotation as PendingRotation,
 ; applies the candidate, calls RotateTestDone.
-; ========================== AZM
-; out       carry,zero
-; clobbers  A,C,DE,HL
-; ========================== AZM
+;!      out       carry,zero
+;!      clobbers  A,C,DE,HL
 @RotateLeft:
         LD      A,(CurrentRotation)
         LD      (PendingRotation),A
@@ -327,9 +299,7 @@ RotateAccept:
 ; code 0 in A.
 ; On success: enables the piece and updates the
 ; LCD next-piece preview via LcdRefNextPrev.
-; ========================== AZM
-; clobbers  A,BC,DE,HL
-; ========================== AZM
+;!      clobbers  A,BC,DE,HL
 @SpawnActPiece:
         CALL    SelectNextPiece
         LD      A,3

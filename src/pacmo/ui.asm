@@ -7,10 +7,8 @@
 ; Show the Pacmo splash and control-hint screen.
 ; LcdScript's carry result is not a Pacmo status
 ; value.
-; ========================== AZM
-; out       carry
-; clobbers  A,HL
-; ========================== AZM
+;!      out       carry
+;!      clobbers  A,HL
 @LcdShowPacSplash:
         LD      HL,ScriptPacSplash
         JP      LcdScript
@@ -18,9 +16,7 @@
 ; LcdShowPacRun —
 ; Show the running HUD script, then refresh the
 ; dynamic LEVEL and LIVES rows.
-; ========================== AZM
-; clobbers  A,DE,HL
-; ========================== AZM
+;!      clobbers  A,DE,HL
 @LcdShowPacRun:
         LD      HL,ScriptPacRun
         CALL    LcdScript
@@ -29,9 +25,7 @@
 ; LcdShowPacPause —
 ; Show the paused HUD script, then refresh the
 ; dynamic LEVEL and LIVES rows.
-; ========================== AZM
-; clobbers  A,DE,HL
-; ========================== AZM
+;!      clobbers  A,DE,HL
 @LcdShowPacPause:
         LD      HL,ScriptPacPause
         CALL    LcdScript
@@ -40,9 +34,7 @@
 ; LcdShowPower —
 ; Show the power-mode HUD script while the power timer
 ; is active, then refresh LEVEL and LIVES rows.
-; ========================== AZM
-; clobbers  A,DE,HL
-; ========================== AZM
+;!      clobbers  A,DE,HL
 @LcdShowPower:
         LD      HL,ScriptPacPower
         CALL    LcdScript
@@ -51,9 +43,7 @@
 ; LcdShowEatEnemy —
 ; Show the monster-eaten scripted cue, then refresh
 ; LEVEL and LIVES rows.
-; ========================== AZM
-; clobbers  A,DE,HL
-; ========================== AZM
+;!      clobbers  A,DE,HL
 @LcdShowEatEnemy:
         LD      HL,ScriptPacEaten
         CALL    LcdScript
@@ -62,9 +52,7 @@
 ; LcdShowCaught —
 ; Show the life-loss script, then refresh only the
 ; LIVES row because the level did not change.
-; ========================== AZM
-; clobbers  A,DE,HL
-; ========================== AZM
+;!      clobbers  A,DE,HL
 @LcdShowCaught:
         LD      HL,ScriptPacCaught
         CALL    LcdScript
@@ -74,10 +62,8 @@
 ; Show the Pacmo game-over screen.
 ; LcdScript's carry result is not a Pacmo status
 ; value.
-; ========================== AZM
-; out       carry
-; clobbers  A,HL
-; ========================== AZM
+;!      out       carry
+;!      clobbers  A,HL
 @LcdShowPacOver:
         LD      HL,ScriptPacOver
         JP      LcdScript
@@ -86,19 +72,15 @@
 ; Show the round-complete / maze-clear screen.
 ; LcdScript's carry result is not a Pacmo status
 ; value.
-; ========================== AZM
-; out       carry
-; clobbers  A,HL
-; ========================== AZM
+;!      out       carry
+;!      clobbers  A,HL
 @LcdShowComplete:
         LD      HL,ScriptPacDone
         JP      LcdScript
 
 ; LcdRefStatus —
 ; Refresh LCD rows 2 and 3 from PacLevel and PacLives.
-; ========================== AZM
-; clobbers  A,DE,HL
-; ========================== AZM
+;!      clobbers  A,DE,HL
 @LcdRefStatus:
         CALL    LcdRefLevel
         JP      LcdRefLives
@@ -107,9 +89,7 @@
 ; Write row 2 LEVEL banner plus PacLevel digit.
 ; PacLevel is masked to a nybble and looked up through
 ; PacLevelChars.
-; ========================== AZM
-; clobbers  A,DE,HL
-; ========================== AZM
+;!      clobbers  A,DE,HL
 @LcdRefLevel:
         PUSH    BC
         LD      B,LcdRow2
@@ -126,9 +106,7 @@
 ; Write row 3 LIVES banner plus PacLives digit.
 ; PacLives is masked to a nybble and looked up through
 ; PacLevelChars.
-; ========================== AZM
-; clobbers  A,DE,HL
-; ========================== AZM
+;!      clobbers  A,DE,HL
 @LcdRefLives:
         PUSH    BC
         LD      B,LcdRow3

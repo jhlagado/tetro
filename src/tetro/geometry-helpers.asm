@@ -1,9 +1,7 @@
 ; LoadDePending —
 ; Load PendingX/Y into DE for collision probes.
-; ========================== AZM
-; out       DE
-; clobbers  A
-; ========================== AZM
+;!      out       DE
+;!      clobbers  A
 @LoadDePending:
         LD      A,(PendingX)
         LD      D,A
@@ -16,11 +14,9 @@
 ; positions, placing the piece at column PlayerX.
 ; The MSB-left convention means SRL moves bits
 ; toward lower-numbered matrix columns.
-; ========================== AZM
-; in        A
-; out       A
-; clobbers  C
-; ========================== AZM
+;!      in        A
+;!      out       A
+;!      clobbers  C
 @ShiftRowMask:
         LD      C,A
         LD      A,(ShiftCount)

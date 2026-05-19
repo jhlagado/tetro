@@ -9,11 +9,9 @@
 ; the divider; smaller values mean a shorter
 ; half-period and higher pitch.
 ; Resets SpeakerPort to off before the new cue.
-; ========================== AZM
-; in        A,C
-; out       carry,zero
-; clobbers  A
-; ========================== AZM
+;!      in        A,C
+;!      out       carry,zero
+;!      clobbers  A
 @SndStart:
         LD      (SoundTimer),A
         LD      A,C
@@ -28,10 +26,8 @@
 ; Decrements SoundTimer; silences when it hits
 ; zero. While active, counts SndDivCount down
 ; and toggles SpeakerBit on each reload.
-; ========================== AZM
-; out       carry,zero
-; clobbers  A
-; ========================== AZM
+;!      out       carry,zero
+;!      clobbers  A
 @SndService:
         LD      A,(SoundTimer)
         OR      A

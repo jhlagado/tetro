@@ -6,10 +6,8 @@
 ; Left, right, and drop repeat via HandleHeldDir.
 ; Skips movement when paused but still allows
 ; un-pause via HandleUnpause.
-; ========================== AZM
-; out       carry,zero
-; clobbers  A,BC,DE,HL
-; ========================== AZM
+;!      out       carry,zero
+;!      clobbers  A,BC,DE,HL,IX,IY
 @PollInput:
         LD      C,ApiScanKeys
         RST     0x10
@@ -68,10 +66,8 @@ HandleDirKey:
 ; Reset repeat state after a non-repeating event.
 ; Restores MoveCooldown to MovePeriod and clears
 ; both LastKey and DropLockout.
-; ========================== AZM
-; out       carry,zero
-; clobbers  A
-; ========================== AZM
+;!      out       carry,zero
+;!      clobbers  A
 @ClearInputRpt:
         LD      A,MovePeriod
         LD      (MoveCooldown),A
@@ -86,10 +82,8 @@ HandleDirKey:
 ; Counts down the 16-bit GOverKeyGateLo counter.
 ; Fires SndTrigReady exactly once when it reaches
 ; zero, then falls through to PollGOverRestart.
-; ========================== AZM
-; out       carry,zero
-; clobbers  A,BC,DE,HL
-; ========================== AZM
+;!      out       carry,zero
+;!      clobbers  A,BC,DE,HL,IX,IY
 @WaitGOverGate:
         LD      HL,(GOverKeyGateLo)
         LD      A,H
@@ -109,9 +103,7 @@ HandleDirKey:
 ; Poll for a key press after game-over.
 ; Carry set from scanKeys means a fresh key press;
 ; that path jumps to InitRestart.
-; ========================== AZM
-; clobbers  A,BC,DE,HL
-; ========================== AZM
+;!      clobbers  A,BC,DE,HL,IX,IY
 @PollGOverRestart:
         LD      C,ApiScanKeys
         RST     0x10
@@ -121,10 +113,8 @@ HandleDirKey:
 ; WaitKeyRelease —
 ; Clear InputLockout once no key is being held.
 ; Prevents accidental input at spawn and start.
-; ========================== AZM
-; out       carry,zero
-; clobbers  A,BC,DE,HL
-; ========================== AZM
+;!      out       carry,zero
+;!      clobbers  A,BC,DE,HL,IX,IY
 @WaitKeyRelease:
         LD      C,ApiScanKeys
         RST     0x10
@@ -136,10 +126,8 @@ HandleDirKey:
 ; HandlePauseKey —
 ; Toggle pause state and update the LCD banner.
 ; ClearInputRpt resets key-repeat state afterward.
-; ========================== AZM
-; out       HL,carry,zero
-; clobbers  A
-; ========================== AZM
+;!      out       HL,carry,zero
+;!      clobbers  A
 @HandlePauseKey:
         LD      A,(Paused)
         XOR     1
@@ -155,10 +143,8 @@ PauseShowRun:
 ; HandleUnpause —
 ; Clear pause and restore the running LCD banner.
 ; ClearInputRpt resets key-repeat state afterward.
-; ========================== AZM
-; out       HL,carry,zero
-; clobbers  A
-; ========================== AZM
+;!      out       HL,carry,zero
+;!      clobbers  A
 @HandleUnpause:
         XOR     A
         LD      (Paused),A
@@ -168,10 +154,8 @@ PauseShowRun:
 ; HandleRotPress —
 ; Dispatch clockwise rotation (CW).
 ; Calls RotateCw, then resets key-repeat state.
-; ========================== AZM
-; out       carry,zero
-; clobbers  A,C,DE,HL
-; ========================== AZM
+;!      out       carry,zero
+;!      clobbers  A,C,DE,HL
 @HandleRotPress:
         CALL    RotateCw
         JP      ClearInputRpt
@@ -179,30 +163,24 @@ PauseShowRun:
 ; HandleCcwPress —
 ; Dispatch counter-clockwise rotation (CCW).
 ; Calls RotateLeft, then resets key-repeat state.
-; ========================== AZM
-; out       carry,zero
-; clobbers  A,C,DE,HL
-; ========================== AZM
+;!      out       carry,zero
+;!      clobbers  A,C,DE,HL
 @HandleCcwPress:
         CALL    RotateLeft
         JP      ClearInputRpt
 
 ; HandleKeyRight —
 ; A contains KeyRight for HandleHeldDir.
-; ========================== AZM
-; out       carry,zero
-; clobbers  A,BC,DE,HL
-; ========================== AZM
+;!      out       carry,zero
+;!      clobbers  A,BC,DE,HL
 @HandleKeyRight:
         LD      A,KeyRight
         JP      HandleHeldDir
 
 ; HandleKeyLeft —
 ; A contains KeyLeft for HandleHeldDir.
-; ========================== AZM
-; out       carry,zero
-; clobbers  A,BC,DE,HL
-; ========================== AZM
+;!      out       carry,zero
+;!      clobbers  A,BC,DE,HL
 @HandleKeyLeft:
         LD      A,KeyLeft
         JP      HandleHeldDir
@@ -212,10 +190,8 @@ PauseShowRun:
 ; DropLockout prevents repeated locking on a held
 ; drop key; clears when ClearInputRpt is called.
 ; A contains KeyDrop for HandleHeldDir.
-; ========================== AZM
-; out       carry,zero
-; clobbers  A,BC,DE,HL
-; ========================== AZM
+;!      out       carry,zero
+;!      clobbers  A,BC,DE,HL
 @HandleKeyDrop:
         LD      A,(DropLockout)
         OR      A
@@ -229,11 +205,9 @@ PauseShowRun:
 ; First press of a new key fires immediately then
 ; waits MovePeriod ticks before repeating.
 ; Drop uses DropPeriod; lateral uses MovePeriod.
-; ========================== AZM
-; in        A
-; out       carry,zero
-; clobbers  A,BC,DE,HL
-; ========================== AZM
+;!      in        A
+;!      out       carry,zero
+;!      clobbers  A,BC,DE,HL
 @HandleHeldDir:
         LD      E,A
         LD      A,(LastKey)

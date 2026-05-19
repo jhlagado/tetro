@@ -7,10 +7,8 @@
 ; then asserts the digit-select bit from
 ; HudMaskTbl. Advances HudScanIndex 0..5,
 ; wrapping to 0 after digit 5.
-; ========================== AZM
-; out       carry,zero
-; clobbers  A,BC,DE,HL
-; ========================== AZM
+;!      out       carry,zero
+;!      clobbers  A,BC,DE,HL
 @HudScanDig:
         LD      A,(HudScanIndex)
         LD      C,A
@@ -46,9 +44,7 @@ HudScanSave:
 
 ; HudBlankDig —
 ; Zero all six bytes of HudSegBuffer.
-; ========================== AZM
-; clobbers  A,B,HL
-; ========================== AZM
+;!      clobbers  A,B,HL
 @HudBlankDig:
         LD      HL,HudSegBuffer
         LD      B,6
@@ -64,11 +60,9 @@ HudBlankLp:
 ; HudSegBuffer. HL contains the value.
 ; Slot 0 always shows the zero glyph; slots 1–5
 ; hold the 10000, 1000, 100, 10, and 1 digits.
-; ========================== AZM
-; in        HL
-; out       BC,HL
-; clobbers  A,DE
-; ========================== AZM
+;!      in        HL
+;!      out       BC,HL
+;!      clobbers  A,DE
 @HudWriteU16:
         LD      A,(HudGlyphTbl)
         LD      (HudSegBuffer),A
@@ -92,11 +86,9 @@ HudBlankLp:
 ; place value. BC points to the output slot. The
 ; glyph is written to (BC), BC advances to the next
 ; slot, and the reduced remainder is returned in HL.
-; ========================== AZM
-; in        HL,DE,BC
-; out       BC,HL
-; clobbers  A,DE
-; ========================== AZM
+;!      in        HL,DE,BC
+;!      out       BC,HL
+;!      clobbers  A,DE
 @HudDecDigit:
         XOR     A
 HudDecLp:
