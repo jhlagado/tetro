@@ -16,9 +16,7 @@ LcdBusyLp:
 ; LcdCmd —
 ; Wait for LCD ready then send B as an
 ; instruction byte to PortLcdInst.
-; ========================== AZM
-; in        B
-; ========================== AZM
+;!      in        B
 @LcdCmd:
         PUSH    AF
         CALL    LcdBusy
@@ -31,9 +29,7 @@ LcdBusyLp:
 ; Send the clear-display command (0x01).
 ; Cursor homes to position 0 after the command.
 ; B contains the command byte for LcdCmd.
-; ========================== AZM
-; clobbers  B
-; ========================== AZM
+;!      clobbers  B
 @LcdClear:
         LD      B,0x01
         JP      LcdCmd
@@ -42,11 +38,9 @@ LcdBusyLp:
 ; Write a zero-terminated string to the LCD.
 ; HL points to the string. Writing starts at the
 ; current LCD cursor and stops after the NUL byte.
-; ========================== AZM
-; in        HL
-; out       HL,carry
-; clobbers  A
-; ========================== AZM
+;!      in        HL
+;!      out       HL,carry
+;!      clobbers  A
 @LcdString:
         LD      A,(HL)
         INC     HL
@@ -62,11 +56,9 @@ LcdBusyLp:
 ; terminated by DB 0.
 ; Clears the display first, then for each entry
 ; positions the cursor and writes the string.
-; ========================== AZM
-; in        HL
-; out       carry
-; clobbers  A
-; ========================== AZM
+;!      in        HL
+;!      out       carry
+;!      clobbers  A
 @LcdScript:
         PUSH    BC
         PUSH    DE
@@ -97,9 +89,7 @@ LcdScrDone:
 ; LcdPutc —
 ; Write one character to the LCD at the current
 ; cursor position.
-; ========================== AZM
-; in        A
-; ========================== AZM
+;!      in        A
 @LcdPutc:
         PUSH    AF
         CALL    LcdBusy
@@ -111,11 +101,9 @@ LcdScrDone:
 ; Position cursor via DDRAM command in B then
 ; write the zero-terminated string from HL.
 ; The updated string pointer is returned in HL.
-; ========================== AZM
-; in        B,HL
-; out       HL,carry
-; clobbers  A
-; ========================== AZM
+;!      in        B,HL
+;!      out       HL,carry
+;!      clobbers  A
 @LcdRowStr:
         CALL    LcdCmd
         JP      LcdString
@@ -124,10 +112,8 @@ LcdScrDone:
 ; Write the byte at DE+A to the LCD cursor.
 ; No bounds check on A.
 ; A contains the table index; DE points to the table.
-; ========================== AZM
-; in        A,DE
-; clobbers  A,HL
-; ========================== AZM
+;!      in        A,DE
+;!      clobbers  A,HL
 @LcdPutcTbl:
         LD      L,A
         LD      H,0

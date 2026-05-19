@@ -7,10 +7,8 @@
 ; disables the active piece, and sets ClearPending
 ; and ClearTimer for the hold delay.
 ; On no clear: triggers lock sound, spawns next.
-; ========================== AZM
-; out       carry,zero
-; clobbers  A,BC,E,HL
-; ========================== AZM
+;!      out       carry,zero
+;!      clobbers  A,BC,E,HL
 @LockActPiece:
         CALL    CheckTopOut
         JR      C,LockGameOver
@@ -43,10 +41,8 @@ LockGameOver:
 ; GOverKeyGateLo for the restart-input delay.
 ; Plays the game-over sound, rebuilds the Framebuffer,
 ; then jumps to LcdShowGOver.
-; ========================== AZM
-; out       carry
-; clobbers  A,BC,DE,HL
-; ========================== AZM
+;!      out       carry
+;!      clobbers  A,BC,DE,HL
 @EnterGameOver:
         PUSH    AF
         XOR     A
@@ -66,9 +62,7 @@ LockGameOver:
 ; RngSeedInit), draws the first NextPiece, locks
 ; input, and starts the game via SpawnActPiece
 ; then jumps to RebuildFb.
-; ========================== AZM
-; clobbers  A,BC,DE,HL
-; ========================== AZM
+;!      clobbers  A,BC,DE,HL,IX,IY
 @SplashState:
         LD      C,ApiScanKeys
         RST     0x10
@@ -96,9 +90,7 @@ SplashSeedReady:
 ; logic cycle). On ClearTimer expiry: collapses
 ; filled rows, awards score, clears ClearPending,
 ; then jumps to SpawnActPiece.
-; ========================== AZM
-; clobbers  A,BC,DE,HL
-; ========================== AZM
+;!      clobbers  A,BC,DE,HL
 @LineClearState:
         LD      A,(LogicSlice)
         OR      A
@@ -119,10 +111,8 @@ SplashSeedReady:
 ; Builds ClearMask: bit N set when row N is full.
 ; Carry set means at least one row is full; carry
 ; clear means no rows are full.
-; ========================== AZM
-; out       carry
-; clobbers  A,BC,E,HL
-; ========================== AZM
+;!      out       carry
+;!      clobbers  A,BC,E,HL
 @CheckFullRows:
         LD      HL,BoardRows
         LD      B,RowCount
@@ -153,10 +143,8 @@ CheckRowsNone:
 ; CountClearRows —
 ; Count the set bits in ClearMask.
 ; The count is returned in A (0..8).
-; ========================== AZM
-; out       A,C
-; clobbers  B
-; ========================== AZM
+;!      out       A,C
+;!      clobbers  B
 @CountClearRows:
         LD      A,(ClearMask)
         LD      C,A
@@ -180,10 +168,8 @@ CountClearDone:
 ; 100, 300, 500, or 800 for 1, 2, 3, or 4+ rows.
 ; Updates gravity after changing Score, then refreshes
 ; the score HUD.
-; ========================== AZM
-; out       BC,HL
-; clobbers  A,DE
-; ========================== AZM
+;!      out       BC,HL
+;!      clobbers  A,DE
 @ApplyClearScore:
         CALL    CountClearRows
         OR      A
@@ -216,10 +202,8 @@ ApplyClearLookup:
 ; Increase gravity when Score crosses a threshold.
 ; Updates CurGravPeriod: GravityPeriod below the
 ; threshold, GravPeriodStep1 at or above it.
-; ========================== AZM
-; out       zero
-; clobbers  A,HL
-; ========================== AZM
+;!      out       zero
+;!      clobbers  A,HL
 @UpdGravByScore:
         LD      HL,(ScoreLo)
         LD      A,H
@@ -244,9 +228,7 @@ UpdateGpStore:
 ; copied downward into the vacated slots.
 ; Top rows left vacant are zeroed in BoardRows
 ; and all three landed colour planes.
-; ========================== AZM
-; clobbers  A,B,DE,HL
-; ========================== AZM
+;!      clobbers  A,B,DE,HL
 @CollapseRows:
         LD      B,RowCount
         LD      D,RowCount - 1
@@ -298,10 +280,8 @@ CollapseTopLoop:
 ; BoardBlue). Each array is RowCount
 ; bytes wide; the stride between arrays is
 ; RowCount bytes.
-; ========================== AZM
-; in        DE
-; clobbers  A
-; ========================== AZM
+;!      in        DE
+;!      clobbers  A
 @CopyBoardRow:
         PUSH    HL
         PUSH    BC
@@ -343,11 +323,9 @@ CopyBrAdvNc:
 ; Zero one row in BoardRows and all three colour
 ; planes. D contains the row index. Uses the same
 ; RowCount stride as CopyBoardRow.
-; ========================== AZM
-; in        D
-; out       HL,C
-; clobbers  A,B
-; ========================== AZM
+;!      in        D
+;!      out       HL,C
+;!      clobbers  A,B
 @ClearBoardRow:
         XOR     A
         LD      B,A
@@ -376,9 +354,7 @@ ClearBrAdvNc:
 ; BoardEmptyScan —
 ; Set BoardEmpty=1 when all BoardRows bytes are
 ; zero; set BoardEmpty=0 otherwise.
-; ========================== AZM
-; clobbers  A,B,HL
-; ========================== AZM
+;!      clobbers  A,B,HL
 @BoardEmptyScan:
         LD      HL,BoardRows
         LD      B,RowCount
@@ -402,10 +378,8 @@ BoardNotEmpty:
 ; Only the planes enabled by CurPieceColor bits
 ; are touched; plane stride is RowCount bytes.
 ; Call after ORing C into BoardRows for this row.
-; ========================== AZM
-; in        L,C
-; out       A
-; ========================== AZM
+;!      in        L,C
+;!      out       A
 @MergeRgbRow:
         PUSH    BC
         PUSH    DE
@@ -442,9 +416,7 @@ MergeOrExit:
 ; (shifted by PlayerX) into BoardRows, then calls
 ; MergeRgbRow to update the three colour planes.
 ; Clears BoardEmpty as a side effect.
-; ========================== AZM
-; clobbers  A
-; ========================== AZM
+;!      clobbers  A
 @MergeActBoard:
         PUSH    BC
         PUSH    DE

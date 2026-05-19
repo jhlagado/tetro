@@ -7,10 +7,8 @@
 ; Slice 7: render row 7, blank the matrix, run
 ; PacFrameDuties, then reset LogicSlice to 0. The
 ; final flags are not a caller status convention.
-; ========================== AZM
-; out       carry,zero
-; clobbers  A,BC,DE,HL,IX,IY
-; ========================== AZM
+;!      out       carry,zero
+;!      clobbers  A,BC,DE,HL,IX,IY
 @LogicTick:
         LD      A,(LogicSlice)
         AND     7
@@ -35,9 +33,7 @@ LogicSl7:
 ; gate, power timer, and each active Monster.
 ; Then checks player collision against each active
 ; monster. Monster2 is skipped before level 2.
-; ========================== AZM
-; clobbers  A,BC,DE,HL,IX,IY
-; ========================== AZM
+;!      clobbers  A,BC,DE,HL,IX,IY
 @PacFrameDuties:
         CALL    PollInput
         LD      A,(PacPaused)
@@ -71,10 +67,8 @@ PacFrameCollDone:
 ; clears the back row, then rebuilds it from
 ; world, power pills, Monsters, and player.
 ; A is expected to be 0..7.
-; ========================== AZM
-; in        A
-; clobbers  A,BC,DE,HL,IX
-; ========================== AZM
+;!      in        A
+;!      clobbers  A,BC,DE,HL,IX
 @PacRenderRowA:
         PUSH    AF
         ADD     A,A
@@ -110,9 +104,7 @@ LogicSliceNext:
 ; Active only when PacRoundDone is set.
 ; On expiry, advances to the next level. Otherwise it
 ; only decrements PacLvlDoneLo/Hi.
-; ========================== AZM
-; clobbers  A,BC,DE,HL,IX
-; ========================== AZM
+;!      clobbers  A,BC,DE,HL,IX
 @TickLvlDoneGate:
         LD      A,(PacRoundDone)
         OR      A
@@ -129,9 +121,7 @@ LogicSliceNext:
 ; Decrement the 16-bit PacPowerTimer each frame.
 ; On expiry: sets all three Monster states to
 ; PacEnemyAtk and restores the running LCD.
-; ========================== AZM
-; clobbers  A,DE,HL
-; ========================== AZM
+;!      clobbers  A,DE,HL
 @TickPowerTimer:
         LD      HL,(PacPowerTimerLo)
         LD      A,H
@@ -153,9 +143,7 @@ LogicSliceNext:
 ; Returns carry clear when PacLevel >= 2,
 ; carry set when PacLevel < 2. A contains PacLevel
 ; after the comparison.
-; ========================== AZM
-; out       A,carry,zero
-; ========================== AZM
+;!      out       A,carry,zero
 @PacIsLevel2Plus:
         LD      A,(PacLevel)
         CP      2
@@ -170,11 +158,9 @@ LogicSliceNext:
 ; EnemyAttackStep; roam calls EnemyRoamStep. Carry is
 ; inherited from respawn/move paths and is not used by
 ; the frame dispatcher as a public result.
-; ========================== AZM
-; in        IX
-; out       BC,A,H,carry,zero
-; clobbers  DE,L
-; ========================== AZM
+;!      in        IX
+;!      out       BC,A,H,carry,zero
+;!      clobbers  DE,L
 @TickEnemy:
         LD      A,(PacSplashActive)
         OR      A
@@ -206,11 +192,9 @@ LogicSliceNext:
 ; Falls through to EnemyRoamStep when both chase
 ; directions are blocked. Carry set means a step was
 ; committed by the chosen movement path.
-; ========================== AZM
-; in        IX
-; out       BC,A,H,carry,zero
-; clobbers  DE,L
-; ========================== AZM
+;!      in        IX
+;!      out       BC,A,H,carry,zero
+;!      clobbers  DE,L
 @EnemyAttackStep:
         CALL    EnemyChaseDirs
         LD      A,(IX + MonsterDir)
@@ -234,11 +218,9 @@ LogicSliceNext:
 ; Returns carry clear when A is zero, when A equals L,
 ; or when the resulting move is blocked; carry set
 ; means EnemyTryMove committed the step.
-; ========================== AZM
-; in        A,L,IX
-; out       BC,A,carry,zero
-; clobbers  E
-; ========================== AZM
+;!      in        A,L,IX
+;!      out       BC,A,carry,zero
+;!      clobbers  E
 @EnemyTryChase:
         OR      A
         RET     Z
@@ -256,11 +238,10 @@ EnemyChaseBlock:
 ; as the secondary direction, ordered by the larger
 ; Manhattan distance axis. Either direction may be 0
 ; when already aligned on that axis.
-; ========================== AZM
-; in        IX
-; out       DE,zero
-; clobbers  A,BC,HL
-; ========================== AZM
+;!      in        IX
+;!      maybe-out H
+;!      out       DE,zero
+;!      clobbers  A,BC,HL
 @EnemyChaseDirs:
         CALL    EnemyHorizChase
         LD      H,A                     ; H = horizontal distance
@@ -280,11 +261,9 @@ EnemyChaseBlock:
 ; Compare monster X from IX with PlayerX.
 ; Returns A as the absolute horizontal distance and B
 ; as the reducing direction, or B=0 when aligned.
-; ========================== AZM
-; in        IX
-; out       A,B
-; clobbers  C
-; ========================== AZM
+;!      in        IX
+;!      out       A,B
+;!      clobbers  C
 @EnemyHorizChase:
         LD      A,(IX + MonsterX)
         LD      C,A
@@ -313,11 +292,9 @@ EnemyHorizAlign:
 ; Compare monster Y from IX with PlayerY.
 ; Returns A as the absolute vertical distance and B
 ; as the reducing direction, or B=0 when aligned.
-; ========================== AZM
-; in        IX
-; out       A,B
-; clobbers  C
-; ========================== AZM
+;!      in        IX
+;!      out       A,B
+;!      clobbers  C
 @EnemyVertChase:
         LD      A,(IX + MonsterY)
         LD      C,A
@@ -349,11 +326,9 @@ EnemyVertAlign:
 ; Avoids the immediate reverse unless all other
 ; directions are blocked. Carry set means a move was
 ; committed.
-; ========================== AZM
-; in        IX
-; out       BC,A,H,carry,zero
-; clobbers  DE
-; ========================== AZM
+;!      in        IX
+;!      out       BC,A,H,carry,zero
+;!      clobbers  DE
 @EnemyRoamStep:
         LD      A,(IX + MonsterX)
         LD      B,A
@@ -401,10 +376,8 @@ EnemyRoamReady:
 ; A contains a PacDir value. The opposite direction is
 ; returned in A: up/down or left/right. Flags are
 ; incidental.
-; ========================== AZM
-; in        A
-; out       A,carry
-; ========================== AZM
+;!      in        A
+;!      out       A,carry
 @EnemyOpposite:
         CP      PacDirUp
         JR      Z,EnemyOppDown
@@ -430,11 +403,9 @@ EnemyOppRight:
 ; then commits MonsterX/Y and MonsterDir on success.
 ; Returns carry set for a committed move, carry clear
 ; when blocked, out of bounds, or passed no direction.
-; ========================== AZM
-; in        IX,A
-; out       BC,A,carry,zero
-; clobbers  E
-; ========================== AZM
+;!      in        IX,A
+;!      out       BC,A,carry,zero
+;!      clobbers  E
 @EnemyTryMove:
         LD      E,A
         LD      A,(IX + MonsterX)
@@ -498,11 +469,9 @@ EnemyTryBlocked:
 ; When the countdown expires, selects a new spawn
 ; cell, restores attack state/direction/timer, refreshes
 ; the LCD, and returns carry clear.
-; ========================== AZM
-; in        IX
-; out       carry
-; clobbers  A,BC,DE,HL
-; ========================== AZM
+;!      in        IX
+;!      out       carry
+;!      clobbers  A
 @TickEnemyResp:
         LD      A,(IX + MonRespTimer)
         OR      A
@@ -544,10 +513,9 @@ TickEnemyDone:
 ; favour the earlier table entry. Writes the selected
 ; cell back to MonsterX/Y; no value is returned to the
 ; caller.
-; ========================== AZM
-; in        IX
-; clobbers  A,BC,DE,HL
-; ========================== AZM
+;!      in        IX
+;!      out       HL,B
+;!      clobbers  A,C,DE
 @EnemySelectResp:
         LD      HL,PacEnemySpawns
         LD      B,0xFF                  ; B = best distance; 0xFF means no best yet
@@ -599,11 +567,9 @@ EnemyRespCommit:
 ; within 8 tiles of the player.
 ; Otherwise returns player distance +
 ; summed distance to other active monsters in A.
-; ========================== AZM
-; in        HL,IX
-; out       A
-; clobbers  C
-; ========================== AZM
+;!      in        HL,IX
+;!      out       A
+;!      clobbers  C
 @EnemyRespScore:
         PUSH    DE
         CALL    EnemyIsInView
@@ -627,11 +593,9 @@ EnemyRespZero:
 ; Test whether world cell L=x, H=y is visible in the
 ; current 8x8 viewport.
 ; Returns carry set when in view, clear otherwise.
-; ========================== AZM
-; in        HL
-; out       A,carry,zero
-; clobbers  C
-; ========================== AZM
+;!      in        HL
+;!      out       A,carry,zero
+;!      clobbers  C
 @EnemyIsInView:
         LD      A,(ViewX)
         LD      C,A
@@ -660,11 +624,9 @@ EnemyNotVisible:
 ; another active monster. IX identifies the monster to
 ; ignore. Respawning monsters do not count. Returns
 ; carry set when occupied.
-; ========================== AZM
-; in        IX,HL
-; out       A,carry
-; clobbers  DE
-; ========================== AZM
+;!      in        IX,HL
+;!      out       A,carry
+;!      clobbers  DE
 @EnemyOccOther:
         LD      DE,Monster0
         CALL    EnemyOccByDe
@@ -682,11 +644,9 @@ EnemyNotVisible:
 ; L=x, H=y. IX identifies the current monster to
 ; ignore. Returns carry set when DE is another active
 ; monster at that cell; otherwise carry clear.
-; ========================== AZM
-; in        IX,DE,HL
-; out       A,carry
-; clobbers  DE
-; ========================== AZM
+;!      in        IX,DE,HL
+;!      out       A,carry
+;!      clobbers  DE
 @EnemyOccByDe:
         PUSH    HL
         PUSH    DE
@@ -727,11 +687,9 @@ EnemyOccNo:
 ; other active monsters. IX identifies the monster to
 ; exclude. Respawning monsters and inactive Monster2
 ; are skipped. Returns the sum in A.
-; ========================== AZM
-; in        IX,HL
-; out       A
-; clobbers  BC,DE
-; ========================== AZM
+;!      in        IX,HL
+;!      out       A
+;!      clobbers  BC,DE
 @EnemyDistOther:
         LD      B,0                     ; B = accumulated distance Score
         LD      DE,Monster0
@@ -754,11 +712,9 @@ EnemyOccNo:
 ; DE points to the candidate monster record, IX is the
 ; monster to exclude, and HL is the reference cell
 ; L=x, H=y. Respawning candidates are skipped.
-; ========================== AZM
-; in        IX,DE,HL,B
-; out       B
-; clobbers  A,C,DE
-; ========================== AZM
+;!      in        IX,DE,HL,B
+;!      out       B
+;!      clobbers  A,C,DE
 @EnemyAddDistDe:
         PUSH    HL
         PUSH    DE
@@ -794,11 +750,9 @@ EnemyOccNo:
 ; EnemyDistPlayer —
 ; Return in A the Manhattan distance from cell
 ; L=x, H=y to the player.
-; ========================== AZM
-; in        HL
-; out       A
-; clobbers  C
-; ========================== AZM
+;!      in        HL
+;!      out       A
+;!      clobbers  C
 @EnemyDistPlayer:
         PUSH    DE
         LD      A,(PlayerX)
@@ -812,11 +766,9 @@ EnemyOccNo:
 ; EnemyDistDe —
 ; Return in A the Manhattan distance from cell
 ; L=x, H=y to cell E=x, D=y.
-; ========================== AZM
-; in        DE,HL
-; out       A
-; clobbers  C
-; ========================== AZM
+;!      in        DE,HL
+;!      out       A
+;!      clobbers  C
 @EnemyDistDe:
         LD      A,L
         LD      C,A
@@ -858,9 +810,7 @@ EnemyDistSum:
 ; Reduces EnemyPeriodCur by PacEnemyPerStep down
 ; to PacEnemyPerMin, then restarts the level via
 ; InitLevelState and shows the running screen.
-; ========================== AZM
-; clobbers  A,BC,DE,HL,IX
-; ========================== AZM
+;!      clobbers  A,BC,DE,HL,IX
 @PacAdvanceLevel:
         LD      HL,PacLevel
         INC     (HL)

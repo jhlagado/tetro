@@ -8,10 +8,8 @@
 ; Slice 7: clear row 28, render board and piece,
 ;   copy back-buffer to live Framebuffer.
 ; LogicSlice wraps 0..7 at the end of each call.
-; ========================== AZM
-; out       carry,zero
-; clobbers  A,BC,DE,HL
-; ========================== AZM
+;!      out       carry,zero
+;!      clobbers  A,BC,DE,HL,IX,IY
 @LogicTick:
         CALL    SanitizeActPos
         LD      A,(GameOver)
@@ -61,9 +59,7 @@ LogicLockDone:
 ; LogicSl7 —
 ; Clear row 28, render board and active piece to
 ; the back-buffer, then copy to live Framebuffer.
-; ========================== AZM
-; clobbers  A,BC,DE,HL
-; ========================== AZM
+;!      clobbers  A,BC,DE,HL,IX,IY
 @LogicSl7:
         LD      A,28
         CALL    FbClearRow

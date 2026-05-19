@@ -4,9 +4,7 @@
 ; Used at init, restart, and game-over transitions.
 ; Clears back-buffer, renders board then piece,
 ; then copies to the live Framebuffer (JP).
-; ========================== AZM
-; clobbers  A,BC,DE,HL
-; ========================== AZM
+;!      clobbers  A,BC,DE,HL
 @RebuildFb:
         CALL    FbClearAll
         CALL    RendBoardBack
@@ -17,9 +15,7 @@
 ; Zero BoardRows and all three colour planes.
 ; Sets BoardEmpty=1 after clearing.
 ; Clears RowCount*4 bytes starting at BoardRows.
-; ========================== AZM
-; clobbers  A,B,HL
-; ========================== AZM
+;!      clobbers  A,B,HL
 @ClearBoard:
         LD      HL,BoardRows
         LD      B,RowCount * 4
@@ -40,9 +36,7 @@ ClearBoardLoop:
 ; red only (silhouette effect).
 ; Rows set in ClearMask flash white (all planes
 ; forced to 0xFF) during the line-clear hold.
-; ========================== AZM
-; clobbers  A
-; ========================== AZM
+;!      clobbers  A
 @RendBoardBack:
         PUSH    BC
         PUSH    DE
@@ -137,9 +131,7 @@ RendBoardExit:
 ; No-op when ActPieceEnabled is zero.
 ; Uses CurPiecePtr bitmap, PlayerX/Y position,
 ; and CurPieceColor for selecting colour planes.
-; ========================== AZM
-; clobbers  A
-; ========================== AZM
+;!      clobbers  A
 @RendActBack:
         LD      A,(ActPieceEnabled)
         OR      A
