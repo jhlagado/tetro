@@ -9,7 +9,15 @@
 
         .include "../shared/constants.asm"
 
-Start:
+; Start —
+; Pacmo entry point. Initializes game state, then runs
+; ScanTick and LogicTick forever from MainLoop. The
+; loop does not return a semantic status value.
+; ========================== AZM
+; out       carry,zero
+; clobbers  A,BC,DE,HL,IX,IY
+; ========================== AZM
+@Start:
         CALL    InitState
 
 MainLoop:

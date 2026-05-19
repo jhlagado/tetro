@@ -1,11 +1,13 @@
 ; MxMask —
-; Produce a column bitmask for matrix column A.
+; Produce a column bitmask for matrix column A and
+; return the mask in A.
 ; Column 0 is bit 7 (MSB); column 7 is bit 0.
 ; ========================== AZM
 ; in        A
-; out       A,carry,BC
+; out       A
+; clobbers  BC
 ; ========================== AZM
-MxMask:
+@MxMask:
         LD      C,A
         OR      A
         LD      A,0x80
@@ -20,16 +22,15 @@ MxMaskDone:
 ; FbSetCell —
 ; Set or clear one column bit across the R/G/B
 ; plane bytes for a single row.
-; HL must enter on the red plane byte of the row
-; and exits on the blue byte (no further INC).
-; Planes whose bit is set in A are OR'd with C;
-; absent planes are AND'd with CPL(C) to clear.
+; HL points to the row's red plane byte. C is the
+; column mask. Low bits of A select colour planes:
+; selected planes OR in C; absent planes clear C with
+; AND CPL(C).
 ; ========================== AZM
 ; in        C,A,HL
-; out       A,D
-; clobbers  B
+; clobbers  A,B,D,HL
 ; ========================== AZM
-FbSetCell:
+@FbSetCell:
         LD      B,A
         LD      A,C
         CPL
@@ -75,11 +76,13 @@ FbBluSet:
 ; OR column mask C into selected R/G/B planes.
 ; Low 3 bits of A select planes: bit 0 = red,
 ; bit 1 = green, bit 2 = blue (RRCA each iter).
-; HL must enter on the red plane byte of the row.
+; HL points to the row's red plane byte. The final
+; plane pointer is returned in HL.
 ; ========================== AZM
-; out       B
+; in        A,HL,C
+; out       HL,A
 ; ========================== AZM
-FbOrRow:
+@FbOrRow:
         PUSH    BC
         LD      B,3                     ; 3 planes: R, G, B
 FbOrLoop:

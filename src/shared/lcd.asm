@@ -3,8 +3,8 @@
 
 ; LcdBusy —
 ; Spin until the HD44780 busy flag clears.
-; Fully preserves all registers (PUSH/POP AF).
-LcdBusy:
+; AF is preserved with PUSH/POP.
+@LcdBusy:
         PUSH    AF
 LcdBusyLp:
         IN      A,(PortLcdInst)
@@ -19,7 +19,7 @@ LcdBusyLp:
 ; ========================== AZM
 ; in        B
 ; ========================== AZM
-LcdCmd:
+@LcdCmd:
         PUSH    AF
         CALL    LcdBusy
         LD      A,B
@@ -30,24 +30,24 @@ LcdCmd:
 ; LcdClear —
 ; Send the clear-display command (0x01).
 ; Cursor homes to position 0 after the command.
-; Tail-calls LcdCmd (JP).
+; B contains the command byte for LcdCmd.
 ; ========================== AZM
 ; clobbers  B
 ; ========================== AZM
-LcdClear:
+@LcdClear:
         LD      B,0x01
         JP      LcdCmd
 
 ; LcdString —
 ; Write a zero-terminated string to the LCD.
-; Starts at the current cursor position and
-; returns when the NUL terminator is consumed.
+; HL points to the string. Writing starts at the
+; current LCD cursor and stops after the NUL byte.
 ; ========================== AZM
 ; in        HL
 ; out       HL,carry
 ; clobbers  A
 ; ========================== AZM
-LcdString:
+@LcdString:
         LD      A,(HL)
         INC     HL
         OR      A
@@ -63,11 +63,11 @@ LcdString:
 ; Clears the display first, then for each entry
 ; positions the cursor and writes the string.
 ; ========================== AZM
-; in        HL,DE
-; out       DE,HL
-; clobbers  B
+; in        HL
+; out       carry
+; clobbers  A
 ; ========================== AZM
-LcdScript:
+@LcdScript:
         PUSH    BC
         PUSH    DE
         PUSH    HL
@@ -100,7 +100,7 @@ LcdScrDone:
 ; ========================== AZM
 ; in        A
 ; ========================== AZM
-LcdPutc:
+@LcdPutc:
         PUSH    AF
         CALL    LcdBusy
         POP     AF
@@ -110,25 +110,25 @@ LcdPutc:
 ; LcdRowStr —
 ; Position cursor via DDRAM command in B then
 ; write the zero-terminated string from HL.
-; Tail-calls LcdString (JP).
+; The updated string pointer is returned in HL.
 ; ========================== AZM
 ; in        B,HL
-; out       HL
+; out       HL,carry
 ; clobbers  A
 ; ========================== AZM
-LcdRowStr:
+@LcdRowStr:
         CALL    LcdCmd
         JP      LcdString
 
 ; LcdPutcTbl —
 ; Write the byte at DE+A to the LCD cursor.
 ; No bounds check on A.
-; Tail-calls LcdPutc (JP).
+; A contains the table index; DE points to the table.
 ; ========================== AZM
 ; in        A,DE
 ; clobbers  A,HL
 ; ========================== AZM
-LcdPutcTbl:
+@LcdPutcTbl:
         LD      L,A
         LD      H,0
         ADD     HL,DE

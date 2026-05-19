@@ -1,9 +1,10 @@
 ; UpdScoreDisplay —
 ; Format the current Score into HudSegBuffer.
-; Tail-calls HudWriteU16 with ScoreLo as HL (JP).
+; ScoreLo/Hi is passed to HudWriteU16 in HL.
 ; ========================== AZM
-; out       BC,DE,HL,A
+; out       BC,HL
+; clobbers  A,DE
 ; ========================== AZM
-UpdScoreDisplay:
+@UpdScoreDisplay:
         LD      HL,(ScoreLo)
         JP      HudWriteU16

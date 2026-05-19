@@ -1,12 +1,12 @@
 ; HorizProbeX —
 ; Test PendingX at current PlayerY via collision.
-; PendingY must be pre-set to the current PlayerY.
+; PendingY contains the current PlayerY.
 ; On no collision, commits PendingX to PlayerX.
 ; ========================== AZM
-; out       DE,B,H
-; clobbers  A,C,L
+; out       zero
+; clobbers  A,DE
 ; ========================== AZM
-HorizProbeX:
+@HorizProbeX:
         LD      A,(PlayerY)
         LD      (PendingY),A
         CALL    LoadDePending
@@ -22,10 +22,10 @@ HorizCommitX:
 ; Attempt to shift the piece one column right.
 ; Increments PlayerX if the candidate is legal.
 ; ========================== AZM
-; out       DE,B,H
-; clobbers  A,C,L
+; out       zero
+; clobbers  A,DE
 ; ========================== AZM
-MoveRight:
+@MoveRight:
         LD      A,(PlayerX)
         INC     A
         LD      (PendingX),A
@@ -33,13 +33,13 @@ MoveRight:
 
 ; MoveLeft —
 ; Attempt to shift the piece one column left.
-; Decrements PlayerX if the candidate is legal;
-; returns immediately at column 0.
+; Decrements PlayerX if the candidate is legal.
+; PlayerX=0 leaves the position unchanged.
 ; ========================== AZM
-; out       DE,B,H
-; clobbers  A,C,L
+; out       zero
+; clobbers  A,DE
 ; ========================== AZM
-MoveLeft:
+@MoveLeft:
         LD      A,(PlayerX)
         OR      A
         RET     Z
@@ -49,14 +49,14 @@ MoveLeft:
 
 ; StepActDown —
 ; Load the candidate position one row below.
-; Returns carry from CheckCollAtDe unchanged.
+; Carry from CheckCollAtDe is returned unchanged:
+; set means blocked, clear means legal.
 ; Does not commit PlayerY on its own.
 ; ========================== AZM
-; maybe-out carry
-; out       DE,B,H
-; clobbers  A,C,L
+; out       carry,zero
+; clobbers  A,DE
 ; ========================== AZM
-StepActDown:
+@StepActDown:
         LD      A,(PlayerX)
         LD      (PendingX),A
         LD      A,(PlayerY)
@@ -70,12 +70,12 @@ StepActDown:
 ; Periodic drop when GravityCooldown expires.
 ; Decrements the countdown; reloads from
 ; CurGravPeriod on expiry and calls StepActDown.
-; On collision: tail-calls LockActPiece (JP).
+; Collision jumps to LockActPiece.
 ; ========================== AZM
-; out       DE,HL,B
-; clobbers  A,C
+; out       carry,zero
+; clobbers  A,BC,DE,HL
 ; ========================== AZM
-ApplyGravity:
+@ApplyGravity:
         LD      A,(GravityCooldown)
         DEC     A
         LD      (GravityCooldown),A
@@ -94,15 +94,15 @@ GravityCommit:
 
 ; SoftDrop —
 ; Immediately step the piece down one row.
-; On collision: sets DropLockout and tail-calls
-; LockActPiece (JP).
+; Collision sets DropLockout and jumps to
+; LockActPiece.
 ; On success: commits PendingY and resets
 ; GravityCooldown to CurGravPeriod.
 ; ========================== AZM
-; out       DE,HL,B
-; clobbers  A,C
+; out       carry,zero
+; clobbers  A,BC,DE,HL
 ; ========================== AZM
-SoftDrop:
+@SoftDrop:
         CALL    StepActDown
         JR      NC,SoftDropCommit
         LD      A,1
@@ -122,9 +122,10 @@ SoftDropCommit:
 ; PlayerY is only clamped if it is non-negative;
 ; negative Y (above-field spawn rows) is kept.
 ; ========================== AZM
+; out       zero
 ; clobbers  A,HL
 ; ========================== AZM
-SanitizeActPos:
+@SanitizeActPos:
         LD      A,(PlayerX)
         LD      HL,CurPieceRight
         ADD     A,(HL)
@@ -154,7 +155,7 @@ SanitizeYDone:
 ; out       zero
 ; clobbers  A,BC,DE,HL
 ; ========================== AZM
-SelectNextPiece:
+@SelectNextPiece:
         LD      A,(NextPieceIndex)
         LD      (CurPieceIndex),A
         XOR     A
@@ -174,7 +175,7 @@ SelectNextPiece:
 ; out       A,zero
 ; clobbers  B
 ; ========================== AZM
-RngNextPiece:
+@RngNextPiece:
         CALL    RngNext8
         LD      B,A
         SRL     A
@@ -187,14 +188,15 @@ RngNextPiece:
         RET
 
 ; RngNext8 —
-; Step the 8-bit Galois LFSR and return a byte.
+; Step the 8-bit Galois LFSR. The new byte is
+; returned in A.
 ; Polynomial: XOR 0xB8 when the shifted-out bit
 ; is 1. Seed 0 is replaced with RngSeedInit to
 ; prevent the zero lock-up state.
 ; ========================== AZM
-; out       A,carry
+; out       A
 ; ========================== AZM
-RngNext8:
+@RngNext8:
         LD      A,(RngSeed)
         OR      A
         JR      NZ,RngNext8Step
@@ -216,7 +218,7 @@ RngNext8Save:
 ; ========================== AZM
 ; clobbers  A,C,DE,HL
 ; ========================== AZM
-LoadCurRot:
+@LoadCurRot:
         ; COLOR lookup first; piece-indexed so DE
         ; stays free.
         LD      A,(CurPieceIndex)
@@ -264,10 +266,10 @@ LoadCurRot:
 ; On legal: plays rotate sound and resets
 ; GravityCooldown to CurGravPeriod.
 ; ========================== AZM
-; out       B
+; out       carry,zero
 ; clobbers  A,C,DE,HL
 ; ========================== AZM
-RotateTestDone:
+@RotateTestDone:
         LD      A,(PlayerX)
         LD      D,A
         LD      A,(PlayerY)
@@ -288,10 +290,10 @@ RotateAccept:
 ; Saves current rotation as PendingRotation,
 ; applies the candidate, calls RotateTestDone.
 ; ========================== AZM
-; out       B
+; out       carry,zero
 ; clobbers  A,C,DE,HL
 ; ========================== AZM
-RotateCw:
+@RotateCw:
         LD      A,(CurrentRotation)
         LD      (PendingRotation),A
         INC     A
@@ -305,10 +307,10 @@ RotateCw:
 ; Saves current rotation as PendingRotation,
 ; applies the candidate, calls RotateTestDone.
 ; ========================== AZM
-; out       B
+; out       carry,zero
 ; clobbers  A,C,DE,HL
 ; ========================== AZM
-RotateLeft:
+@RotateLeft:
         LD      A,(CurrentRotation)
         LD      (PendingRotation),A
         DEC     A                       ; 0->0xFF; 1->0; 2->1; 3->2
@@ -321,15 +323,14 @@ RotateLeft:
 ; Select next piece and place at spawn position.
 ; Spawn is at column 3, row SpawnY (above the
 ; visible field). Immediately checks collision;
-; if the spawn is blocked, tail-calls
-; EnterGameOver (reason code 0).
+; blocked spawn jumps to EnterGameOver with reason
+; code 0 in A.
 ; On success: enables the piece and updates the
 ; LCD next-piece preview via LcdRefNextPrev.
 ; ========================== AZM
-; out       B,H
-; clobbers  A,C,DE,L
+; clobbers  A,BC,DE,HL
 ; ========================== AZM
-SpawnActPiece:
+@SpawnActPiece:
         CALL    SelectNextPiece
         LD      A,3
         LD      (PlayerX),A
@@ -352,4 +353,4 @@ SpawnActPiece:
         RET
 SpawnFailed:
         XOR     A                      ; reason code 0 = immediate spawn collision
-        JP      EnterGameOver        ; tail-call; EnterGameOver tail-calls LCD_SHOW_*
+        JP      EnterGameOver        ; EnterGameOver jumps to game-over LCD

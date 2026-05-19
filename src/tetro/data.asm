@@ -1,5 +1,5 @@
-; Score delta per line-clear count. Index 0 unused
-; (early-exit on count=0);
+; Score delta per line-clear count. Index 0 is unused;
+; count 0 skips the lookup.
 ; counts >=4 clamp to entry 4 ('tetris').
 ClearScoreTbl:
         DW      0, 100, 300, 500, 800

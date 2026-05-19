@@ -1,11 +1,11 @@
 ; LcdShowGOver —
 ; Show the game-over LCD script.
-; Tail-calls LcdScript (JP); no NEXT preview row.
+; No NEXT preview row is appended.
 ; ========================== AZM
-; in        DE
-; clobbers  B,DE,HL
+; out       carry
+; clobbers  A,HL
 ; ========================== AZM
-LcdShowGOver:
+@LcdShowGOver:
         LD      HL,ScriptGameOver
         JP      LcdScript
 
@@ -15,28 +15,28 @@ LcdShowGOver:
 ; ========================== AZM
 ; out       HL
 ; ========================== AZM
-LcdShowPaused:
+@LcdShowPaused:
         LD      HL,ScriptPaused
         JR      LcdShowHud
 
 ; LcdShowSplash —
 ; Show the splash screen with control hints.
-; Tail-calls LcdScript (JP).
+; LcdScript's carry result is not Tetro status.
 ; ========================== AZM
-; in        DE
-; clobbers  B,DE,HL
+; out       carry
+; clobbers  A,HL
 ; ========================== AZM
-LcdShowSplash:
+@LcdShowSplash:
         LD      HL,ScriptSplash
         JP      LcdScript
 
 ; LcdAppendPrev —
 ; Emit the NextPieceIndex letter glyph to the LCD.
-; Cursor must already sit after the NEXT: banner.
+; The LCD cursor is positioned after the NEXT: banner.
 ; ========================== AZM
 ; clobbers  A,DE,HL
 ; ========================== AZM
-LcdAppendPrev:
+@LcdAppendPrev:
         LD      A,(NextPieceIndex)
         LD      DE,PieceNameTable
         JP      LcdPutcTbl
@@ -47,7 +47,7 @@ LcdAppendPrev:
 ; ========================== AZM
 ; clobbers  A,DE
 ; ========================== AZM
-LcdRefNextPrev:
+@LcdRefNextPrev:
         PUSH    BC
         PUSH    HL
         LD      B,LcdRow2
@@ -63,18 +63,15 @@ LcdRefNextPrev:
 ; LcdShowHud, which appends the NEXT preview.
 ; ========================== AZM
 ; out       HL
+; clobbers  A
 ; ========================== AZM
-LcdShowRunning:
+@LcdShowRunning:
         LD      HL,ScriptRunning
         ; fall through
 
 ; LcdShowHud —
 ; Shared tail: run LcdScript then append NEXT
 ; preview letter on row 2.
-; ========================== AZM
-; in        HL,DE
-; clobbers  A
-; ========================== AZM
 LcdShowHud:
         PUSH    BC
         PUSH    DE

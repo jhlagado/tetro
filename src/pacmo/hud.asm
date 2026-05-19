@@ -3,11 +3,13 @@
 ; shared/hud.asm.
 
 ; UpdScoreDisplay —
-; Format PacScore into HudSegBuffer.
-; Tail-calls HudWriteU16 (JP).
+; Format 16-bit PacScore into HudSegBuffer for the
+; seven-segment HUD. Formatter state is returned in
+; BC/HL; it is not Pacmo game output.
 ; ========================== AZM
-; clobbers  A,BC,DE,HL
+; out       BC,HL
+; clobbers  A,DE
 ; ========================== AZM
-UpdScoreDisplay:
+@UpdScoreDisplay:
         LD      HL,(PacScore)
         JP      HudWriteU16

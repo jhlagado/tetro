@@ -9,9 +9,10 @@
 ;   copy back-buffer to live Framebuffer.
 ; LogicSlice wraps 0..7 at the end of each call.
 ; ========================== AZM
-; clobbers  A,C,HL
+; out       carry,zero
+; clobbers  A,BC,DE,HL
 ; ========================== AZM
-LogicTick:
+@LogicTick:
         CALL    SanitizeActPos
         LD      A,(GameOver)
         OR      A
@@ -63,7 +64,7 @@ LogicLockDone:
 ; ========================== AZM
 ; clobbers  A,BC,DE,HL
 ; ========================== AZM
-LogicSl7:
+@LogicSl7:
         LD      A,28
         CALL    FbClearRow
         CALL    RendBoardBack

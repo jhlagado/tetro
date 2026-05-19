@@ -1,19 +1,20 @@
 ; Generic speaker divider state machine.
 ; Game-local sound event wrappers load
-; duration and divider values then tail-call
+; duration and divider values, then jump to
 ; SndStart.
 
 ; SndStart —
 ; (Re)start a sound cue.
-; Duration is in scan ticks; smaller divider C
-; means a shorter half-period (higher pitch).
+; A contains the duration in scan ticks. C contains
+; the divider; smaller values mean a shorter
+; half-period and higher pitch.
 ; Resets SpeakerPort to off before the new cue.
 ; ========================== AZM
 ; in        A,C
 ; out       carry,zero
 ; clobbers  A
 ; ========================== AZM
-SndStart:
+@SndStart:
         LD      (SoundTimer),A
         LD      A,C
         LD      (SndDivReload),A
@@ -31,7 +32,7 @@ SndStart:
 ; out       carry,zero
 ; clobbers  A
 ; ========================== AZM
-SndService:
+@SndService:
         LD      A,(SoundTimer)
         OR      A
         RET     Z
