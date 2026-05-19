@@ -1,10 +1,6 @@
 ; MxMask —
 ; Produce a column bitmask for matrix column A.
 ; Column 0 is bit 7 (MSB); column 7 is bit 0.
-; ========================== AZM
-; in        A
-; out       A,carry,BC
-; ========================== AZM
 MxMask:
         LD      C,A
         OR      A
@@ -24,11 +20,6 @@ MxMaskDone:
 ; and exits on the blue byte (no further INC).
 ; Planes whose bit is set in A are OR'd with C;
 ; absent planes are AND'd with CPL(C) to clear.
-; ========================== AZM
-; in        C,A,HL
-; out       A,D
-; clobbers  B
-; ========================== AZM
 FbSetCell:
         LD      B,A
         LD      A,C
@@ -77,9 +68,10 @@ FbBluSet:
 ; bit 1 = green, bit 2 = blue (RRCA each iter).
 ; HL must enter on the red plane byte of the row.
 ; ========================== AZM
-; out       B
+; in        A,HL,C
+; out       HL,A
 ; ========================== AZM
-FbOrRow:
+@FbOrRow:
         PUSH    BC
         LD      B,3                     ; 3 planes: R, G, B
 FbOrLoop:

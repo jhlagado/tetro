@@ -8,10 +8,10 @@
 ; HudMaskTbl. Advances HudScanIndex 0..5,
 ; wrapping to 0 after digit 5.
 ; ========================== AZM
-; out       A,carry,zero
-; clobbers  BC,DE,HL
+; out       carry,zero
+; clobbers  A,BC,DE,HL
 ; ========================== AZM
-HudScanDig:
+@HudScanDig:
         LD      A,(HudScanIndex)
         LD      C,A
         LD      A,(SpeakerPort)
@@ -47,9 +47,9 @@ HudScanSave:
 ; HudBlankDig —
 ; Zero all six bytes of HudSegBuffer.
 ; ========================== AZM
-; out       HL,A,B,carry,zero
+; clobbers  A,B,HL
 ; ========================== AZM
-HudBlankDig:
+@HudBlankDig:
         LD      HL,HudSegBuffer
         LD      B,6
         XOR     A
@@ -65,9 +65,11 @@ HudBlankLp:
 ; Slot 0 always shows the zero glyph; slots 1–5
 ; hold the 10000, 1000, 100, 10, and 1 digits.
 ; ========================== AZM
-; out       BC,DE,A
+; in        HL
+; out       BC,HL
+; clobbers  A,DE
 ; ========================== AZM
-HudWriteU16:
+@HudWriteU16:
         LD      A,(HudGlyphTbl)
         LD      (HudSegBuffer),A
         LD      BC,HudSegBuffer + 1
@@ -90,9 +92,11 @@ HudWriteU16:
 ; iterations. Writes the glyph to (BC), advances
 ; BC to the next slot.
 ; ========================== AZM
-; out       A,carry,zero
+; in        HL,DE,BC
+; out       BC,HL
+; clobbers  A,DE
 ; ========================== AZM
-HudDecDigit:
+@HudDecDigit:
         XOR     A
 HudDecLp:
         PUSH    AF

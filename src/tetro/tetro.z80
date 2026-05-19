@@ -37,7 +37,11 @@
         .include "../shared/constants.asm"
         .include "constants.asm"
 
-Start:
+; ========================== AZM
+; out       carry,zero
+; clobbers  A,BC,DE,HL
+; ========================== AZM
+@Start:
         CALL    InitState
 
 MainLoop:

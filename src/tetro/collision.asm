@@ -7,12 +7,11 @@
 ; carry clear when the placement is legal.
 ; Preserves BC, DE, HL.
 ; ========================== AZM
-; in        D
-; maybe-out carry
-; out       DE,B,H,zero
-; clobbers  A,C,L
+; in        DE
+; out       carry,zero
+; clobbers  A
 ; ========================== AZM
-CheckCollAtDe:
+@CheckCollAtDe:
         PUSH    BC
         PUSH    DE
         PUSH    HL
@@ -37,11 +36,6 @@ CheckCollAtDe:
         ; overlap), at the cost of ~12 cycles
         ; per collision on an empty board (only at
         ; first spawn after reset).
-; ========================== AZM
-; in        DE,L
-; out       A
-; clobbers  C
-; ========================== AZM
 CheckCollRow:
         LD      A,(DE)
         CALL    ShiftRowMask
@@ -93,10 +87,10 @@ CollExitOk:
 ; the row is above the visible playfield), carry
 ; is set. Carry clear means the piece is in-bounds.
 ; ========================== AZM
-; out       DE,HL,B
+; out       carry,zero
 ; clobbers  A
 ; ========================== AZM
-CheckTopOut:
+@CheckTopOut:
         PUSH    BC
         PUSH    DE
         PUSH    HL

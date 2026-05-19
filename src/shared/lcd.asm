@@ -4,7 +4,7 @@
 ; LcdBusy —
 ; Spin until the HD44780 busy flag clears.
 ; Fully preserves all registers (PUSH/POP AF).
-LcdBusy:
+@LcdBusy:
         PUSH    AF
 LcdBusyLp:
         IN      A,(PortLcdInst)
@@ -19,7 +19,7 @@ LcdBusyLp:
 ; ========================== AZM
 ; in        B
 ; ========================== AZM
-LcdCmd:
+@LcdCmd:
         PUSH    AF
         CALL    LcdBusy
         LD      A,B
@@ -34,7 +34,7 @@ LcdCmd:
 ; ========================== AZM
 ; clobbers  B
 ; ========================== AZM
-LcdClear:
+@LcdClear:
         LD      B,0x01
         JP      LcdCmd
 
@@ -47,7 +47,7 @@ LcdClear:
 ; out       HL,carry
 ; clobbers  A
 ; ========================== AZM
-LcdString:
+@LcdString:
         LD      A,(HL)
         INC     HL
         OR      A
@@ -63,11 +63,11 @@ LcdString:
 ; Clears the display first, then for each entry
 ; positions the cursor and writes the string.
 ; ========================== AZM
-; in        HL,DE
-; out       DE,HL
-; clobbers  B
+; in        HL
+; out       carry
+; clobbers  A
 ; ========================== AZM
-LcdScript:
+@LcdScript:
         PUSH    BC
         PUSH    DE
         PUSH    HL
@@ -100,7 +100,7 @@ LcdScrDone:
 ; ========================== AZM
 ; in        A
 ; ========================== AZM
-LcdPutc:
+@LcdPutc:
         PUSH    AF
         CALL    LcdBusy
         POP     AF
@@ -113,10 +113,10 @@ LcdPutc:
 ; Tail-calls LcdString (JP).
 ; ========================== AZM
 ; in        B,HL
-; out       HL
+; out       HL,carry
 ; clobbers  A
 ; ========================== AZM
-LcdRowStr:
+@LcdRowStr:
         CALL    LcdCmd
         JP      LcdString
 
@@ -128,7 +128,7 @@ LcdRowStr:
 ; in        A,DE
 ; clobbers  A,HL
 ; ========================== AZM
-LcdPutcTbl:
+@LcdPutcTbl:
         LD      L,A
         LD      H,0
         ADD     HL,DE

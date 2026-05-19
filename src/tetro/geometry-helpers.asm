@@ -4,7 +4,7 @@
 ; out       DE
 ; clobbers  A
 ; ========================== AZM
-LoadDePending:
+@LoadDePending:
         LD      A,(PendingX)
         LD      D,A
         LD      A,(PendingY)
@@ -17,10 +17,11 @@ LoadDePending:
 ; The MSB-left convention means SRL moves bits
 ; toward lower-numbered matrix columns.
 ; ========================== AZM
-; out       A,carry
+; in        A
+; out       A
 ; clobbers  C
 ; ========================== AZM
-ShiftRowMask:
+@ShiftRowMask:
         LD      C,A
         LD      A,(ShiftCount)
         OR      A

@@ -4,9 +4,9 @@
 ; FbClearAll —
 ; Zero all of FramebufferBack.
 ; ========================== AZM
-; out       HL,A,B,carry,zero
+; clobbers  A,B,HL
 ; ========================== AZM
-FbClearAll:
+@FbClearAll:
         LD      HL,FramebufferBack
         LD      B,FramebufferBytes
         XOR     A
@@ -24,7 +24,7 @@ FbClrLoop:
 ; out       carry
 ; clobbers  A,DE,HL
 ; ========================== AZM
-FbClearRow:
+@FbClearRow:
         LD      E,A
         LD      D,0
         LD      HL,FramebufferBack
@@ -45,7 +45,7 @@ FbClearRow:
 ; ========================== AZM
 ; clobbers  BC,DE,HL
 ; ========================== AZM
-FbCopyAll:
+@FbCopyAll:
         LD      HL,FramebufferBack
         LD      DE,Framebuffer
         LD      BC,FramebufferBytes
@@ -55,10 +55,6 @@ FbCopyAll:
 ; FbCopyRow —
 ; Copy one RGB row from back to live Framebuffer.
 ; Row offset A is 4 bytes per row: 0, 4, 8 … 28.
-; ========================== AZM
-; in        A
-; clobbers  A,DE,HL
-; ========================== AZM
 FbCopyRow:
         LD      E,A
         LD      D,0

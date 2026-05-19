@@ -13,7 +13,7 @@
 ; out       carry,zero
 ; clobbers  A
 ; ========================== AZM
-SndStart:
+@SndStart:
         LD      (SoundTimer),A
         LD      A,C
         LD      (SndDivReload),A
@@ -31,7 +31,7 @@ SndStart:
 ; out       carry,zero
 ; clobbers  A
 ; ========================== AZM
-SndService:
+@SndService:
         LD      A,(SoundTimer)
         OR      A
         RET     Z

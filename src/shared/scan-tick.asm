@@ -7,10 +7,10 @@
 ; advances the HUD scan (HudScanDig) every call.
 ; Delegates scan-state advance to ScanNext.
 ; ========================== AZM
-; out       HL,carry
-; clobbers  A,BC,DE
+; out       carry
+; clobbers  A,BC,DE,HL
 ; ========================== AZM
-ScanTick:
+@ScanTick:
         XOR     A
         OUT     (PortRow),A
 
@@ -42,10 +42,10 @@ ScanTick:
 ; FramePhase is the splash-screen RNG entropy
 ; source; it is not used for pacing elsewhere.
 ; ========================== AZM
-; out       HL,carry
-; clobbers  A,DE
+; out       carry
+; clobbers  A,DE,HL
 ; ========================== AZM
-ScanNext:
+@ScanNext:
         LD      A,(ScanMask)
         RLC     A
         LD      (ScanMask),A

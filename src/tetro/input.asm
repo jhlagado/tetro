@@ -7,10 +7,10 @@
 ; Skips movement when paused but still allows
 ; un-pause via HandleUnpause.
 ; ========================== AZM
-; out       A,carry
-; clobbers  C,E
+; out       carry,zero
+; clobbers  A,BC,DE,HL
 ; ========================== AZM
-PollInput:
+@PollInput:
         LD      C,ApiScanKeys
         RST     0x10
         JR      NZ,ClearInputRpt
@@ -72,7 +72,7 @@ HandleDirKey:
 ; out       carry,zero
 ; clobbers  A
 ; ========================== AZM
-ClearInputRpt:
+@ClearInputRpt:
         LD      A,MovePeriod
         LD      (MoveCooldown),A
         LD      A,NoKey
@@ -87,9 +87,10 @@ ClearInputRpt:
 ; Fires SndTrigReady exactly once when it reaches
 ; zero, then falls through to PollGOverRestart.
 ; ========================== AZM
-; clobbers  A,C,HL
+; out       carry,zero
+; clobbers  A,BC,DE,HL
 ; ========================== AZM
-WaitGOverGate:
+@WaitGOverGate:
         LD      HL,(GOverKeyGateLo)
         LD      A,H
         OR      L
@@ -111,7 +112,7 @@ WaitGOverGate:
 ; ========================== AZM
 ; clobbers  A,BC,DE,HL
 ; ========================== AZM
-PollGOverRestart:
+@PollGOverRestart:
         LD      C,ApiScanKeys
         RST     0x10
         RET     NC
@@ -122,9 +123,9 @@ PollGOverRestart:
 ; Prevents accidental input at spawn and start.
 ; ========================== AZM
 ; out       carry,zero
-; clobbers  A,C
+; clobbers  A,BC,DE,HL
 ; ========================== AZM
-WaitKeyRelease:
+@WaitKeyRelease:
         LD      C,ApiScanKeys
         RST     0x10
         RET     Z
@@ -139,7 +140,7 @@ WaitKeyRelease:
 ; out       HL,carry,zero
 ; clobbers  A
 ; ========================== AZM
-HandlePauseKey:
+@HandlePauseKey:
         LD      A,(Paused)
         XOR     1
         LD      (Paused),A
@@ -158,7 +159,7 @@ PauseShowRun:
 ; out       HL,carry,zero
 ; clobbers  A
 ; ========================== AZM
-HandleUnpause:
+@HandleUnpause:
         XOR     A
         LD      (Paused),A
         CALL    LcdShowRunning
@@ -168,10 +169,10 @@ HandleUnpause:
 ; Dispatch clockwise rotation (CW).
 ; Calls RotateCw then tail-calls ClearInputRpt.
 ; ========================== AZM
-; out       B
+; out       carry,zero
 ; clobbers  A,C,DE,HL
 ; ========================== AZM
-HandleRotPress:
+@HandleRotPress:
         CALL    RotateCw
         JP      ClearInputRpt
 
@@ -179,28 +180,30 @@ HandleRotPress:
 ; Dispatch counter-clockwise rotation (CCW).
 ; Calls RotateLeft then tail-calls ClearInputRpt.
 ; ========================== AZM
-; out       B
+; out       carry,zero
 ; clobbers  A,C,DE,HL
 ; ========================== AZM
-HandleCcwPress:
+@HandleCcwPress:
         CALL    RotateLeft
         JP      ClearInputRpt
 
 ; HandleKeyRight —
 ; Load KeyRight into A then tail-call HandleHeldDir.
 ; ========================== AZM
-; clobbers  A,E
+; out       carry,zero
+; clobbers  A,BC,DE,HL
 ; ========================== AZM
-HandleKeyRight:
+@HandleKeyRight:
         LD      A,KeyRight
         JP      HandleHeldDir
 
 ; HandleKeyLeft —
 ; Load KeyLeft into A then tail-call HandleHeldDir.
 ; ========================== AZM
-; clobbers  A,E
+; out       carry,zero
+; clobbers  A,BC,DE,HL
 ; ========================== AZM
-HandleKeyLeft:
+@HandleKeyLeft:
         LD      A,KeyLeft
         JP      HandleHeldDir
 
@@ -209,10 +212,10 @@ HandleKeyLeft:
 ; DropLockout prevents repeated locking on a held
 ; drop key; clears when ClearInputRpt is called.
 ; ========================== AZM
-; out       carry
-; clobbers  A,E
+; out       carry,zero
+; clobbers  A,BC,DE,HL
 ; ========================== AZM
-HandleKeyDrop:
+@HandleKeyDrop:
         LD      A,(DropLockout)
         OR      A
         RET     NZ
@@ -226,10 +229,10 @@ HandleKeyDrop:
 ; Drop uses DropPeriod; lateral uses MovePeriod.
 ; ========================== AZM
 ; in        A
-; out       carry
-; clobbers  A,E
+; out       carry,zero
+; clobbers  A,BC,DE,HL
 ; ========================== AZM
-HandleHeldDir:
+@HandleHeldDir:
         LD      E,A
         LD      A,(LastKey)
         CP      E

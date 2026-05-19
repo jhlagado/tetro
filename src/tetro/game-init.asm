@@ -5,10 +5,9 @@
 ; Use for first launch only; restart uses
 ; InitRestart.
 ; ========================== AZM
-; in        DE
 ; clobbers  A,BC,DE,HL
 ; ========================== AZM
-InitState:
+@InitState:
         CALL    InitStateBase
         LD      A,1
         LD      (SplashTimer),A
@@ -24,7 +23,7 @@ InitState:
 ; ========================== AZM
 ; clobbers  A,BC,DE,HL
 ; ========================== AZM
-InitRestart:
+@InitRestart:
         CALL    InitStateBase
         XOR     A
         LD      (SplashTimer),A
@@ -41,9 +40,9 @@ InitRestart:
 ; game flags, resets score, initialises scan
 ; state, and clears the board and HUD buffer.
 ; ========================== AZM
-; out       HL,A,B,carry,zero
+; clobbers  A,B,HL
 ; ========================== AZM
-InitStateBase:
+@InitStateBase:
         LD      A,MovePeriod
         LD      (MoveCooldown),A
         LD      A,GravityPeriod
