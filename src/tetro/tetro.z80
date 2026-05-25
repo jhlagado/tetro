@@ -32,7 +32,7 @@
 ;   - The active object is a 4x4 bitmap blitted in its piece colour over the board.
 ;   - Pieces are selected from a PRNG-driven 7-piece stream with preview.
 
-        ORG     0x4000
+        .org     0x4000
 
         .include "../shared/constants.asm"
         .include "constants.asm"

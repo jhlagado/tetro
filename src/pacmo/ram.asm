@@ -1,100 +1,100 @@
 ; RAM layout for the Pacmo scrolling experiment.
 RamStart:
 PlayerX:
-        DB      0
+        .db      0
 PlayerY:
-        DB      0
+        .db      0
 Monsters:
 Monster0:
-        DS      MonsterSize
+        .ds      MonsterSize
 Monster1:
-        DS      MonsterSize
+        .ds      MonsterSize
 Monster2:
-        DS      MonsterSize
-EnemyX EQU Monster0 + MonsterX
-EnemyY EQU Monster0 + MonsterY
-EnemyDir EQU Monster0 + MonsterDir
-EnemyTimer EQU Monster0 + MonsterTimer
-EnemyRespTimer EQU Monster0 + MonRespTimer
-EnemyState EQU Monster0 + MonsterState
-Enemy2X EQU Monster1 + MonsterX
-Enemy2Y EQU Monster1 + MonsterY
-Enemy2Dir EQU Monster1 + MonsterDir
-Enemy2Timer EQU Monster1 + MonsterTimer
-Enemy2RespTimer EQU Monster1 + MonRespTimer
-Enemy2State EQU Monster1 + MonsterState
-Enemy3X EQU Monster2 + MonsterX
-Enemy3Y EQU Monster2 + MonsterY
-Enemy3Dir EQU Monster2 + MonsterDir
-Enemy3Timer EQU Monster2 + MonsterTimer
-Enemy3RespTimer EQU Monster2 + MonRespTimer
-Enemy3State EQU Monster2 + MonsterState
+        .ds      MonsterSize
+EnemyX .equ Monster0 + MonsterX
+EnemyY .equ Monster0 + MonsterY
+EnemyDir .equ Monster0 + MonsterDir
+EnemyTimer .equ Monster0 + MonsterTimer
+EnemyRespTimer .equ Monster0 + MonRespTimer
+EnemyState .equ Monster0 + MonsterState
+Enemy2X .equ Monster1 + MonsterX
+Enemy2Y .equ Monster1 + MonsterY
+Enemy2Dir .equ Monster1 + MonsterDir
+Enemy2Timer .equ Monster1 + MonsterTimer
+Enemy2RespTimer .equ Monster1 + MonRespTimer
+Enemy2State .equ Monster1 + MonsterState
+Enemy3X .equ Monster2 + MonsterX
+Enemy3Y .equ Monster2 + MonsterY
+Enemy3Dir .equ Monster2 + MonsterDir
+Enemy3Timer .equ Monster2 + MonsterTimer
+Enemy3RespTimer .equ Monster2 + MonRespTimer
+Enemy3State .equ Monster2 + MonsterState
 EnemyPeriodCur:
-        DB      0
+        .db      0
 ViewX:
-        DB      0
+        .db      0
 ViewY:
-        DB      0
+        .db      0
 MoveCooldown:
-        DB      0
+        .db      0
 LastKey:
-        DB      0
+        .db      0
 PacSplashActive:
-        DB      0
+        .db      0
 PacPaused:
-        DB      0
+        .db      0
 HudScanIndex:
-        DB      0
+        .db      0
 SpeakerPort:
-        DB      0
+        .db      0
 SoundTimer:
-        DB      0
+        .db      0
 SndDivReload:
-        DB      0
+        .db      0
 SndDivCount:
-        DB      0
+        .db      0
 PacScore:
-        DW      0
+        .dw      0
 HudSegBuffer:
-        DS      6
+        .ds      6
 FramePhase:
-        DB      0
+        .db      0
 LogicSlice:
-        DB      0
+        .db      0
 RenderEatenPtr:
-        DW      0
+        .dw      0
 PacPwrPillsEat:
-        DB      0
+        .db      0
 PacPowerTimer:
-        DW      0
-PacPowerTimerLo EQU PacPowerTimer
-PacPowerTimerHi EQU PacPowerTimer + 1
+        .dw      0
+PacPowerTimerLo .equ PacPowerTimer
+PacPowerTimerHi .equ PacPowerTimer + 1
 PacRoundDone:
-        DB      0
+        .db      0
 PacPlayerCaught:
-        DB      0
+        .db      0
 PacGameOver:
-        DB      0
+        .db      0
 PacLevel:
-        DB      0
+        .db      0
 PacLives:
-        DB      0
+        .db      0
 PacLvlDoneGate:
-        DW      0
-PacLvlDoneLo EQU PacLvlDoneGate
-PacLvlDoneHi EQU PacLvlDoneGate + 1
+        .dw      0
+PacLvlDoneLo .equ PacLvlDoneGate
+PacLvlDoneHi .equ PacLvlDoneGate + 1
 PacGOverGate:
-        DW      0
-PacGOverGateLo EQU PacGOverGate
-PacGOverGateHi EQU PacGOverGate + 1
+        .dw      0
+PacGOverGateLo .equ PacGOverGate
+PacGOverGateHi .equ PacGOverGate + 1
 ScanMask:
-        DB      0
+        .db      0
 ScanPtr:
-        DW      0
+        .dw      0
 Framebuffer:
-        DS      FramebufferBytes
+        .ds      FramebufferBytes
 FramebufferBack:
-        DS      FramebufferBytes
+        .ds      FramebufferBytes
 PacEatenRows:
-        DS      PacEatenBytes
+        .ds      PacEatenBytes
 RamEnd:

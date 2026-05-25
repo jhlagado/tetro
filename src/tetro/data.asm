@@ -2,32 +2,32 @@
 ; count 0 skips the lookup.
 ; counts >=4 clamp to entry 4 ('tetris').
 ClearScoreTbl:
-        DW      0, 100, 300, 500, 800
+        .dw      0, 100, 300, 500, 800
 
 RowBitTable:
-        DB      0x01
-        DB      0x02
-        DB      0x04
-        DB      0x08
-        DB      0x10
-        DB      0x20
-        DB      0x40
-        DB      0x80
+        .db      0x01
+        .db      0x02
+        .db      0x04
+        .db      0x08
+        .db      0x10
+        .db      0x20
+        .db      0x40
+        .db      0x80
 
 LcdTextReset:
-        DB      "PRESS ANY KEY",0
+        .db      "PRESS ANY KEY",0
 
 LcdTextNext:
-        DB      "NEXT: ",0
+        .db      "NEXT: ",0
 
 LcdTextTetRun:
-        DB      "TETRO RUNNING",0
+        .db      "TETRO RUNNING",0
 
 LcdTextTetPause:
-        DB      "TETRO PAUSED",0
+        .db      "TETRO PAUSED",0
 
 LcdTextTetOver:
-        DB      "TETRO GAME OVER",0
+        .db      "TETRO GAME OVER",0
 
 ; LcdScript tables: null-terminated (DB row_cmd,
 ; DW text_ptr)+ DB 0
@@ -36,51 +36,51 @@ LcdTextTetOver:
 ; can append the dynamic preview letter via
 ; LcdAppendPrev.
 ScriptGameOver:
-        DB      LcdRow1
-        DW      LcdTextTetOver
-        DB      LcdRow2
-        DW      LcdTextReset
-        DB      0
+        .db      LcdRow1
+        .dw      LcdTextTetOver
+        .db      LcdRow2
+        .dw      LcdTextReset
+        .db      0
 
 ScriptPaused:
-        DB      LcdRow1
-        DW      LcdTextTetPause
-        DB      LcdRow2
-        DW      LcdTextNext
-        DB      0
+        .db      LcdRow1
+        .dw      LcdTextTetPause
+        .db      LcdRow2
+        .dw      LcdTextNext
+        .db      0
 
 ScriptSplash:
-        DB      LcdRow1
-        DW      LcdTextSplash1
-        DB      LcdRow2
-        DW      LcdTextSplash2
-        DB      LcdRow3
-        DW      LcdTextSplash3
-        DB      LcdRow4
-        DW      LcdTextSplash4
-        DB      0
+        .db      LcdRow1
+        .dw      LcdTextSplash1
+        .db      LcdRow2
+        .dw      LcdTextSplash2
+        .db      LcdRow3
+        .dw      LcdTextSplash3
+        .db      LcdRow4
+        .dw      LcdTextSplash4
+        .db      0
 
 ScriptRunning:
-        DB      LcdRow1
-        DW      LcdTextTetRun
-        DB      LcdRow2
-        DW      LcdTextNext
-        DB      0
+        .db      LcdRow1
+        .dw      LcdTextTetRun
+        .db      LcdRow2
+        .dw      LcdTextNext
+        .db      0
 
 PieceNameTable:
-        DB      'I','O','T','S','Z','J','L'
+        .db      'I','O','T','S','Z','J','L'
 
 LcdTextSplash1:
-        DB      "TETRO (PRESS A KEY)",0
+        .db      "TETRO (PRESS A KEY)",0
 
 LcdTextSplash2:
-        DB      "< > MOVE",0
+        .db      "< > MOVE",0
 
 LcdTextSplash3:
-        DB      "AD/C ROTATE",0
+        .db      "AD/C ROTATE",0
 
 LcdTextSplash4:
-        DB      "GO DROP 0 PAUSE",0
+        .db      "GO DROP 0 PAUSE",0
 
 ; Default 3x3-scale piece set with precomputed
 ; clockwise rotations.
@@ -89,151 +89,151 @@ LcdTextSplash4:
 ; stores them as 4 row bytes and shifts them
 ; horizontally at runtime.
 PieceIR0:
-        DB      %00000000
-        DB      %11100000
-        DB      %00000000
-        DB      %00000000
+        .db      %00000000
+        .db      %11100000
+        .db      %00000000
+        .db      %00000000
 PieceIR1:
-        DB      %10000000
-        DB      %10000000
-        DB      %10000000
-        DB      %00000000
-PieceIR2             EQU PieceIR0
-PieceIR3             EQU PieceIR1
+        .db      %10000000
+        .db      %10000000
+        .db      %10000000
+        .db      %00000000
+PieceIR2             .equ PieceIR0
+PieceIR3             .equ PieceIR1
 
 PieceOR0:
-        DB      %11000000
-        DB      %11000000
-        DB      %00000000
-        DB      %00000000
-PieceOR1            EQU PieceOR0
-PieceOR2            EQU PieceOR0
-PieceOR3            EQU PieceOR0
+        .db      %11000000
+        .db      %11000000
+        .db      %00000000
+        .db      %00000000
+PieceOR1            .equ PieceOR0
+PieceOR2            .equ PieceOR0
+PieceOR3            .equ PieceOR0
 
 PieceTR0:
-        DB      %11100000
-        DB      %01000000
-        DB      %00000000
-        DB      %00000000
+        .db      %11100000
+        .db      %01000000
+        .db      %00000000
+        .db      %00000000
 PieceTR1:
-        DB      %10000000
-        DB      %11000000
-        DB      %10000000
-        DB      %00000000
+        .db      %10000000
+        .db      %11000000
+        .db      %10000000
+        .db      %00000000
 PieceTR2:
-        DB      %00000000
-        DB      %01000000
-        DB      %11100000
-        DB      %00000000
+        .db      %00000000
+        .db      %01000000
+        .db      %11100000
+        .db      %00000000
 PieceTR3:
-        DB      %01000000
-        DB      %11000000
-        DB      %01000000
-        DB      %00000000
+        .db      %01000000
+        .db      %11000000
+        .db      %01000000
+        .db      %00000000
 
 ; S/Z and J/L were previously swapped vs SRS
 ; lettering (same MSB-left row bytes,
 ; but labels did not match the canonical shapes
 ; named on LCD / previews).
 PieceSR0:
-        DB      %11000000
-        DB      %01100000
-        DB      %00000000
-        DB      %00000000
+        .db      %11000000
+        .db      %01100000
+        .db      %00000000
+        .db      %00000000
 PieceSR1:
-        DB      %01000000
-        DB      %11000000
-        DB      %10000000
-        DB      %00000000
+        .db      %01000000
+        .db      %11000000
+        .db      %10000000
+        .db      %00000000
 PieceSR2:
-        DB      %00000000
-        DB      %11000000
-        DB      %01100000
-        DB      %00000000
-PieceSR3            EQU PieceSR1
+        .db      %00000000
+        .db      %11000000
+        .db      %01100000
+        .db      %00000000
+PieceSR3            .equ PieceSR1
 
 PieceZR0:
-        DB      %01100000
-        DB      %11000000
-        DB      %00000000
-        DB      %00000000
+        .db      %01100000
+        .db      %11000000
+        .db      %00000000
+        .db      %00000000
 PieceZR1:
-        DB      %10000000
-        DB      %11000000
-        DB      %01000000
-        DB      %00000000
+        .db      %10000000
+        .db      %11000000
+        .db      %01000000
+        .db      %00000000
 PieceZR2:
-        DB      %00000000
-        DB      %01100000
-        DB      %11000000
-        DB      %00000000
-PieceZR3            EQU PieceZR1
+        .db      %00000000
+        .db      %01100000
+        .db      %11000000
+        .db      %00000000
+PieceZR3            .equ PieceZR1
 
 PieceJR0:
-        DB      %00100000
-        DB      %11100000
-        DB      %00000000
-        DB      %00000000
+        .db      %00100000
+        .db      %11100000
+        .db      %00000000
+        .db      %00000000
 PieceJR1:
-        DB      %10000000
-        DB      %10000000
-        DB      %11000000
-        DB      %00000000
+        .db      %10000000
+        .db      %10000000
+        .db      %11000000
+        .db      %00000000
 PieceJR2:
-        DB      %00000000
-        DB      %11100000
-        DB      %10000000
-        DB      %00000000
+        .db      %00000000
+        .db      %11100000
+        .db      %10000000
+        .db      %00000000
 PieceJR3:
-        DB      %11000000
-        DB      %01000000
-        DB      %01000000
-        DB      %00000000
+        .db      %11000000
+        .db      %01000000
+        .db      %01000000
+        .db      %00000000
 
 PieceLR0:
-        DB      %10000000
-        DB      %11100000
-        DB      %00000000
-        DB      %00000000
+        .db      %10000000
+        .db      %11100000
+        .db      %00000000
+        .db      %00000000
 PieceLR1:
-        DB      %11000000
-        DB      %10000000
-        DB      %10000000
-        DB      %00000000
+        .db      %11000000
+        .db      %10000000
+        .db      %10000000
+        .db      %00000000
 PieceLR2:
-        DB      %00000000
-        DB      %11100000
-        DB      %00100000
-        DB      %00000000
+        .db      %00000000
+        .db      %11100000
+        .db      %00100000
+        .db      %00000000
 PieceLR3:
-        DB      %01000000
-        DB      %01000000
-        DB      %11000000
-        DB      %00000000
+        .db      %01000000
+        .db      %01000000
+        .db      %11000000
+        .db      %00000000
 
 PiecePtrTable:
-        DW      PieceIR0, PieceIR1, PieceIR2, PieceIR3
-        DW      PieceOR0, PieceOR1, PieceOR2, PieceOR3
-        DW      PieceTR0, PieceTR1, PieceTR2, PieceTR3
-        DW      PieceSR0, PieceSR1, PieceSR2, PieceSR3
-        DW      PieceZR0, PieceZR1, PieceZR2, PieceZR3
-        DW      PieceJR0, PieceJR1, PieceJR2, PieceJR3
-        DW      PieceLR0, PieceLR1, PieceLR2, PieceLR3
+        .dw      PieceIR0, PieceIR1, PieceIR2, PieceIR3
+        .dw      PieceOR0, PieceOR1, PieceOR2, PieceOR3
+        .dw      PieceTR0, PieceTR1, PieceTR2, PieceTR3
+        .dw      PieceSR0, PieceSR1, PieceSR2, PieceSR3
+        .dw      PieceZR0, PieceZR1, PieceZR2, PieceZR3
+        .dw      PieceJR0, PieceJR1, PieceJR2, PieceJR3
+        .dw      PieceLR0, PieceLR1, PieceLR2, PieceLR3
 
 PieceRightTbl:
-        DB      2,0,2,0
-        DB      1,1,1,1
-        DB      2,1,2,1
-        DB      2,1,2,1
-        DB      2,1,2,1
-        DB      2,1,2,1
-        DB      2,1,2,1
+        .db      2,0,2,0
+        .db      1,1,1,1
+        .db      2,1,2,1
+        .db      2,1,2,1
+        .db      2,1,2,1
+        .db      2,1,2,1
+        .db      2,1,2,1
 
 PieceColorTbl:
-        DB      ColorCyan                         ; I = cyan
-        DB      ColorWhite                        ; O  = white
-        DB      ColorMagenta                      ; T  = magenta
-        DB      ColorGreen                        ; S  = green
-        DB      ColorRed                          ; Z  = red
-        DB      ColorBlue                         ; J  = blue
-        DB      ColorYellow                       ; L  = yellow
+        .db      ColorCyan                         ; I = cyan
+        .db      ColorWhite                        ; O  = white
+        .db      ColorMagenta                      ; T  = magenta
+        .db      ColorGreen                        ; S  = green
+        .db      ColorRed                          ; Z  = red
+        .db      ColorBlue                         ; J  = blue
+        .db      ColorYellow                       ; L  = yellow

@@ -5,7 +5,7 @@
 ; from Tetro so the finished Tetro game remains stable while Pacmo evolves.
 ; SPDX-License-Identifier: 0BSD
 
-        ORG     0x4000
+        .org     0x4000
 
         .include "../shared/constants.asm"
 

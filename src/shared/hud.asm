@@ -122,27 +122,27 @@ HudDecDone:
         RET
 
 HudMaskTbl:
-        DB      0x20
-        DB      0x10
-        DB      0x08
-        DB      0x04
-        DB      0x02
-        DB      0x01
+        .db      0x20
+        .db      0x10
+        .db      0x08
+        .db      0x04
+        .db      0x02
+        .db      0x01
 
 HudGlyphTbl:
-        DB      0xEB
-        DB      0x28
-        DB      0xCD
-        DB      0xAD
-        DB      0x2E
-        DB      0xA7
-        DB      0xE7
-        DB      0x29
-        DB      0xEF
-        DB      0x2F
-        DB      0x6F
-        DB      0xE6
-        DB      0xC3
-        DB      0xEC
-        DB      0xC7
-        DB      0x47
+        .db      0xEB
+        .db      0x28
+        .db      0xCD
+        .db      0xAD
+        .db      0x2E
+        .db      0xA7
+        .db      0xE7
+        .db      0x29
+        .db      0xEF
+        .db      0x2F
+        .db      0x6F
+        .db      0xE6
+        .db      0xC3
+        .db      0xEC
+        .db      0xC7
+        .db      0x47
