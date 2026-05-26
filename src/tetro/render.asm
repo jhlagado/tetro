@@ -126,6 +126,103 @@ RendBoardExit:
         POP     BC
         RET
 
+; RendBoardRowBack —
+; Render one landed-board row into FramebufferBack.
+; A contains the row index 0..7.
+; Normal mode copies BoardRed/Green/Blue for that
+; row. Game-over mode renders BoardRows occupancy
+; in red only. Line-clear flash may force the row
+; to white.
+;!      in        A
+;!      clobbers  A,BC,DE,HL
+@RendBoardRowBack:
+        PUSH    BC
+        PUSH    DE
+        PUSH    HL
+        LD      C,A                     ; C = row index
+        ADD     A,A
+        ADD     A,A
+        LD      E,A
+        LD      D,0
+        LD      HL,FramebufferBack
+        ADD     HL,DE                   ; HL = target row red byte
+        LD      E,C
+        LD      D,0                     ; DE = board row offset
+        LD      A,(GameOver)
+        OR      A
+        JR      NZ,RendBoardRowGOver
+
+        PUSH    HL
+        LD      HL,BoardRed
+        ADD     HL,DE
+        LD      A,(HL)
+        POP     HL
+        LD      (HL),A
+        INC     HL
+
+        PUSH    HL
+        LD      HL,BoardGreen
+        ADD     HL,DE
+        LD      A,(HL)
+        POP     HL
+        LD      (HL),A
+        INC     HL
+
+        PUSH    HL
+        LD      HL,BoardBlue
+        ADD     HL,DE
+        LD      A,(HL)
+        POP     HL
+        LD      (HL),A
+        INC     HL
+        INC     HL
+        JR      RendBoardRowFx
+
+RendBoardRowGOver:
+        PUSH    HL
+        LD      HL,BoardRows
+        ADD     HL,DE
+        LD      A,(HL)
+        POP     HL
+        LD      (HL),A
+        INC     HL
+        XOR     A
+        LD      (HL),A
+        INC     HL
+        LD      (HL),A
+        INC     HL
+        INC     HL
+
+RendBoardRowFx:
+        LD      A,(ClearPending)
+        OR      A
+        JR      Z,RendBoardRowExit
+        PUSH    HL
+        LD      H,0
+        LD      L,C
+        LD      DE,RowBitTable
+        ADD     HL,DE
+        LD      A,(ClearMask)
+        AND     (HL)
+        POP     HL
+        JR      Z,RendBoardRowExit
+        DEC     HL
+        DEC     HL
+        DEC     HL
+        DEC     HL
+        LD      A,0xFF
+        LD      (HL),A
+        INC     HL
+        LD      (HL),A
+        INC     HL
+        LD      (HL),A
+
+RendBoardRowExit:
+        POP     HL
+        POP     DE
+        POP     BC
+        RET
+
 ; RendActBack —
 ; OR the active piece into FramebufferBack.
 ; No-op when ActPieceEnabled is zero.
@@ -175,6 +272,56 @@ RendShapeNext:
         INC     HL
         DJNZ    RenderShapeRow
 RendActExit:
+        POP     HL
+        POP     DE
+        POP     BC
+        RET
+
+; RendActRowBack —
+; OR the active piece into one FramebufferBack row.
+; A contains the target row index 0..7.
+; Handles negative PlayerY spawn rows by treating
+; target_row - PlayerY as an unsigned piece-row
+; index and accepting only values 0..3.
+;!      in        A
+;!      clobbers  A,BC,DE,HL
+@RendActRowBack:
+        LD      B,A                     ; B = target row
+        LD      A,(ActPieceEnabled)
+        OR      A
+        RET     Z
+        PUSH    BC
+        PUSH    DE
+        PUSH    HL
+        LD      A,(PlayerY)
+        LD      C,A
+        LD      A,B
+        SUB     C                       ; A = active-piece row index
+        CP      4
+        JR      NC,RendActRowExit
+        LD      C,A
+        LD      A,(PlayerX)
+        LD      (ShiftCount),A
+        LD      E,C
+        LD      D,0
+        LD      HL,(CurPiecePtr)
+        ADD     HL,DE
+        LD      A,(HL)
+        CALL    ShiftRowMask
+        LD      C,A
+        OR      A
+        JR      Z,RendActRowExit
+        LD      A,B
+        ADD     A,A
+        ADD     A,A
+        LD      E,A
+        LD      D,0
+        LD      HL,FramebufferBack
+        ADD     HL,DE
+        LD      A,(CurPieceColor)
+        CALL    FbOrRow
+
+RendActRowExit:
         POP     HL
         POP     DE
         POP     BC

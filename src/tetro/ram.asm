@@ -154,8 +154,8 @@ Framebuffer:
         .ds      FramebufferBytes
 
 ; Off-screen compose buffer.
-; The live Framebuffer is updated atomically
-; from here in slice 7.
+; The live Framebuffer is updated one row per
+; logic slice from here.
 FramebufferBack:
         .ds      FramebufferBytes
 

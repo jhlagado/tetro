@@ -2,11 +2,12 @@
 
 ; LogicTick —
 ; Run one logic slice per main-loop pass.
-; Slices 2–6 each clear one FramebufferBack row.
-; Slice 0: poll input, clear row 0.
-; Slice 1: apply gravity, clear row 4.
-; Slice 7: clear row 28, render board and piece,
-;   copy back-buffer to live Framebuffer.
+; Every slice copies, clears, and rebuilds one
+; FramebufferBack row. This keeps scanline dwell
+; much more even than doing a full render/copy on
+; one slice.
+; Slice 0 also polls input before row work.
+; Slice 1 also applies gravity before row work.
 ; LogicSlice wraps 0..7 at the end of each call.
 ;!      out       carry,zero
 ;!      clobbers  A,BC,DE,HL,IX,IY
@@ -47,26 +48,7 @@ LogicLockDone:
         JR      Z,LogicSl0
         CP      1
         JR      Z,LogicSl1
-        CP      7
-        JP      Z,LogicSl7
-        SUB     2
-        ADD     A,A
-        ADD     A,A
-        ADD     A,8
-        CALL    FbClearRow
-        JR      LogicSliceNext
-
-; LogicSl7 —
-; Clear row 28, render board and active piece to
-; the back-buffer, then copy to live Framebuffer.
-;!      clobbers  A,BC,DE,HL,IX,IY
-@LogicSl7:
-        LD      A,28
-        CALL    FbClearRow
-        CALL    RendBoardBack
-        CALL    RendActBack
-        CALL    FbCopyAll
-        JR      LogicSliceNext
+        JR      LogicRowWork
 
 LogicSl0:
         LD      A,(ClearPending)
@@ -74,9 +56,7 @@ LogicSl0:
         JR      NZ,LogicSl0NoInput
         CALL    PollInput
 LogicSl0NoInput:
-        XOR     A
-        CALL    FbClearRow
-        JR      LogicSliceNext
+        JR      LogicRowWork
 
 LogicSl1:
         LD      A,(ClearPending)
@@ -84,8 +64,30 @@ LogicSl1:
         JR      NZ,LogicSl1NoGrav
         CALL    ApplyGravity
 LogicSl1NoGrav:
-        LD      A,4
+        JR      LogicRowWork
+
+; LogicRowWork —
+; Copy the row completed on the previous pass,
+; then rebuild that same back-buffer row for the
+; next frame.
+;!      clobbers  A,BC,DE,HL
+LogicRowWork:
+        LD      A,(LogicSlice)
+        AND     7
+        PUSH    AF
+        ADD     A,A
+        ADD     A,A
+        CALL    FbCopyRow
+        POP     AF
+        PUSH    AF
+        ADD     A,A
+        ADD     A,A
         CALL    FbClearRow
+        POP     AF
+        PUSH    AF
+        CALL    RendBoardRowBack
+        POP     AF
+        CALL    RendActRowBack
         JR      LogicSliceNext
 
 LogicSliceNext:
