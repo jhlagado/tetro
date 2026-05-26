@@ -19,7 +19,7 @@ FbClrLoop:
 ; A contains the row byte offset, normally 0, 4, 8,
 ; ... 28. The carry flag is incidental.
 ;!      in        A
-;!      out       carry
+;!      out       carry,zero
 ;!      clobbers  A,DE,HL
 @FbClearRow:
         LD      E,A

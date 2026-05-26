@@ -299,6 +299,7 @@ RotateAccept:
 ; code 0 in A.
 ; On success: enables the piece and updates the
 ; LCD next-piece preview via LcdRefNextPrev.
+;!      out       carry
 ;!      clobbers  A,BC,DE,HL
 @SpawnActPiece:
         CALL    SelectNextPiece

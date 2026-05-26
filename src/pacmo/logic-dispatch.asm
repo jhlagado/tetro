@@ -239,9 +239,8 @@ EnemyChaseBlock:
 ; Manhattan distance axis. Either direction may be 0
 ; when already aligned on that axis.
 ;!      in        IX
-;!      maybe-out H
-;!      out       DE,zero
-;!      clobbers  A,BC,HL
+;!      out       DE,zero,HL
+;!      clobbers  A,BC
 @EnemyChaseDirs:
         CALL    EnemyHorizChase
         LD      H,A                     ; H = horizontal distance
@@ -262,7 +261,7 @@ EnemyChaseBlock:
 ; Returns A as the absolute horizontal distance and B
 ; as the reducing direction, or B=0 when aligned.
 ;!      in        IX
-;!      out       A,B
+;!      out       A,B,carry,zero
 ;!      clobbers  C
 @EnemyHorizChase:
         LD      A,(IX + MonsterX)
@@ -293,7 +292,7 @@ EnemyHorizAlign:
 ; Returns A as the absolute vertical distance and B
 ; as the reducing direction, or B=0 when aligned.
 ;!      in        IX
-;!      out       A,B
+;!      out       A,B,carry,zero
 ;!      clobbers  C
 @EnemyVertChase:
         LD      A,(IX + MonsterY)
@@ -404,7 +403,7 @@ EnemyOppRight:
 ; Returns carry set for a committed move, carry clear
 ; when blocked, out of bounds, or passed no direction.
 ;!      in        IX,A
-;!      out       BC,A,carry,zero
+;!      out       A,carry,zero,BC
 ;!      clobbers  E
 @EnemyTryMove:
         LD      E,A
@@ -470,7 +469,7 @@ EnemyTryBlocked:
 ; cell, restores attack state/direction/timer, refreshes
 ; the LCD, and returns carry clear.
 ;!      in        IX
-;!      out       carry
+;!      out       B,carry,zero
 ;!      clobbers  A
 @TickEnemyResp:
         LD      A,(IX + MonRespTimer)
@@ -568,7 +567,7 @@ EnemyRespCommit:
 ; Otherwise returns player distance +
 ; summed distance to other active monsters in A.
 ;!      in        HL,IX
-;!      out       A
+;!      out       A,carry,zero
 ;!      clobbers  C
 @EnemyRespScore:
         PUSH    DE
@@ -625,7 +624,7 @@ EnemyNotVisible:
 ; ignore. Respawning monsters do not count. Returns
 ; carry set when occupied.
 ;!      in        IX,HL
-;!      out       A,carry
+;!      out       A,carry,zero
 ;!      clobbers  DE
 @EnemyOccOther:
         LD      DE,Monster0
@@ -645,7 +644,7 @@ EnemyNotVisible:
 ; ignore. Returns carry set when DE is another active
 ; monster at that cell; otherwise carry clear.
 ;!      in        IX,DE,HL
-;!      out       A,carry
+;!      out       A,carry,zero
 ;!      clobbers  DE
 @EnemyOccByDe:
         PUSH    HL

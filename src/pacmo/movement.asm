@@ -18,8 +18,8 @@
 ; normal play, the scanned key is normalised into a
 ; PacDir value and either drives movement or resets
 ; key-repeat state. No stable status is returned.
-;!      out       zero
-;!      clobbers  A,BC,DE,HL,IX,IY
+;!      out       E,zero
+;!      clobbers  A,BC,D,HL,IX,IY
 @PollInput:
         LD      A,(PacSplashActive)
         OR      A
@@ -71,7 +71,7 @@ PollNoNewKey:
 ; Once the gate expires, a fresh key restarts the
 ; whole game when PacGameOver is set, or resumes the
 ; current game after a lost life.
-;!      out       A
+;!      out       carry,A
 ;!      clobbers  HL
 @CaughtRestart:
         LD      HL,(PacGOverGateLo)
@@ -173,7 +173,7 @@ HeldSameKey:
 ; carry and put the PacDir value in E; all other keys
 ; clear carry and leave no direction to consume.
 ;!      in        A
-;!      out       A,carry,zero
+;!      out       A,E,carry,zero
 @NormInputDir:
         CP      KeyLeft
         JR      Z,NormalizeLeft
@@ -408,7 +408,8 @@ EnterFinalOver:
 ; PacPwrPillsEat, awards PacScorePower, starts the
 ; power timer and sound, and sets all monsters to flee.
 ;!      in        BC
-;!      clobbers  A,DE,HL
+;!      out       HL,D
+;!      clobbers  A,E
 @EatPwrPillBc:
         LD      HL,PacPowerPills
         LD      D,1
@@ -565,7 +566,7 @@ CheckRoundRow:
 ; B lands in bit 7 of D; tests that bit.
 ; Returns carry set for wall, clear for open.
 ;!      in        BC
-;!      out       A,E,carry
+;!      out       A,E,carry,zero
 ;!      clobbers  D,HL
 @IsWallAtBc:
         LD      A,C
@@ -624,7 +625,7 @@ PacWallOpen:
 ; returned in A. Shifts when B-A is outside the 3..4
 ; centre band and clamps to 0..PacViewMax.
 ;!      in        B,A
-;!      out       zero
+;!      out       A,zero
 ;!      clobbers  C
 @AdjustViewAxis:
         LD      C,A

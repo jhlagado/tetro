@@ -3,7 +3,8 @@
 ; return the mask in A.
 ; Column 0 is bit 7 (MSB); column 7 is bit 0.
 ;!      in        A
-;!      clobbers  A,BC
+;!      out       A
+;!      clobbers  BC
 @MxMask:
         LD      C,A
         OR      A

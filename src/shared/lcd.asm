@@ -4,6 +4,7 @@
 ; LcdBusy —
 ; Spin until the HD44780 busy flag clears.
 ; AF is preserved with PUSH/POP.
+;!      in        A
 @LcdBusy:
         PUSH    AF
 LcdBusyLp:

@@ -90,6 +90,7 @@ SplashSeedReady:
 ; logic cycle). On ClearTimer expiry: collapses
 ; filled rows, awards score, clears ClearPending,
 ; then jumps to SpawnActPiece.
+;!      out       carry
 ;!      clobbers  A,BC,DE,HL
 @LineClearState:
         LD      A,(LogicSlice)
@@ -111,7 +112,7 @@ SplashSeedReady:
 ; Builds ClearMask: bit N set when row N is full.
 ; Carry set means at least one row is full; carry
 ; clear means no rows are full.
-;!      out       carry
+;!      out       carry,zero
 ;!      clobbers  A,BC,E,HL
 @CheckFullRows:
         LD      HL,BoardRows
@@ -354,6 +355,7 @@ ClearBrAdvNc:
 ; BoardEmptyScan —
 ; Set BoardEmpty=1 when all BoardRows bytes are
 ; zero; set BoardEmpty=0 otherwise.
+;!      out       carry,zero
 ;!      clobbers  A,B,HL
 @BoardEmptyScan:
         LD      HL,BoardRows
