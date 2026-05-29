@@ -3,7 +3,7 @@ PacViewMax      .equ    7
 PacMovePeriod   .equ   128
 PacEatenBytes   .equ  30
 PacPwrPillCount .equ 4
-PacPwrTimerSet  .equ 0x0600
+PacPwrTimerSet  .equ 0x0300
 PacPwrWarnMask  .equ 0x20
 PacGOverTicks   .equ 0x0266
 PacLvlDoneTicks .equ 0x0300
@@ -32,9 +32,9 @@ PacColorRound   .equ ColorWhite
 PacEnemyY       .equ 13
 PacEnemyMinX    .equ 1
 PacEnemyMaxX    .equ 13
-PacEnemyPeriod  .equ 128
-PacEnemyPerMin  .equ 56
-PacEnemyPerStep .equ 8
+PacEnemyPeriod  .equ 63
+PacEnemyPerMin  .equ 27
+PacEnemyPerStep .equ 4
 PacEnemyRespPer .equ 192
 PacEnemyRespDiv .equ 3
 PacEnemyAtk     .equ 0

@@ -13,8 +13,8 @@ This document describes the shared contract used by both game targets. The game-
 Each game has its own top-level assembly file:
 
 ```text
-src/tetro/tetro.z80
-src/pacmo/pacmo.z80
+src/tetro/tetro.main.asm
+src/pacmo/pacmo.main.asm
 ```
 
 Those files own the `ORG`, reset entry, main loop, and include order. Debug80 can load either target directly without knowing how the internal helper files are split.
@@ -33,7 +33,7 @@ MainLoop:
 
 `ScanTick` keeps the hardware alive. `LogicTick` does one slice of game work. The loop repeats forever.
 
-The include order matters because `asm80` resolves forward references. `shared/scan-tick.asm` calls `SndService` and `HudScanDig`, but those labels are supplied later by the shared sound and HUD files. This keeps scanout generic while allowing each target to include its own game wrappers after the generic services.
+The include order matters because AZM resolves forward references. `shared/scan-tick.asm` calls `SndService` and `HudScanDig`, but those labels are supplied later by the shared sound and HUD files. This keeps scanout generic while allowing each target to include its own game wrappers after the generic services.
 
 ---
 

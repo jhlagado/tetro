@@ -13,7 +13,7 @@ This tour follows the Tetro code as it now stands. The shared loop, scan tick, L
 The Debug80 target is still the top-level file:
 
 ```text
-src/tetro/tetro.z80
+src/tetro/tetro.main.asm
 ```
 
 That file owns the `ORG`, the reset entry, the main loop, and the include order. Debug80 can treat it as the Tetro target without needing to know how the internal files are arranged.
@@ -53,7 +53,7 @@ MainLoop:
 .include "ram.asm"
 ```
 
-The include order is deliberate. `shared/scan-tick.asm` calls `SndService` and `HudScanDig` before their labels appear in the include stream. `asm80` resolves those forward references. The pattern keeps scanout generic while letting the program decide which sound and HUD services satisfy the calls.
+The include order is deliberate. `shared/scan-tick.asm` calls `SndService` and `HudScanDig` before their labels appear in the include stream. AZM resolves those forward references. The pattern keeps scanout generic while letting the program decide which sound and HUD services satisfy the calls.
 
 The split is intentional. Files under `src/shared/` are generic hardware or buffer routines that can serve more than one game. Files under `src/tetro/` contain Tetro's rules, state, tables, and game-specific wrappers.
 
@@ -70,7 +70,7 @@ MainLoop:
     JR      MainLoop
 ```
 
-Those three instructions in `src/tetro/tetro.z80` are the whole runtime. Tetro uses the shared cooperative loop described in [shared-codebase.md](shared-codebase.md): `ScanTick` keeps the hardware alive, and `LogicTick` performs one slice of game work.
+Those three instructions in `src/tetro/tetro.main.asm` are the whole runtime. Tetro uses the shared cooperative loop described in [shared-codebase.md](shared-codebase.md): `ScanTick` keeps the hardware alive, and `LogicTick` performs one slice of game work.
 
 This means the display, Score digits, speaker, keypad, gravity, rendering, and line-clear timing all share the same cooperative clock.
 
@@ -390,7 +390,7 @@ Game over leaves the loop running. The matrix, Score display, LCD, and speaker a
 
 ```text
 target
-  src/tetro/tetro.z80
+  src/tetro/tetro.main.asm
     ORG, Start, MainLoop, include order
 
 shared hardware helpers

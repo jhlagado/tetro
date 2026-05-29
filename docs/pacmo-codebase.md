@@ -13,7 +13,7 @@ This document describes the current Pacmo code. The shared loop, scan tick, LCD,
 The Debug80 target is still the top-level file:
 
 ```text
-src/pacmo/pacmo.z80
+src/pacmo/pacmo.main.asm
 ```
 
 That file owns the `ORG`, the reset entry, the main loop, and the include order. Debug80 can treat it as the Pacmo target without needing to know how the internal files are arranged.
@@ -48,7 +48,7 @@ MainLoop:
 .include "ram.asm"
 ```
 
-The include order is deliberate. `shared/scan-tick.asm` calls `SndService` and `HudScanDig` before their labels appear in the include stream. `asm80` resolves those forward references. The pattern keeps scanout generic while letting Pacmo decide which sound and HUD services satisfy the calls.
+The include order is deliberate. `shared/scan-tick.asm` calls `SndService` and `HudScanDig` before their labels appear in the include stream. AZM resolves those forward references. The pattern keeps scanout generic while letting Pacmo decide which sound and HUD services satisfy the calls.
 
 The split is intentional. Files under `src/shared/` are generic hardware or buffer routines that can serve more than one game. Files under `src/pacmo/` contain Pacmo's rules, state, tables, and game-specific wrappers.
 
@@ -65,7 +65,7 @@ MainLoop:
     JR      MainLoop
 ```
 
-Those three instructions in `src/pacmo/pacmo.z80` are the whole runtime. Pacmo uses the shared cooperative loop described in [shared-codebase.md](shared-codebase.md): `ScanTick` keeps the hardware alive, and `LogicTick` performs one slice of game work.
+Those three instructions in `src/pacmo/pacmo.main.asm` are the whole runtime. Pacmo uses the shared cooperative loop described in [shared-codebase.md](shared-codebase.md): `ScanTick` keeps the hardware alive, and `LogicTick` performs one slice of game work.
 
 This means the display, Score digits, speaker, keypad, scrolling, monster movement, rendering, and level timing all share the same cooperative clock.
 
@@ -408,7 +408,7 @@ As the player eats paths, the green path cells turn black. When no open path cel
 
 ```text
 target
-  src/pacmo/pacmo.z80
+  src/pacmo/pacmo.main.asm
     ORG, Start, MainLoop, include order
 
 shared hardware helpers

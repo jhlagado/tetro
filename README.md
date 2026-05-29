@@ -106,21 +106,21 @@ Movement repeats slowly while held; tapping moves faster than waiting for repeat
 
 ## Build
 
-Requires [asm80](https://www.npmjs.com/package/asm80). Assemble from `src/`, because `.include` paths are relative to the main source file. `asm80` resolves the `-o` path relative to the entry file's directory, so these commands use `../../build` from `src/tetro/` or `src/pacmo/`.
+Requires [AZM](https://github.com/jhlagado/AZM). Assemble from the repository root; `.include` paths are relative to each main source file.
 
 ```bash
 mkdir -p build
-(cd src && asm80 -m Z80 -t hex -o ../../build/tetro.hex tetro/tetro.z80)
-(cd src && asm80 -m Z80 -t bin -o ../../build/tetro.bin tetro/tetro.z80)
-(cd src && asm80 -m Z80 -t hex -o ../../build/pacmo.hex pacmo/pacmo.z80)
-(cd src && asm80 -m Z80 -t bin -o ../../build/pacmo.bin pacmo/pacmo.z80)
+azm --type hex --output build/tetro.hex src/tetro/tetro.main.asm
+azm --type bin --output build/tetro.bin src/tetro/tetro.main.asm
+azm --type hex --output build/pacmo.hex src/pacmo/pacmo.main.asm
+azm --type bin --output build/pacmo.bin src/pacmo/pacmo.main.asm
 ```
 
 The generated files under `build/` are outputs, not source.
 
 ## Run
 
-Load the assembled program at `$4000`, matching the `ORG` in [src/tetro/tetro.z80](src/tetro/tetro.z80) or [src/pacmo/pacmo.z80](src/pacmo/pacmo.z80), then run:
+Load the assembled program at `$4000`, matching the `ORG` in [src/tetro/tetro.main.asm](src/tetro/tetro.main.asm) or [src/pacmo/pacmo.main.asm](src/pacmo/pacmo.main.asm), then run:
 
 ```text
 GO 4000
@@ -133,7 +133,7 @@ The LCD shows the selected game's splash screen. Press any key to Start.
 ```text
 src/
 |-- tetro/
-|   |-- tetro.z80             ; Debug80 target entry point and include order
+|   |-- tetro.main.asm        ; Debug80 target entry point and include order
 |   |-- constants.asm         ; Tetro tuning constants
 |   |-- geometry-helpers.asm
 |   |-- collision.asm
@@ -149,7 +149,7 @@ src/
 |   |-- data.asm
 |   `-- ram.asm
 |-- pacmo/
-|   |-- pacmo.z80             ; Debug80 target entry point and include order
+|   |-- pacmo.main.asm        ; Debug80 target entry point and include order
 |   |-- game-init.asm
 |   |-- logic-dispatch.asm
 |   |-- movement.asm
