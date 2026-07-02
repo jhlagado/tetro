@@ -7,7 +7,7 @@ The suite currently includes:
 - **Tetro**: a 7-piece falling-block game.
 - **Pacmo**: a scrolling maze game with consumable paths, power pills, and Monsters.
 
-Both games draw the 8x8 RGB LED matrix, use the MON-3 keypad for controls, show status on an HD44780 LCD, scan a six-digit seven-segment Score display, and drive the speaker from the same cooperative loop. One matrix row is emitted per pass, sound and Score scan from the same tick, and game logic is spread across eight slices.
+Both games draw the 8x8 RGB LED matrix, use the MON-3 keypad for controls, show status on an HD44780 LCD, scan a six-digit seven-segment Score display, and drive the speaker from a cooperative loop. Each game scans a complete frame with fixed row dwell and runs game work while the matrix is blank.
 
 The shared codebase is described in [docs/shared-codebase.md](docs/shared-codebase.md). The game-specific tours are in [docs/tetro-codebase.md](docs/tetro-codebase.md) and [docs/pacmo-codebase.md](docs/pacmo-codebase.md).
 

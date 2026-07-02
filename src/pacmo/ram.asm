@@ -59,8 +59,6 @@ HudSegBuffer:
         .ds      6
 FramePhase:
         .db      0
-LogicSlice:
-        .db      0
 RenderEatenPtr:
         .dw      0
 PacPwrPillsEat:

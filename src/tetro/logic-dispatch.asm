@@ -1,14 +1,10 @@
-; Tetro cooperative logic dispatcher.
+; Tetro frame-time logic dispatcher.
 
 ; LogicTick —
-; Run one logic slice per main-loop pass.
-; Every slice copies, clears, and rebuilds one
-; FramebufferBack row. This keeps scanline dwell
-; much more even than doing a full render/copy on
-; one slice.
-; Slice 0 also polls input before row work.
-; Slice 1 also applies gravity before row work.
-; LogicSlice wraps 0..7 at the end of each call.
+; Run one complete game update while the matrix is
+; blank between scanned frames. Rendering is rebuilt
+; as a full back-buffer pass, then copied to the live
+; Framebuffer before the next ScanFrame.
 ;!      out       carry,zero
 ;!      clobbers  A,BC,DE,HL,IX,IY
 @LogicTick:
@@ -18,82 +14,52 @@
         JR      Z,LogicGOverDone
         CALL    WaitGOverGate
         RET
+
 LogicGOverDone:
         LD      A,(SplashTimer)
         OR      A
         JR      Z,LogicSplashDone
         CALL    SplashState
         RET
+
 LogicSplashDone:
         LD      A,(ClearPending)
         OR      A
-        JR      Z,LogicClearDone
+        JR      Z,LogicPauseCheck
         CALL    LineClearState
-        JR      LogicActive
-LogicClearDone:
+        CALL    RebuildFb
+        RET
+
+LogicPauseCheck:
         LD      A,(Paused)
         OR      A
         JR      Z,LogicActive
         CALL    PollInput
         RET
+
 LogicActive:
         LD      A,(InputLockout)
         OR      A
-        JR      Z,LogicLockDone
+        JR      Z,LogicRunFrame
         CALL    WaitKeyRelease
         RET
-LogicLockDone:
-        LD      A,(LogicSlice)
-        AND     7
-        JR      Z,LogicSl0
-        CP      1
-        JR      Z,LogicSl1
-        JR      LogicRowWork
 
-LogicSl0:
-        LD      A,(ClearPending)
-        OR      A
-        JR      NZ,LogicSl0NoInput
+LogicRunFrame:
         CALL    PollInput
-LogicSl0NoInput:
-        JR      LogicRowWork
-
-LogicSl1:
+        LD      A,(Paused)
+        OR      A
+        RET     NZ
+        LD      A,(GameOver)
+        OR      A
+        RET     NZ
         LD      A,(ClearPending)
         OR      A
-        JR      NZ,LogicSl1NoGrav
+        JR      NZ,LogicRenderFrame
         CALL    ApplyGravity
-LogicSl1NoGrav:
-        JR      LogicRowWork
+        LD      A,(GameOver)
+        OR      A
+        RET     NZ
 
-; LogicRowWork —
-; Copy the row completed on the previous pass,
-; then rebuild that same back-buffer row for the
-; next frame.
-;!      clobbers  A,BC,DE,HL
-LogicRowWork:
-        LD      A,(LogicSlice)
-        AND     7
-        PUSH    AF
-        ADD     A,A
-        ADD     A,A
-        CALL    FbCopyRow
-        POP     AF
-        PUSH    AF
-        ADD     A,A
-        ADD     A,A
-        CALL    FbClearRow
-        POP     AF
-        PUSH    AF
-        CALL    RendBoardRowBack
-        POP     AF
-        CALL    RendActRowBack
-        JR      LogicSliceNext
-
-LogicSliceNext:
-        LD      HL,LogicSlice
-        LD      A,(HL)
-        INC     A
-        AND     7
-        LD      (HL),A
+LogicRenderFrame:
+        CALL    RebuildFb
         RET

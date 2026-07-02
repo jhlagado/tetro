@@ -19,19 +19,23 @@ src/pacmo/pacmo.main.asm
 
 Those files own the `ORG`, reset entry, main loop, and include order. Debug80 can load either target directly without knowing how the internal helper files are split.
 
-Both targets use the same basic runtime shape:
+Both targets use the same low-level scan primitive and the same high-level
+scan policy: scan a complete visible matrix frame with fixed row dwell, blank
+the matrix, then run one game logic frame.
 
 ```asm
 Start:
     CALL    InitState
 
 MainLoop:
-    CALL    ScanTick
+    CALL    ScanFrame
     CALL    LogicTick
     JR      MainLoop
 ```
 
-`ScanTick` keeps the hardware alive. `LogicTick` does one slice of game work. The loop repeats forever.
+`ScanTick` is still the shared primitive that emits one row and services sound
+and the seven-segment display. Each game owns its local `ScanFrame` policy so
+the dwell constant and future timing experiments can remain game-local.
 
 The include order matters because AZM resolves forward references. `shared/scan-tick.asm` calls `SndService` and `HudScanDig`, but those labels are supplied later by the shared sound and HUD files. This keeps scanout generic while allowing each target to include its own game wrappers after the generic services.
 
@@ -79,18 +83,20 @@ Clearing the row before changing colour data matters. If the row stayed enabled 
 
 ---
 
-## Logic slices
+## Frame timing
 
-The runtime does not compute a whole game frame in one pass. Each game spreads a logical frame across eight passes through `MainLoop`, matching the eight display rows.
+The runtime displays a whole matrix frame first. During that visible frame,
+each row gets the same fixed dwell delay. `ScanFrame` blanks the matrix before
+returning, and `LogicTick` then performs game work while no row is selected.
 
-That keeps scanout frequent enough to avoid visible flicker. If game logic monopolized the CPU for too long, matrix brightness would become uneven, the seven-segment display would dim or flicker, and speaker timing would become rough.
+This makes visible row brightness independent of how much computation one game
+frame needs. Expensive work can still lengthen the inter-frame blanking period,
+but it no longer makes one scan row brighter than another.
 
-The exact slice schedule is game-specific:
-
-- Tetro uses slices for input, gravity, row clearing, rendering, and line-clear timing.
-- Pacmo uses slices for movement, power timing, monster updates, row clearing, rendering, and level gates.
-
-The shared codebase only provides the clocking pattern and buffer helpers. It does not decide what the slices mean.
+The exact frame duties are game-specific. Tetro owns falling-piece timing,
+line-clears, and board rendering. Pacmo owns movement, power timing, monster
+updates, level gates, and maze rendering. The shared codebase provides the row
+scan primitive and buffer helpers; it does not decide what a game frame means.
 
 ---
 

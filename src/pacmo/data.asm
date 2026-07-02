@@ -1,5 +1,6 @@
 PacWorldMax     .equ    14
 PacViewMax      .equ    7
+PacScanDwell    .equ   255
 PacMovePeriod   .equ   128
 PacEatenBytes   .equ  30
 PacPwrPillCount .equ 4
@@ -32,10 +33,10 @@ PacColorRound   .equ ColorWhite
 PacEnemyY       .equ 13
 PacEnemyMinX    .equ 1
 PacEnemyMaxX    .equ 13
-PacEnemyPeriod  .equ 63
-PacEnemyPerMin  .equ 27
-PacEnemyPerStep .equ 4
-PacEnemyRespPer .equ 192
+PacEnemyPeriod  .equ 24
+PacEnemyPerMin  .equ 10
+PacEnemyPerStep .equ 2
+PacEnemyRespPer .equ 72
 PacEnemyRespDiv .equ 3
 PacEnemyAtk     .equ 0
 PacEnemyFlee    .equ 1

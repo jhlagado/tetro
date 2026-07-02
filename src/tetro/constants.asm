@@ -5,20 +5,21 @@
 ; gravity, scoring, or sounds.
 MovePeriod      .equ     128
 DropPeriod      .equ     1
+ScanDwellPeriod .equ     255
 TetKeyLeftAlt   .equ 0x01
 TetKeyDropAlt   .equ 0x02
 TetKeyRightAlt  .equ 0x03
 TetKeyRotAlt    .equ 0x06
-; Decremented once per full 8-slice pass (in slice
-; 1). Larger = slower fall.
-GravityPeriod   .equ     160
-GravPeriodStep1 .equ 148
+; Decremented once per full frame. Larger = slower
+; fall.
+GravityPeriod   .equ     32
+GravPeriodStep1 .equ 28
 GravScore1Hi    .equ 0x07       ; 2000 decimal
 GravScore1Lo    .equ 0xD0
 LineClearHold   .equ    24
-; Logic passes (one per main loop) before PRESS
-; ANY KEY during GameOver - tune for wall time.
-GOverGateTicks  .equ  0x0C00
+; Full frames before PRESS ANY KEY during GameOver;
+; tuned down from the old scan-pass counter.
+GOverGateTicks  .equ  0x0180
 
 RngSeedInit     .equ     0x5A
 XMin            .equ     0

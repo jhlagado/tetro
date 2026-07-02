@@ -2,7 +2,7 @@
 
 Pacmo is a maze game for the TEC-1G 8x8 RGB matrix. The visible display is not the whole world; it is an 8x8 window into a 15x15 maze. The player is a single bright pixel, the maze scrolls under that pixel where possible, and enemies move through the same world on their own timers.
 
-The implementation follows the same hard constraint as Tetro: there are no interrupts and no background thread. Matrix scanout, speaker timing, Score display, input, enemy movement, collision, and rendering all share one loop. Pacmo therefore uses the same scan/slice architecture, but its game logic is about a scrolling world, consumable paths, power mode, and monster records rather than falling pieces.
+The implementation follows the same hard constraint as Tetro: there are no interrupts and no background thread. Matrix scanout, speaker timing, Score display, input, enemy movement, collision, and rendering all share one loop. Pacmo therefore uses the same fixed-dwell frame scan model, but its game logic is about a scrolling world, consumable paths, power mode, and monster records rather than falling pieces.
 
 This document describes the current Pacmo code. The shared loop, scan tick, LCD, HUD, sound, and Framebuffer contracts are covered in [shared-codebase.md](shared-codebase.md).
 
@@ -27,11 +27,12 @@ Start:
     CALL    InitState
 
 MainLoop:
-    CALL    ScanTick
+    CALL    ScanFrame
     CALL    LogicTick
     JR      MainLoop
 
 .include "../shared/scan-tick.asm"
+.include "scan-frame.asm"
 .include "game-init.asm"
 .include "logic-dispatch.asm"
 .include "movement.asm"
@@ -60,12 +61,12 @@ This is still a careful harmonisation, not a large engine abstraction. Shared fi
 
 ```asm
 MainLoop:
-    CALL    ScanTick
+    CALL    ScanFrame
     CALL    LogicTick
     JR      MainLoop
 ```
 
-Those three instructions in `src/pacmo/pacmo.main.asm` are the whole runtime. Pacmo uses the shared cooperative loop described in [shared-codebase.md](shared-codebase.md): `ScanTick` keeps the hardware alive, and `LogicTick` performs one slice of game work.
+Those three instructions in `src/pacmo/pacmo.main.asm` are the whole runtime. Pacmo uses the shared cooperative loop described in [shared-codebase.md](shared-codebase.md): `ScanFrame` keeps the hardware alive for one visible frame, and `LogicTick` performs one game frame while the matrix is blank.
 
 This means the display, Score digits, speaker, keypad, scrolling, monster movement, rendering, and level timing all share the same cooperative clock.
 
@@ -73,14 +74,11 @@ This means the display, Score digits, speaker, keypad, scrolling, monster moveme
 
 ## Logic dispatch
 
-Pacmo's `LogicTick` is a slice dispatcher. It spreads Framebuffer work across eight passes through the main loop so scanout keeps happening between chunks of logic.
+Pacmo's `LogicTick` is a blanking-interval frame dispatcher. `ScanFrame` has already emitted all eight visible matrix rows with fixed dwell and blanked the row port before `LogicTick` runs.
 
-Slices 0 through 7:
-- copy the corresponding completed back-buffer row to the front Framebuffer
-- clear that back-buffer row
-- rebuild that back-buffer row from the current world, pills, Monsters, and player state
+Each logic frame runs the frame-wide duties: input polling, level-complete timing, power-mode timing, monster ticks, and player-caught collision checks. It then rebuilds the full Framebuffer from the current world, pills, Monsters, and player state for the next visible `ScanFrame`.
 
-After slice 7 finishes its row work, Pacmo blanks the matrix row port and runs the frame-wide duties: input polling, level-complete timing, power-mode timing, monster ticks, and player-caught collision checks. This keeps visible scan rows on a common workload and moves irregular frame work into the inter-frame blanking interval.
+This keeps visible scan rows on a common workload. Irregular game work can lengthen the inter-frame blanking interval, but it no longer changes the dwell time of any specific row.
 
 The generic helpers for clearing and copying live in `src/shared/framebuffer-core.asm`: `FbClearAll`, `FbClearRow`, `FbCopyRow`, and `FbCopyAll`. Pacmo still owns the actual rendering because the maze, eaten-path mask, power pills, player state, and monster state are game-specific.
 
@@ -205,7 +203,7 @@ When the player enters a power-pill cell, `EatPwrPillBc`:
 - sets all monster states to `PacEnemyFlee`
 - updates the LCD to the power-mode screen
 
-Power mode is global for Monsters that are already active. `TickPowerTimer` decrements the 16-bit timer once per slice-0 pass. When it reaches zero, all monster states return to attack and the LCD returns to the running screen.
+Power mode is global for Monsters that are already active. `TickPowerTimer` decrements the 16-bit timer once per logic frame. When it reaches zero, all monster states return to attack and the LCD returns to the running screen.
 
 Rendering uses the timer for a warning blink. A fleeing monster normally uses `PacColorEnFlee`. Near the end of the timer, the low byte is masked with `PacPwrWarnMask`, and the monster alternates between flee and attack colour.
 
@@ -275,7 +273,7 @@ Difficulty currently rises in two ways:
 
 Pacmo uses the shared double-buffer core and shared Framebuffer draw primitives, but owns its renderers.
 
-`RebuildFb` is a full redraw path used during initialization and state changes. The sliced render path in `LogicTick` is the normal steady-state path.
+`RebuildFb` is the full redraw path used during initialization, state changes, and every steady-state logic frame.
 
 `RendWorldRow` is the steady-state maze renderer. It accepts a screen row `0..7`, combines that row with `ViewY`, reads the matching world and eaten-path rows, and uses `WindowByteBc` to extract the visible eight bits from each 15-bit row. Walls and uneaten paths are passed to `WrWorldColors`, which writes red, green, and blue plane bytes according to the current palette.
 
@@ -343,7 +341,7 @@ Most static Pacmo data lives here: the 15-row maze bitmap, power-pill table, ene
 - splash flag
 - HUD and speaker state
 - Score and HUD segment buffer
-- frame/slice counters
+- frame counter
 - render scratch
 - power-pill eaten mask and power timer
 - round-complete and caught flags
@@ -373,7 +371,7 @@ Currently shared and generic:
 Currently Pacmo-specific:
 
 - `game-init.asm`: level/player/monster initialization
-- `logic-dispatch.asm`: Pacmo slice schedule, power timer, monster AI, respawn, level progression
+- `logic-dispatch.asm`: Pacmo frame schedule, power timer, monster AI, respawn, level progression
 - `movement.asm`: input normalization, player movement, path/power consumption, game-over entry
 - `render.asm`: maze, pills, Monsters, player, and calls into shared cell-colour primitives
 - `sound.asm`: Pacmo event sound names and durations

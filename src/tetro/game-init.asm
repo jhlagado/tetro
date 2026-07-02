@@ -53,7 +53,6 @@
         LD      (ClearTimer),A
         LD      (DropLockout),A
         LD      (FramePhase),A
-        LD      (LogicSlice),A
         LD      (Paused),A
         LD      (CurrentRotation),A
         LD      (CurPieceIndex),A
