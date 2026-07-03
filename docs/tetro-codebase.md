@@ -13,7 +13,7 @@ This tour follows the Tetro code as it now stands. The shared loop, scan tick, L
 The Debug80 target is still the top-level file:
 
 ```text
-src/tetro/tetro.z80
+src/tetro/tetro.main.asm
 ```
 
 That file owns the `ORG`, the reset entry, the main loop, and the include order. Debug80 can treat it as the Tetro target without needing to know how the internal files are arranged.
@@ -28,7 +28,7 @@ Start:
     CALL    InitState
 
 MainLoop:
-    CALL    ScanTick
+    CALL    ScanFrame
     CALL    LogicTick
     JR      MainLoop
 
@@ -41,6 +41,7 @@ MainLoop:
 .include "board-lock.asm"
 .include "game-init.asm"
 .include "../shared/scan-tick.asm"
+.include "scan-frame.asm"
 .include "../shared/sound.asm"
 .include "sound.asm"
 .include "../shared/hud.asm"
@@ -53,7 +54,7 @@ MainLoop:
 .include "ram.asm"
 ```
 
-The include order is deliberate. `shared/scan-tick.asm` calls `SndService` and `HudScanDig` before their labels appear in the include stream. `asm80` resolves those forward references. The pattern keeps scanout generic while letting the program decide which sound and HUD services satisfy the calls.
+The include order is deliberate. `shared/scan-tick.asm` calls `SndService` and `HudScanDig` before their labels appear in the include stream. AZM resolves those forward references. The pattern keeps scanout generic while letting the program decide which sound and HUD services satisfy the calls.
 
 The split is intentional. Files under `src/shared/` are generic hardware or buffer routines that can serve more than one game. Files under `src/tetro/` contain Tetro's rules, state, tables, and game-specific wrappers.
 
@@ -65,14 +66,14 @@ This is still a careful harmonisation, not a large engine abstraction. Shared fi
 
 ```asm
 MainLoop:
-    CALL    ScanTick
+    CALL    ScanFrame
     CALL    LogicTick
     JR      MainLoop
 ```
 
-Those three instructions in `src/tetro/tetro.z80` are the whole runtime. Tetro uses the shared cooperative loop described in [shared-codebase.md](shared-codebase.md): `ScanTick` keeps the hardware alive, and `LogicTick` performs one slice of game work.
+Those three instructions in `src/tetro/tetro.main.asm` are the whole runtime. `ScanFrame` emits all eight matrix rows with a fixed dwell delay per row, then blanks the row port. `LogicTick` runs while the matrix is blank and prepares the next frame.
 
-This means the display, Score digits, speaker, keypad, gravity, rendering, and line-clear timing all share the same cooperative clock.
+Sound and the seven-segment Score display are serviced once per visible matrix row through `ScanTick`, which `ScanFrame` calls internally. Game logic no longer determines visible row dwell time.
 
 ---
 
@@ -91,17 +92,9 @@ The priority is:
 
 The order is part of the design. During game over, only restart gating matters. During a line-clear hold, the active piece is disabled and the next spawn waits. During input lockout, the key that dismissed the splash or restarted the game is not allowed to become a gameplay move.
 
-In active play, `LogicSlice` selects one of eight slices:
+Active play is now a frame-time update rather than an eight-slice raster update. `ScanFrame` has already displayed the whole matrix and blanked the row port before `LogicTick` runs. The active path polls input, applies gravity, then rebuilds the whole framebuffer with `RebuildFb` for the next visible frame.
 
-```text
-slice 0      poll input, clear Framebuffer-back row 0
-slice 1      apply gravity, clear row 1
-slices 2-6   clear one back-buffer row each
-slice 7      clear row 7, render board, render active piece, copy back to front
-```
-
-The back buffer is cleared gradually so no single loop pass does all the work. Slice 7 composes the finished frame and copies it to `Framebuffer`, which the next scan pass reads.
-
+This intentionally moves variable work such as collision checks, locks, row clears, score updates, LCD updates, and full framebuffer copy into the blanking interval. The visible rows get their brightness from the fixed scan dwell delay, not from game computation time.
 ---
 
 ## RAM layout
@@ -116,7 +109,7 @@ The RAM file is arranged around the systems that mutate it:
 - pause, splash, game-over, and line-clear flags
 - Score and line counters
 - HUD and speaker state
-- frame/slice counters
+- frame counter
 - scan state and framebuffers
 - landed board occupancy and colour planes
 
@@ -148,8 +141,8 @@ Collision reads only `BoardRows`. Rendering reads colour planes directly. This a
 
 The Framebuffer is double-buffered:
 
-- `FramebufferBack` is composed by the logic slices.
-- `Framebuffer` is read by `ScanTick`.
+- `FramebufferBack` is composed during the blanking interval.
+- `Framebuffer` is read by `ScanFrame` through `ScanTick`.
 
 Both buffers are 32 bytes: eight rows, four bytes per row. The first three bytes are red, green, and blue. The fourth byte is padding.
 
@@ -316,7 +309,7 @@ Currently Tetro-specific:
 
 - `tetro/constants.asm`: movement, gravity, scoring, spawn, and sound tuning
 - `tetro/game-init.asm`: cold Start, restart, and state initialization
-- `tetro/logic-dispatch.asm`: Tetro state priority and 8-slice schedule
+- `tetro/logic-dispatch.asm`: Tetro state priority and frame-time update
 - `tetro/piece-active.asm`: movement, gravity, rotation, RNG, and spawn
 - `tetro/collision.asm`: active-piece placement and top-out checks
 - `tetro/board-lock.asm`: merge, line clear, scoring, and game-over entry
@@ -361,13 +354,13 @@ Changing a message, Score value, colour, piece bitmap, preview letter, or LCD sc
 
 ## A piece from spawn to lock
 
-On boot, `InitState` clears Tetro state, shows the splash, and rebuilds the Framebuffer. The main loop starts immediately. `ScanTick` keeps the matrix alive, Score digits blank, and frame counter moving.
+On boot, `InitState` clears Tetro state, shows the splash, and rebuilds the Framebuffer. The main loop starts immediately. `ScanFrame` keeps the matrix alive with fixed row dwell, keeps Score digits blank, services sound, and advances the frame counter.
 
 When the player presses a key on the splash screen, `SplashState` seeds the RNG, generates the first next-piece index, sets `InputLockout`, spawns the first active piece, initializes the Score display, shows the running LCD screen, and rebuilds the Framebuffer.
 
 `SpawnActPiece` promotes `NextPieceIndex` to `CurPieceIndex`, generates a new upcoming piece, sets the spawn position, resets movement and gravity cooldowns, and tests collision at the spawn point. If spawn collides immediately, Tetro enters game over.
 
-During play, slice 0 polls input. The keypad mapping is handled locally in `tetro/input.asm`; that file calls Tetro movement and rotation routines directly. Left and right key codes stay as MON-3 hardware constants, while the movement handlers define what action each key performs for the current matrix orientation:
+During play, each frame polls input during the blanking interval. The keypad mapping is handled locally in `tetro/input.asm`; that file calls Tetro movement and rotation routines directly. Left and right key codes stay as MON-3 hardware constants, while the movement handlers define what action each key performs for the current matrix orientation:
 
 ```asm
 KeyLeft:         EQU     0x11
@@ -390,12 +383,14 @@ Game over leaves the loop running. The matrix, Score display, LCD, and speaker a
 
 ```text
 target
-  src/tetro/tetro.z80
+  src/tetro/tetro.main.asm
     ORG, Start, MainLoop, include order
 
 shared hardware helpers
   shared/scan-tick.asm
     ScanTick -> SndService, HudScanDig, ScanNext
+  tetro/scan-frame.asm
+    ScanFrame, fixed row dwell, inter-frame blanking
   shared/sound.asm
     SndStart, SndService
   shared/hud.asm
@@ -423,7 +418,7 @@ Tetro rules
   tetro/game-init.asm
     cold Start, restart, and state initialization
   tetro/logic-dispatch.asm
-    LogicTick and 8-slice scheduler
+    LogicTick frame-time dispatcher
   tetro/piece-active.asm
     movement, gravity, rotation, RNG, spawn
   tetro/collision.asm

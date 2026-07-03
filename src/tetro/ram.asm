@@ -126,9 +126,6 @@ HudSegBuffer:
 FramePhase:
         .db      0
 
-LogicSlice:
-        .db      0
-
 ScanMask:
         .db      0
 
@@ -154,8 +151,8 @@ Framebuffer:
         .ds      FramebufferBytes
 
 ; Off-screen compose buffer.
-; The live Framebuffer is updated atomically
-; from here in slice 7.
+; The live Framebuffer is rebuilt from here while
+; the matrix is blank between scanned frames.
 FramebufferBack:
         .ds      FramebufferBytes
 

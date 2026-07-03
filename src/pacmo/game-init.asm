@@ -32,7 +32,6 @@
         XOR     A
         LD      (PacSplashActive),A
         LD      (PacPaused),A
-        LD      (LogicSlice),A
         LD      (FramePhase),A
         LD      (HudScanIndex),A
         LD      (SpeakerPort),A

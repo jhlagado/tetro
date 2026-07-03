@@ -8,10 +8,10 @@
 ; Minimal interactive 8x8 RGB matrix example for the MON-3 layout.
 ;
 ; Goal:
-;   Prove the scanline-tick architecture with the smallest visible program:
+;   Prove the frame-scan architecture with the smallest visible program:
 ;   a 4x4 bitmap shape moved left/right and down by frame-driven gravity while
-;   the display is scanned one row at a time, freezing into a landed board on
-;   collision and respawning a new active piece.
+;   the display is scanned with fixed row dwell, freezing into a landed board
+;   on collision and respawning a new active piece.
 ;
 ; Controls (MON-3 key codes):
 ;   left  (0x11) = move left
@@ -25,8 +25,8 @@
 ;   0      (0x00) = pause
 ;
 ; Design:
-;   - One scanline is output per main-loop iteration.
-;   - Game work is split across 8 slices (LogicSlice 0-7 on each pass).
+;   - One full 8-row frame is scanned per main-loop iteration.
+;   - Game work runs while the matrix is blank between frames.
 ;   - The Framebuffer is 8 rows x 4 bytes (R/G/B/Aux).
 ;   - The landed board is stored as RGB bitplanes plus monochrome occupancy.
 ;   - The active object is a 4x4 bitmap blitted in its piece colour over the board.
@@ -43,7 +43,7 @@
         CALL    InitState
 
 MainLoop:
-        CALL    ScanTick
+        CALL    ScanFrame
         CALL    LogicTick
         JR      MainLoop
 
@@ -56,6 +56,7 @@ MainLoop:
         .include "board-lock.asm"
         .include "game-init.asm"
         .include "../shared/scan-tick.asm"
+        .include "scan-frame.asm"
         .include "../shared/sound.asm"
         .include "sound.asm"
         .include "../shared/hud.asm"

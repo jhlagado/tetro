@@ -1,13 +1,10 @@
-; Tetro cooperative logic dispatcher.
+; Tetro frame-time logic dispatcher.
 
 ; LogicTick —
-; Run one logic slice per main-loop pass.
-; Slices 2–6 each clear one FramebufferBack row.
-; Slice 0: poll input, clear row 0.
-; Slice 1: apply gravity, clear row 4.
-; Slice 7: clear row 28, render board and piece,
-;   copy back-buffer to live Framebuffer.
-; LogicSlice wraps 0..7 at the end of each call.
+; Run one complete game update while the matrix is
+; blank between scanned frames. Rendering is rebuilt
+; as a full back-buffer pass, then copied to the live
+; Framebuffer before the next ScanFrame.
 ;!      out       carry,zero
 ;!      clobbers  A,BC,DE,HL,IX,IY
 @LogicTick:
@@ -17,81 +14,52 @@
         JR      Z,LogicGOverDone
         CALL    WaitGOverGate
         RET
+
 LogicGOverDone:
         LD      A,(SplashTimer)
         OR      A
         JR      Z,LogicSplashDone
         CALL    SplashState
         RET
+
 LogicSplashDone:
         LD      A,(ClearPending)
         OR      A
-        JR      Z,LogicClearDone
+        JR      Z,LogicPauseCheck
         CALL    LineClearState
-        JR      LogicActive
-LogicClearDone:
+        CALL    RebuildFb
+        RET
+
+LogicPauseCheck:
         LD      A,(Paused)
         OR      A
         JR      Z,LogicActive
         CALL    PollInput
         RET
+
 LogicActive:
         LD      A,(InputLockout)
         OR      A
-        JR      Z,LogicLockDone
+        JR      Z,LogicRunFrame
         CALL    WaitKeyRelease
         RET
-LogicLockDone:
-        LD      A,(LogicSlice)
-        AND     7
-        JR      Z,LogicSl0
-        CP      1
-        JR      Z,LogicSl1
-        CP      7
-        JP      Z,LogicSl7
-        SUB     2
-        ADD     A,A
-        ADD     A,A
-        ADD     A,8
-        CALL    FbClearRow
-        JR      LogicSliceNext
 
-; LogicSl7 —
-; Clear row 28, render board and active piece to
-; the back-buffer, then copy to live Framebuffer.
-;!      clobbers  A,BC,DE,HL,IX,IY
-@LogicSl7:
-        LD      A,28
-        CALL    FbClearRow
-        CALL    RendBoardBack
-        CALL    RendActBack
-        CALL    FbCopyAll
-        JR      LogicSliceNext
-
-LogicSl0:
-        LD      A,(ClearPending)
-        OR      A
-        JR      NZ,LogicSl0NoInput
+LogicRunFrame:
         CALL    PollInput
-LogicSl0NoInput:
-        XOR     A
-        CALL    FbClearRow
-        JR      LogicSliceNext
-
-LogicSl1:
+        LD      A,(Paused)
+        OR      A
+        RET     NZ
+        LD      A,(GameOver)
+        OR      A
+        RET     NZ
         LD      A,(ClearPending)
         OR      A
-        JR      NZ,LogicSl1NoGrav
+        JR      NZ,LogicRenderFrame
         CALL    ApplyGravity
-LogicSl1NoGrav:
-        LD      A,4
-        CALL    FbClearRow
-        JR      LogicSliceNext
+        LD      A,(GameOver)
+        OR      A
+        RET     NZ
 
-LogicSliceNext:
-        LD      HL,LogicSlice
-        LD      A,(HL)
-        INC     A
-        AND     7
-        LD      (HL),A
+LogicRenderFrame:
+        CALL    RebuildFb
         RET

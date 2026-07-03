@@ -86,16 +86,12 @@ SplashSeedReady:
 
 ; LineClearState —
 ; Manage the post-clear hold delay.
-; Only advances on slice 0 (one tick per full
-; logic cycle). On ClearTimer expiry: collapses
-; filled rows, awards score, clears ClearPending,
-; then jumps to SpawnActPiece.
+; Advances once per frame. On ClearTimer expiry:
+; collapses filled rows, awards score, clears
+; ClearPending, then jumps to SpawnActPiece.
 ;!      out       carry
 ;!      clobbers  A,BC,DE,HL
 @LineClearState:
-        LD      A,(LogicSlice)
-        OR      A
-        RET     NZ
         LD      A,(ClearTimer)
         DEC     A
         LD      (ClearTimer),A

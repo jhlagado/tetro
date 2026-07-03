@@ -1,31 +1,16 @@
-; Pacmo cooperative logic dispatcher.
+; Pacmo cooperative frame dispatcher.
 
 ; LogicTick —
-; Run one Pacmo logic slice per main-loop pass.
-; Slices 0..6: copy the completed back row to the
-; live Framebuffer, then rebuild that back row.
-; Slice 7: render row 7, blank the matrix, run
-; PacFrameDuties, then reset LogicSlice to 0. The
-; final flags are not a caller status convention.
+; Run one Pacmo logic frame while the matrix is
+; blank. Game duties update input, timers, Monsters,
+; and collision state; then the full Framebuffer is
+; rebuilt for the next visible ScanFrame. The final
+; flags are not a caller status convention.
 ;!      out       carry,zero
 ;!      clobbers  A,BC,DE,HL,IX,IY
 @LogicTick:
-        LD      A,(LogicSlice)
-        AND     7
-        CP      7
-        JP      Z,LogicSl7
-        CALL    PacRenderRowA
-        JP      LogicSliceNext
-
-LogicSl7:
-        LD      A,7
-        CALL    PacRenderRowA
-        XOR     A
-        OUT     (PortRow),A
         CALL    PacFrameDuties
-        XOR     A
-        LD      (LogicSlice),A
-        RET
+        JP      RebuildFb
 
 ; PacFrameDuties —
 ; Per-frame Pacmo logic while the matrix is off.
@@ -90,14 +75,6 @@ PacFrameCollDone:
         CALL    RendMonsRow
         POP     AF
         JP      RendPlyRow
-
-LogicSliceNext:
-        LD      HL,LogicSlice
-        LD      A,(HL)
-        INC     A
-        AND     7
-        LD      (HL),A
-        RET
 
 ; TickLvlDoneGate —
 ; Count down the level-completion delay.

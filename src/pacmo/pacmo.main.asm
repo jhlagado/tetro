@@ -10,20 +10,22 @@
         .include "../shared/constants.asm"
 
 ; Start —
-; Pacmo entry point. Initializes game state, then runs
-; ScanTick and LogicTick forever from MainLoop. The
-; loop does not return a semantic status value.
+; Pacmo entry point. Initializes game state, then scans
+; one fixed-dwell matrix frame and runs one blanked logic
+; frame forever from MainLoop. The loop does not return
+; a semantic status value.
 ;!      out       carry,zero
 ;!      clobbers  A,BC,DE,HL,IX,IY
 @Start:
         CALL    InitState
 
 MainLoop:
-        CALL    ScanTick
+        CALL    ScanFrame
         CALL    LogicTick
         JR      MainLoop
 
         .include "../shared/scan-tick.asm"
+        .include "scan-frame.asm"
         .include "game-init.asm"
         .include "logic-dispatch.asm"
         .include "movement.asm"

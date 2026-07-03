@@ -10,13 +10,11 @@
       "bundledAssets": {
         "romHex": {
           "bundleId": "tec1g/mon3/v1",
-          "path": "mon3.bin",
-          "destination": "roms/tec1g/mon3/mon3.bin"
+          "path": "mon3.bin"
         },
-        "listing": {
+        "debugMap": {
           "bundleId": "tec1g/mon3/v1",
-          "path": "mon3.lst",
-          "destination": "roms/tec1g/mon3/mon3.lst"
+          "path": "mon3.d8.json"
         }
       }
     }
@@ -45,19 +43,14 @@
           }
         ],
         "appStart": 16384,
-        "entry": 0,
-        "romHex": "roms/tec1g/mon3/mon3.bin",
-        "extraListings": [
-          "roms/tec1g/mon3/mon3.lst"
-        ],
-        "sourceRoots": [
-          "src",
-          "roms/tec1g/mon3"
-        ]
+        "entry": 0
       },
-      "sourceFile": "src/tetro/tetro.z80",
-      "asm": "src/tetro/tetro.z80",
-      "artifactBase": "tetro"
+      "sourceFile": "src/tetro/tetro.main.asm",
+      "asm": "src/tetro/tetro.main.asm",
+      "artifactBase": "tetro",
+      "sourceRoots": [
+        "src"
+      ]
     },
     "pacmo": {
       "outputDir": "build",
@@ -82,19 +75,14 @@
           }
         ],
         "appStart": 16384,
-        "entry": 0,
-        "romHex": "roms/tec1g/mon3/mon3.bin",
-        "extraListings": [
-          "roms/tec1g/mon3/mon3.lst"
-        ],
-        "sourceRoots": [
-          "src",
-          "roms/tec1g/mon3"
-        ]
+        "entry": 0
       },
-      "sourceFile": "src/pacmo/pacmo.z80",
-      "asm": "src/pacmo/pacmo.z80",
-      "artifactBase": "pacmo"
+      "sourceFile": "src/pacmo/pacmo.main.asm",
+      "asm": "src/pacmo/pacmo.main.asm",
+      "artifactBase": "pacmo",
+      "sourceRoots": [
+        "src"
+      ]
     }
   }
 }
