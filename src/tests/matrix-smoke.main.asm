@@ -31,9 +31,15 @@ RowLoop:
         LD      A,C
         OUT     (PortRow),A
 
+        ; Long diagnostic dwell so a webview rAF sample
+        ; can visibly catch each active row.
+        LD      D,64
+DwellOuter:
         LD      B,255
-DwellLoop:
-        DJNZ    DwellLoop
+DwellInner:
+        DJNZ    DwellInner
+        DEC     D
+        JR      NZ,DwellOuter
 
         LD      A,C
         RLC     A
