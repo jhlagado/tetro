@@ -1,62 +1,22 @@
 ; TEC-1G 8x8 matrix smoke test.
-; Directly scans the RGB matrix without MON-3 input,
-; framebuffer logic, HUD, sound, or game state.
+; Holds one red LED on without MON-3 input,
+; framebuffer logic, HUD, sound, scan timing, or stack.
 
         .org     0x4000
 
         .include "../shared/constants.asm"
 
 @Start:
-MainLoop:
-        LD      HL,MatrixRows
-        LD      C,ScanMaskStart
-        LD      E,RowCount
-
-RowLoop:
         XOR     A
         OUT     (PortRow),A
-
-        LD      A,(HL)
-        OUT     (PortRed),A
-        INC     HL
-
-        LD      A,(HL)
         OUT     (PortGreen),A
-        INC     HL
-
-        LD      A,(HL)
         OUT     (PortBlue),A
-        INC     HL
 
-        LD      A,C
+        LD      A,0x80
+        OUT     (PortRed),A
+
+        LD      A,ScanMaskStart
         OUT     (PortRow),A
 
-        ; Long diagnostic dwell so a webview rAF sample
-        ; can visibly catch each active row.
-        LD      D,64
-DwellOuter:
-        LD      B,255
-DwellInner:
-        DJNZ    DwellInner
-        DEC     D
-        JR      NZ,DwellOuter
-
-        LD      A,C
-        RLC     A
-        LD      C,A
-        DEC     E
-        JR      NZ,RowLoop
-
-        XOR     A
-        OUT     (PortRow),A
-        JR      MainLoop
-
-MatrixRows:
-        .db     0xFF,0x00,0x00
-        .db     0x00,0xFF,0x00
-        .db     0x00,0x00,0xFF
-        .db     0xFF,0xFF,0x00
-        .db     0x00,0xFF,0xFF
-        .db     0xFF,0x00,0xFF
-        .db     0x81,0x81,0x81
-        .db     0xFF,0xFF,0xFF
+Hold:
+        JR      Hold
