@@ -109,8 +109,8 @@
         "appStart": 16384,
         "entry": 0
       },
-      "sourceFile": "src/tests/matrix-smoke.asm",
-      "asm": "src/tests/matrix-smoke.asm",
+      "sourceFile": "src/tests/matrix-smoke.main.asm",
+      "asm": "src/tests/matrix-smoke.main.asm",
       "artifactBase": "matrix-smoke",
       "sourceRoots": [
         "src"

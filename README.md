@@ -114,7 +114,7 @@ azm --type hex --output build/tetro.hex src/tetro/tetro.main.asm
 azm --type bin --output build/tetro.bin src/tetro/tetro.main.asm
 azm --type hex --output build/pacmo.hex src/pacmo/pacmo.main.asm
 azm --type bin --output build/pacmo.bin src/pacmo/pacmo.main.asm
-azm --type hex --output build/matrix-smoke.hex src/tests/matrix-smoke.asm
+azm --type hex --output build/matrix-smoke.hex src/tests/matrix-smoke.main.asm
 ```
 
 The generated files under `build/` are outputs, not source.
