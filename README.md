@@ -114,6 +114,7 @@ azm --type hex --output build/tetro.hex src/tetro/tetro.main.asm
 azm --type bin --output build/tetro.bin src/tetro/tetro.main.asm
 azm --type hex --output build/pacmo.hex src/pacmo/pacmo.main.asm
 azm --type bin --output build/pacmo.bin src/pacmo/pacmo.main.asm
+azm --type hex --output build/matrix-smoke.hex src/tests/matrix-smoke.asm
 ```
 
 The generated files under `build/` are outputs, not source.
@@ -127,6 +128,11 @@ GO 4000
 ```
 
 The LCD shows the selected game's splash screen. Press any key to Start.
+
+The `matrix-smoke` Debug80 target is a direct TEC-1G 8x8 matrix test. It
+does not use the Tetro framebuffer, keypad input, sound, HUD, or stack, so it
+can be used to confirm that the emulator and hardware matrix scan path can
+light visible pixels independently of the games.
 
 ## Source Layout
 
