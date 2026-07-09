@@ -107,11 +107,43 @@
           }
         ],
         "appStart": 16384,
-        "entry": 16384
+        "entry": 0
       },
       "sourceFile": "src/tests/matrix-smoke.main.asm",
       "asm": "src/tests/matrix-smoke.main.asm",
       "artifactBase": "matrix-smoke",
+      "sourceRoots": [
+        "src"
+      ]
+    },
+    "matrix-duty": {
+      "outputDir": "build",
+      "platform": "tec1g",
+      "profile": "mon3",
+      "tec1g": {
+        "regions": [
+          {
+            "start": 0,
+            "end": 2047,
+            "kind": "rom"
+          },
+          {
+            "start": 2048,
+            "end": 32767,
+            "kind": "ram"
+          },
+          {
+            "start": 49152,
+            "end": 65535,
+            "kind": "rom"
+          }
+        ],
+        "appStart": 16384,
+        "entry": 0
+      },
+      "sourceFile": "src/tests/matrix-duty.main.asm",
+      "asm": "src/tests/matrix-duty.main.asm",
+      "artifactBase": "matrix-duty",
       "sourceRoots": [
         "src"
       ]
