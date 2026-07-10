@@ -5,46 +5,45 @@
 ; blank between scanned frames. Rendering is rebuilt
 ; as a full back-buffer pass, then copied to the live
 ; Framebuffer before the next ScanFrame.
-;!      out       carry,zero
-;!      clobbers  A,BC,DE,HL,IX,IY
-@LogicTick:
+.routine out carry,zero clobbers A,BC,DE,HL,IX,IY
+LogicTick:
         CALL    SanitizeActPos
         LD      A,(GameOver)
         OR      A
-        JR      Z,LogicGOverDone
+        JR      Z,_LogicGOverDone
         CALL    WaitGOverGate
         RET
 
-LogicGOverDone:
+_LogicGOverDone:
         LD      A,(SplashTimer)
         OR      A
-        JR      Z,LogicSplashDone
+        JR      Z,_LogicSplashDone
         CALL    SplashState
         RET
 
-LogicSplashDone:
+_LogicSplashDone:
         LD      A,(ClearPending)
         OR      A
-        JR      Z,LogicPauseCheck
+        JR      Z,_LogicPauseCheck
         CALL    LineClearState
         CALL    RebuildFb
         RET
 
-LogicPauseCheck:
+_LogicPauseCheck:
         LD      A,(Paused)
         OR      A
-        JR      Z,LogicActive
+        JR      Z,_LogicActive
         CALL    PollInput
         RET
 
-LogicActive:
+_LogicActive:
         LD      A,(InputLockout)
         OR      A
-        JR      Z,LogicRunFrame
+        JR      Z,_LogicRunFrame
         CALL    WaitKeyRelease
         RET
 
-LogicRunFrame:
+_LogicRunFrame:
         CALL    PollInput
         LD      A,(Paused)
         OR      A
@@ -54,12 +53,12 @@ LogicRunFrame:
         RET     NZ
         LD      A,(ClearPending)
         OR      A
-        JR      NZ,LogicRenderFrame
+        JR      NZ,_LogicRenderFrame
         CALL    ApplyGravity
         LD      A,(GameOver)
         OR      A
         RET     NZ
 
-LogicRenderFrame:
+_LogicRenderFrame:
         CALL    RebuildFb
         RET

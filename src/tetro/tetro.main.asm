@@ -37,15 +37,14 @@
         .include "../shared/constants.asm"
         .include "constants.asm"
 
-;!      out       carry,zero
-;!      clobbers  A,BC,DE,HL,IX,IY
-@Start:
+.routine out carry,zero clobbers A,BC,DE,HL,IX,IY
+Start:
         CALL    InitState
 
-MainLoop:
+_MainLoop:
         CALL    ScanFrame
         CALL    LogicTick
-        JR      MainLoop
+        JR      _MainLoop
 
         .include "geometry-helpers.asm"
         .include "collision.asm"

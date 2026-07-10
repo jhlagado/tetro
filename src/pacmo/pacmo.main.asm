@@ -14,15 +14,14 @@
 ; one fixed-dwell matrix frame and runs one blanked logic
 ; frame forever from MainLoop. The loop does not return
 ; a semantic status value.
-;!      out       carry,zero
-;!      clobbers  A,BC,DE,HL,IX,IY
-@Start:
+.routine out carry,zero clobbers A,BC,DE,HL,IX,IY
+Start:
         CALL    InitState
 
-MainLoop:
+_MainLoop:
         CALL    ScanFrame
         CALL    LogicTick
-        JR      MainLoop
+        JR      _MainLoop
 
         .include "../shared/scan-tick.asm"
         .include "scan-frame.asm"

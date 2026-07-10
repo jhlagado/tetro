@@ -3,9 +3,8 @@
 ; Starts PacLevel at 1, restores PacLives, resets
 ; the enemy speed, builds a fresh level, and shows
 ; the splash screen. No semantic value is returned.
-;!      out       carry
-;!      clobbers  A,BC,DE,HL,IX
-@InitState:
+.routine out carry clobbers A,BC,DE,HL,IX
+InitState:
         XOR     A
         LD      (PacScore),A
         LD      (PacScore + 1),A
@@ -25,8 +24,8 @@
 ; PacLevel. Resets transient game, sound, input, and
 ; enemy state; clears eaten paths; marks the player
 ; start cell eaten; then rebuilds the Framebuffer.
-;!      clobbers  A,BC,DE,HL,IX
-@InitLevelState:
+.routine clobbers A,BC,DE,HL,IX
+InitLevelState:
         CALL    InitPlyMons
 
         XOR     A
@@ -83,9 +82,8 @@
 ; caught state, power timer, sound state, and monster
 ; respawn/flee state are also cleared. Final flags are
 ; incidental; callers should not use them as status.
-;!      out       carry,zero
-;!      clobbers  A
-@InitPlyMons:
+.routine out carry,zero clobbers A
+InitPlyMons:
         LD      A,7
         LD      (PlayerX),A
         LD      (PlayerY),A
@@ -142,27 +140,27 @@
 ; ClearFrontBack —
 ; Zero both Framebuffer and FramebufferBack by clearing
 ; FramebufferBytes*2 bytes from Framebuffer.
-;!      clobbers  A,B,HL
-@ClearFrontBack:
+.routine clobbers A,B,HL
+ClearFrontBack:
         LD      HL,Framebuffer
         LD      B,FramebufferBytes * 2
         XOR     A
-ClearFrontBackLp:
+_ClearFrontBackLp:
         LD      (HL),A
         INC     HL
-        DJNZ    ClearFrontBackLp
+        DJNZ    _ClearFrontBackLp
         RET
 
 ; ClearEatenPaths —
 ; Zero PacEatenRows at level start. MarkEatenBc later
 ; sets one bit per eaten path cell.
-;!      clobbers  A,B,HL
-@ClearEatenPaths:
+.routine clobbers A,B,HL
+ClearEatenPaths:
         LD      HL,PacEatenRows
         LD      B,PacEatenBytes
         XOR     A
-ClearEatenLp:
+_ClearEatenLp:
         LD      (HL),A
         INC     HL
-        DJNZ    ClearEatenLp
+        DJNZ    _ClearEatenLp
         RET

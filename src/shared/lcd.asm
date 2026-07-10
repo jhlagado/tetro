@@ -4,21 +4,21 @@
 ; LcdBusy —
 ; Spin until the HD44780 busy flag clears.
 ; AF is preserved with PUSH/POP.
-;!      in        A
-@LcdBusy:
+.routine in A
+LcdBusy:
         PUSH    AF
-LcdBusyLp:
+_LcdBusyLp:
         IN      A,(PortLcdInst)
         RLCA
-        JR      C,LcdBusyLp
+        JR      C,_LcdBusyLp
         POP     AF
         RET
 
 ; LcdCmd —
 ; Wait for LCD ready then send B as an
 ; instruction byte to PortLcdInst.
-;!      in        B
-@LcdCmd:
+.routine in B
+LcdCmd:
         PUSH    AF
         CALL    LcdBusy
         LD      A,B
@@ -30,8 +30,8 @@ LcdBusyLp:
 ; Send the clear-display command (0x01).
 ; Cursor homes to position 0 after the command.
 ; B contains the command byte for LcdCmd.
-;!      clobbers  B
-@LcdClear:
+.routine clobbers B
+LcdClear:
         LD      B,0x01
         JP      LcdCmd
 
@@ -39,10 +39,8 @@ LcdBusyLp:
 ; Write a zero-terminated string to the LCD.
 ; HL points to the string. Writing starts at the
 ; current LCD cursor and stops after the NUL byte.
-;!      in        HL
-;!      out       HL,carry
-;!      clobbers  A
-@LcdString:
+.routine in HL out HL,carry clobbers A
+LcdString:
         LD      A,(HL)
         INC     HL
         OR      A
@@ -57,19 +55,17 @@ LcdBusyLp:
 ; terminated by DB 0.
 ; Clears the display first, then for each entry
 ; positions the cursor and writes the string.
-;!      in        HL
-;!      out       carry
-;!      clobbers  A
-@LcdScript:
+.routine in HL out carry clobbers A
+LcdScript:
         PUSH    BC
         PUSH    DE
         PUSH    HL
         EX      DE,HL                   ; DE = script cursor
         CALL    LcdClear
-LcdScrLp:
+_LcdScrLp:
         LD      A,(DE)                  ; row cmd (0 = end of script)
         OR      A
-        JR      Z,LcdScrDone
+        JR      Z,_LcdScrDone
         LD      B,A
         INC     DE
         CALL    LcdCmd
@@ -80,8 +76,8 @@ LcdScrLp:
         LD      H,A
         INC     DE
         CALL    LcdString
-        JR      LcdScrLp
-LcdScrDone:
+        JR      _LcdScrLp
+_LcdScrDone:
         POP     HL
         POP     DE
         POP     BC
@@ -90,8 +86,8 @@ LcdScrDone:
 ; LcdPutc —
 ; Write one character to the LCD at the current
 ; cursor position.
-;!      in        A
-@LcdPutc:
+.routine in A
+LcdPutc:
         PUSH    AF
         CALL    LcdBusy
         POP     AF
@@ -102,10 +98,8 @@ LcdScrDone:
 ; Position cursor via DDRAM command in B then
 ; write the zero-terminated string from HL.
 ; The updated string pointer is returned in HL.
-;!      in        B,HL
-;!      out       HL,carry
-;!      clobbers  A
-@LcdRowStr:
+.routine in B,HL out HL,carry clobbers A
+LcdRowStr:
         CALL    LcdCmd
         JP      LcdString
 
@@ -113,9 +107,8 @@ LcdScrDone:
 ; Write the byte at DE+A to the LCD cursor.
 ; No bounds check on A.
 ; A contains the table index; DE points to the table.
-;!      in        A,DE
-;!      clobbers  A,HL
-@LcdPutcTbl:
+.routine in A,DE clobbers A,HL
+LcdPutcTbl:
         LD      L,A
         LD      H,0
         ADD     HL,DE

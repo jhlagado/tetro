@@ -7,9 +7,8 @@
 ; then asserts the digit-select bit from
 ; HudMaskTbl. Advances HudScanIndex 0..5,
 ; wrapping to 0 after digit 5.
-;!      out       carry,zero
-;!      clobbers  A,BC,DE,HL
-@HudScanDig:
+.routine out carry,zero clobbers A,BC,DE,HL
+HudScanDig:
         LD      A,(HudScanIndex)
         LD      C,A
         LD      A,(SpeakerPort)
@@ -36,23 +35,23 @@
         LD      A,C
         INC     A
         CP      6
-        JR      C,HudScanSave
+        JR      C,_HudScanSave
         XOR     A
-HudScanSave:
+_HudScanSave:
         LD      (HudScanIndex),A
         RET
 
 ; HudBlankDig —
 ; Zero all six bytes of HudSegBuffer.
-;!      clobbers  A,B,HL
-@HudBlankDig:
+.routine clobbers A,B,HL
+HudBlankDig:
         LD      HL,HudSegBuffer
         LD      B,6
         XOR     A
-HudBlankLp:
+_HudBlankLp:
         LD      (HL),A
         INC     HL
-        DJNZ    HudBlankLp
+        DJNZ    _HudBlankLp
         RET
 
 ; HudWriteU16 —
@@ -60,10 +59,8 @@ HudBlankLp:
 ; HudSegBuffer. HL contains the value.
 ; Slot 0 always shows the zero glyph; slots 1–5
 ; hold the 10000, 1000, 100, 10, and 1 digits.
-;!      in        HL
-;!      out       BC,HL
-;!      clobbers  A,DE
-@HudWriteU16:
+.routine in HL out BC,HL clobbers A,DE
+HudWriteU16:
         LD      A,(HudGlyphTbl)
         LD      (HudSegBuffer),A
         LD      BC,HudSegBuffer + 1
@@ -86,27 +83,25 @@ HudBlankLp:
 ; place value. BC points to the output slot. The
 ; glyph is written to (BC), BC advances to the next
 ; slot, and the reduced remainder is returned in HL.
-;!      in        HL,DE,BC
-;!      out       BC,HL
-;!      clobbers  A,DE
-@HudDecDigit:
+.routine in HL,DE,BC out BC,HL clobbers A,DE
+HudDecDigit:
         XOR     A
-HudDecLp:
+_HudDecLp:
         PUSH    AF
         LD      A,H
         CP      D
-        JR      C,HudDecDone
-        JR      NZ,HudDecSub
+        JR      C,_HudDecDone
+        JR      NZ,_HudDecSub
         LD      A,L
         CP      E
-        JR      C,HudDecDone
-HudDecSub:
+        JR      C,_HudDecDone
+_HudDecSub:
         POP     AF
         OR      A
         SBC     HL,DE
         INC     A
-        JR      HudDecLp
-HudDecDone:
+        JR      _HudDecLp
+_HudDecDone:
         POP     AF
         PUSH    HL
         PUSH    BC

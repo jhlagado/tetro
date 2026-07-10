@@ -6,21 +6,19 @@
 ; Carry set means collision or out-of-bounds; carry
 ; clear means the placement is legal.
 ; BC, DE, and HL are preserved.
-;!      in        DE
-;!      out       carry,zero
-;!      clobbers  A
-@CheckCollAtDe:
+.routine in DE out carry,zero clobbers A
+CheckCollAtDe:
         PUSH    BC
         PUSH    DE
         PUSH    HL
         LD      A,D
         CP      XMin
-        JR      C,CollXBound
+        JR      C,_CollXBound
         LD      C,A
         LD      A,(CurPieceRight)
         ADD     A,C
         CP      RowCount
-        JR      NC,CollXBound
+        JR      NC,_CollXBound
         LD      A,D
         LD      (ShiftCount),A
         LD      A,E
@@ -34,17 +32,17 @@
         ; overlap), at the cost of ~12 cycles
         ; per collision on an empty board (only at
         ; first spawn after reset).
-CheckCollRow:
+_CheckCollRow:
         LD      A,(DE)
         CALL    ShiftRowMask
         LD      C,A
         OR      A
-        JR      Z,CollNextRow
+        JR      Z,_CollNextRow
         BIT     7,L
-        JR      NZ,CollNextRow
+        JR      NZ,_CollNextRow
         LD      A,L
         CP      RowCount
-        JR      NC,CollRowBottom
+        JR      NC,_CollRowBottom
         PUSH    HL
         PUSH    DE
         LD      H,0
@@ -54,25 +52,25 @@ CheckCollRow:
         AND     C
         POP     DE
         POP     HL
-        JR      NZ,CollRowOverlap
-CollNextRow:
+        JR      NZ,_CollRowOverlap
+_CollNextRow:
         INC     DE
         INC     HL
-        DJNZ    CheckCollRow
+        DJNZ    _CheckCollRow
         OR      A
-        JR      CollExitOk
+        JR      _CollExitOk
 
-CollXBound:
+_CollXBound:
         SCF
-        JR      CollExitOk
+        JR      _CollExitOk
 
-CollRowBottom:
+_CollRowBottom:
         SCF
-        JR      CollExitOk
+        JR      _CollExitOk
 
-CollRowOverlap:
+_CollRowOverlap:
         SCF
-CollExitOk:
+_CollExitOk:
         POP     HL
         POP     DE
         POP     BC
@@ -84,9 +82,8 @@ CollExitOk:
 ; row has bit 7 set in L (Y is negative, meaning
 ; the row is above the visible playfield), carry
 ; is set. Carry clear means the piece is in-bounds.
-;!      out       carry,zero
-;!      clobbers  A
-@CheckTopOut:
+.routine out carry,zero clobbers A
+CheckTopOut:
         PUSH    BC
         PUSH    DE
         PUSH    HL
@@ -95,21 +92,21 @@ CollExitOk:
         LD      H,0
         LD      DE,(CurPiecePtr)
         LD      B,4
-TopOutRowLoop:
+_TopOutRowLoop:
         LD      A,(DE)
         OR      A
-        JR      Z,TopOutNextRow
+        JR      Z,_TopOutNextRow
         BIT     7,L
-        JR      NZ,TopOutTrue
-TopOutNextRow:
+        JR      NZ,_TopOutTrue
+_TopOutNextRow:
         INC     DE
         INC     HL
-        DJNZ    TopOutRowLoop
+        DJNZ    _TopOutRowLoop
         OR      A
-        JR      TopOutExit
-TopOutTrue:
+        JR      _TopOutExit
+_TopOutTrue:
         SCF
-TopOutExit:
+_TopOutExit:
         POP     HL
         POP     DE
         POP     BC

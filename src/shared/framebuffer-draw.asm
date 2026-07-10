@@ -2,19 +2,17 @@
 ; Produce a column bitmask for matrix column A and
 ; return the mask in A.
 ; Column 0 is bit 7 (MSB); column 7 is bit 0.
-;!      in        A
-;!      out       A
-;!      clobbers  BC
-@MxMask:
+.routine in A out A clobbers BC
+MxMask:
         LD      C,A
         OR      A
         LD      A,0x80
-        JR      Z,MxMaskDone
+        JR      Z,_MxMaskDone
         LD      B,C
-MxMaskLp:
+_MxMaskLp:
         SRL     A
-        DJNZ    MxMaskLp
-MxMaskDone:
+        DJNZ    _MxMaskLp
+_MxMaskDone:
         RET
 
 ; FbSetCell —
@@ -24,47 +22,46 @@ MxMaskDone:
 ; column mask. Low bits of A select colour planes:
 ; selected planes OR in C; absent planes clear C with
 ; AND CPL(C).
-;!      in        C,A,HL
-;!      clobbers  A,B,D,HL
-@FbSetCell:
+.routine in C,A,HL clobbers A,B,D,HL
+FbSetCell:
         LD      B,A
         LD      A,C
         CPL
         LD      D,A
         LD      A,B
         AND     ColorRed
-        JR      Z,FbRedOff
+        JR      Z,_FbRedOff
         LD      A,(HL)
         OR      C
-        JR      FbRedSet
-FbRedOff:
+        JR      _FbRedSet
+_FbRedOff:
         LD      A,(HL)
         AND     D
-FbRedSet:
+_FbRedSet:
         LD      (HL),A
         INC     HL
         LD      A,B
         AND     ColorGreen
-        JR      Z,FbGrnOff
+        JR      Z,_FbGrnOff
         LD      A,(HL)
         OR      C
-        JR      FbGrnSet
-FbGrnOff:
+        JR      _FbGrnSet
+_FbGrnOff:
         LD      A,(HL)
         AND     D
-FbGrnSet:
+_FbGrnSet:
         LD      (HL),A
         INC     HL
         LD      A,B
         AND     ColorBlue
-        JR      Z,FbBluOff
+        JR      Z,_FbBluOff
         LD      A,(HL)
         OR      C
-        JR      FbBluSet
-FbBluOff:
+        JR      _FbBluSet
+_FbBluOff:
         LD      A,(HL)
         AND     D
-FbBluSet:
+_FbBluSet:
         LD      (HL),A
         RET
 
@@ -74,24 +71,23 @@ FbBluSet:
 ; bit 1 = green, bit 2 = blue (RRCA each iter).
 ; HL points to the row's red plane byte. The final
 ; plane pointer is returned in HL.
-;!      in        A,HL,C
-;!      out       HL,A
-@FbOrRow:
+.routine in A,HL,C out HL,A
+FbOrRow:
         PUSH    BC
         LD      B,3                     ; 3 planes: R, G, B
-FbOrLoop:
+_FbOrLoop:
         RRCA                            ; low bit (red/green/blue per iter) -> carry
-        JR      NC,FbOrSkip
+        JR      NC,_FbOrSkip
         PUSH    AF
         LD      A,(HL)
         OR      C
         LD      (HL),A
         POP     AF
-FbOrSkip:
+_FbOrSkip:
         DEC     B
-        JR      Z,FbOrExit
+        JR      Z,_FbOrExit
         INC     HL                      ; advance to next plane byte (between iters only)
-        JR      FbOrLoop
-FbOrExit:
+        JR      _FbOrLoop
+_FbOrExit:
         POP     BC
         RET

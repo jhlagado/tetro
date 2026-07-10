@@ -6,9 +6,8 @@
 ; Also services the speaker (SndService) and
 ; advances the HUD scan (HudScanDig) every call.
 ; Delegates scan-state advance to ScanNext.
-;!      out       carry
-;!      clobbers  A,BC,DE,HL
-@ScanTick:
+.routine out carry clobbers A,BC,DE,HL
+ScanTick:
         XOR     A
         OUT     (PortRow),A
 
@@ -39,9 +38,8 @@
 ; to Framebuffer base and increments FramePhase.
 ; FramePhase is the splash-screen RNG entropy
 ; source; it is not used for pacing elsewhere.
-;!      out       carry
-;!      clobbers  A,DE,HL
-@ScanNext:
+.routine out carry clobbers A,DE,HL
+ScanNext:
         LD      A,(ScanMask)
         RLC     A
         LD      (ScanMask),A
@@ -51,13 +49,13 @@
         ADD     HL,DE
 
         CP      ScanMaskStart
-        JR      NZ,ScanSavePtr
+        JR      NZ,_ScanSavePtr
 
         LD      HL,Framebuffer
         LD      A,(FramePhase)
         INC     A
         LD      (FramePhase),A
 
-ScanSavePtr:
+_ScanSavePtr:
         LD      (ScanPtr),HL
         RET

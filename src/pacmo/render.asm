@@ -4,8 +4,8 @@
 ; Renders world, power pills, active Monsters
 ; (Monster2 skipped before level 2), and player into
 ; FramebufferBack, then copies it to Framebuffer.
-;!      clobbers  A,BC,DE,HL,IX
-@RebuildFb:
+.routine clobbers A,BC,DE,HL,IX
+RebuildFb:
         CALL    FbClearAll
         CALL    RendWorldBack
         CALL    RendPwrPills
@@ -15,92 +15,91 @@
         CALL    RendEnemyBack
         LD      A,(PacLevel)
         CP      2
-        JR      C,RebuildMonsDone
+        JR      C,_RebuildMonsDone
         LD      IX,Monster2
         CALL    RendEnemyBack
-RebuildMonsDone:
+_RebuildMonsDone:
         CALL    RendPlyBack
         JP      FbCopyAll
 
 ; RendGOverBack —
 ; Fill FramebufferBack with PacColorGOver.
 ; Used as a dramatic full-matrix flash.
-;!      clobbers  A,B,HL
-@RendGOverBack:
+.routine clobbers A,B,HL
+RendGOverBack:
         LD      HL,FramebufferBack
         LD      B,RowCount
-RendGOverRow:
+_RendGOverRow:
         LD      A,PacColorGOver
         AND     ColorRed
-        JR      Z,RendGOverRedOff
+        JR      Z,_RendGOverRedOff
         LD      A,0xFF
-RendGOverRedOff:
+_RendGOverRedOff:
         LD      (HL),A
         INC     HL
         LD      A,PacColorGOver
         AND     ColorGreen
-        JR      Z,RendGOverGrnOff
+        JR      Z,_RendGOverGrnOff
         LD      A,0xFF
-RendGOverGrnOff:
+_RendGOverGrnOff:
         LD      (HL),A
         INC     HL
         LD      A,PacColorGOver
         AND     ColorBlue
-        JR      Z,RendGOverBluOff
+        JR      Z,_RendGOverBluOff
         LD      A,0xFF
-RendGOverBluOff:
+_RendGOverBluOff:
         LD      (HL),A
         INC     HL
         XOR     A
         LD      (HL),A                  ; aux off
         INC     HL
-        DJNZ    RendGOverRow
+        DJNZ    _RendGOverRow
         RET
 
 ; RendLvlDoneBack —
 ; Fill FramebufferBack with PacColorRound.
 ; Used as the level-complete visual cue.
-;!      clobbers  A,B,HL
-@RendLvlDoneBack:
+.routine clobbers A,B,HL
+RendLvlDoneBack:
         LD      HL,FramebufferBack
         LD      B,RowCount
-RendLvlDoneRow:
+_RendLvlDoneRow:
         LD      A,PacColorRound
         AND     ColorRed
-        JR      Z,RendLvlRedOff
+        JR      Z,_RendLvlRedOff
         LD      A,0xFF
-RendLvlRedOff:
+_RendLvlRedOff:
         LD      (HL),A
         INC     HL
         LD      A,PacColorRound
         AND     ColorGreen
-        JR      Z,RendLvlGrnOff
+        JR      Z,_RendLvlGrnOff
         LD      A,0xFF
-RendLvlGrnOff:
+_RendLvlGrnOff:
         LD      (HL),A
         INC     HL
         LD      A,PacColorRound
         AND     ColorBlue
-        JR      Z,RendLvlBluOff
+        JR      Z,_RendLvlBluOff
         LD      A,0xFF
-RendLvlBluOff:
+_RendLvlBluOff:
         LD      (HL),A
         INC     HL
         XOR     A
         LD      (HL),A                  ; aux off
         INC     HL
-        DJNZ    RendLvlDoneRow
+        DJNZ    _RendLvlDoneRow
         RET
 
 ; RendWorldBack —
 ; Render the full 8x8 viewport into back-buffer.
 ; Calls RendWorldRow with A=screen row for each row
 ; 0..7. Raw outputs are loop residue, not render state.
-;!      out       HL,A,zero
-;!      clobbers  B,DE
-@RendWorldBack:
+.routine out HL,A,zero clobbers B,DE
+RendWorldBack:
         LD      B,0
-RendWorldBackLp:
+_RendWorldBackLp:
         LD      A,B
         PUSH    BC
         CALL    RendWorldRow
@@ -108,7 +107,7 @@ RendWorldBackLp:
         INC     B
         LD      A,B
         CP      RowCount
-        JR      C,RendWorldBackLp
+        JR      C,_RendWorldBackLp
         RET
 
 ; RendWorldRow —
@@ -117,10 +116,8 @@ RendWorldBackLp:
 ; viewport window via WindowByteBc.
 ; Uneaten open path = ~(wall | eaten); both wall
 ; and path are written via WrWorldColors.
-;!      in        A
-;!      out       HL
-;!      clobbers  A,BC,DE
-@RendWorldRow:
+.routine in A out HL clobbers A,BC,DE
+RendWorldRow:
         LD      C,A                     ; C = screen row
         ADD     A,A
         ADD     A,A
@@ -174,24 +171,22 @@ RendWorldBackLp:
 ; by GetWallColor. D contains the uneaten-path mask,
 ; drawn in PacColorPath. The row aux-byte address is
 ; returned in HL.
-;!      in        C,D,HL
-;!      out       HL
-;!      clobbers  A,B
-@WrWorldColors:
+.routine in C,D,HL out HL clobbers A,B
+WrWorldColors:
         XOR     A
         LD      B,A
         CALL    GetWallColor
         AND     ColorRed
-        JR      Z,WrWorldRedPath
+        JR      Z,_WrWorldRedPath
         LD      B,C
-WrWorldRedPath:
+_WrWorldRedPath:
         LD      A,PacColorPath
         AND     ColorRed
-        JR      Z,WrWorldRedSet
+        JR      Z,_WrWorldRedSet
         LD      A,B
         OR      D
         LD      B,A
-WrWorldRedSet:
+_WrWorldRedSet:
         LD      (HL),B
         INC     HL
 
@@ -199,16 +194,16 @@ WrWorldRedSet:
         LD      B,A
         CALL    GetWallColor
         AND     ColorGreen
-        JR      Z,WrWorldGrnPath
+        JR      Z,_WrWorldGrnPath
         LD      B,C
-WrWorldGrnPath:
+_WrWorldGrnPath:
         LD      A,PacColorPath
         AND     ColorGreen
-        JR      Z,WrWorldGrnSet
+        JR      Z,_WrWorldGrnSet
         LD      A,B
         OR      D
         LD      B,A
-WrWorldGrnSet:
+_WrWorldGrnSet:
         LD      (HL),B
         INC     HL
 
@@ -216,16 +211,16 @@ WrWorldGrnSet:
         LD      B,A
         CALL    GetWallColor
         AND     ColorBlue
-        JR      Z,WrWorldBluPath
+        JR      Z,_WrWorldBluPath
         LD      B,C
-WrWorldBluPath:
+_WrWorldBluPath:
         LD      A,PacColorPath
         AND     ColorBlue
-        JR      Z,WrWorldBluSet
+        JR      Z,_WrWorldBluSet
         LD      A,B
         OR      D
         LD      B,A
-WrWorldBluSet:
+_WrWorldBluSet:
         LD      (HL),B
         INC     HL
         RET
@@ -235,20 +230,20 @@ WrWorldBluSet:
 ; Returns PacColorCaught when caught,
 ; PacColorDone when round is complete,
 ; PacColorWall otherwise, in A. Flags are incidental.
-;!      out       A,carry
-@GetWallColor:
+.routine out A,carry
+GetWallColor:
         LD      A,(PacPlayerCaught)
         OR      A
-        JR      NZ,GetWallCaught
+        JR      NZ,_GetWallCaught
         LD      A,(PacRoundDone)
         OR      A
-        JR      NZ,GetWallDone
+        JR      NZ,_GetWallDone
         LD      A,PacColorWall
         RET
-GetWallCaught:
+_GetWallCaught:
         LD      A,PacColorCaught
         RET
-GetWallDone:
+_GetWallDone:
         LD      A,PacColorDone
         RET
 
@@ -257,20 +252,18 @@ GetWallDone:
 ; A contains the horizontal window offset. BC contains
 ; the full 15-column row with bit 15 = column 0.
 ; The visible byte is returned in A.
-;!      in        A,BC
-;!      out       A,C,D,carry,zero,sign,parity,halfCarry
-;!      clobbers  B
-@WindowByteBc:
+.routine in A,BC out A,C,D,carry,zero,sign,parity,halfCarry clobbers B
+WindowByteBc:
         LD      D,A
         LD      A,D
         OR      A
-        JR      Z,WindowByteDone
-WindowShiftLoop:
+        JR      Z,_WindowByteDone
+_WindowShiftLoop:
         SLA     C
         RL      B
         DEC     D
-        JR      NZ,WindowShiftLoop
-WindowByteDone:
+        JR      NZ,_WindowShiftLoop
+_WindowByteDone:
         LD      A,B
         RET
 
@@ -280,12 +273,11 @@ WindowByteDone:
 ; Iterates PacPowerPills; skips entries with the
 ; corresponding PacPwrPillsEat bit set. Raw HL/D
 ; outputs are table-walk residue.
-;!      out       HL,D
-;!      clobbers  A,BC
-@RendPwrPills:
+.routine out HL,D clobbers A,BC
+RendPwrPills:
         LD      HL,PacPowerPills
         LD      D,1
-RendPwrPillLp:
+_RendPwrPillLp:
         LD      A,(HL)
         CP      0xFF
         RET     Z
@@ -296,28 +288,26 @@ RendPwrPillLp:
         LD      C,A                     ; C = world y
         LD      A,(PacPwrPillsEat)
         AND     D
-        JR      NZ,RendPwrPillNext
+        JR      NZ,_RendPwrPillNext
         PUSH    HL
         PUSH    DE
         CALL    RendPwrPillBc
         POP     DE
         POP     HL
-RendPwrPillNext:
+_RendPwrPillNext:
         SLA     D
-        JR      RendPwrPillLp
+        JR      _RendPwrPillLp
 
 ; RendPwrPillRow —
 ; Render uneaten power pills on screen row A.
 ; Used in the per-row cooperative render path; skips
 ; table entries whose world Y does not map to A.
-;!      in        A
-;!      out       HL,D
-;!      clobbers  A,BC,E
-@RendPwrPillRow:
+.routine in A out HL,D clobbers A,BC,E
+RendPwrPillRow:
         LD      E,A                     ; E = target screen row
         LD      HL,PacPowerPills
         LD      D,1
-RendPwrRowLoop:
+_RendPwrRowLoop:
         LD      A,(HL)
         CP      0xFF
         RET     Z
@@ -328,19 +318,19 @@ RendPwrRowLoop:
         LD      C,A                     ; C = world y
         LD      A,(PacPwrPillsEat)
         AND     D
-        JR      NZ,RendPwrRowNext
+        JR      NZ,_RendPwrRowNext
         LD      A,(ViewY)
         ADD     A,E
         CP      C
-        JR      NZ,RendPwrRowNext
+        JR      NZ,_RendPwrRowNext
         PUSH    HL
         PUSH    DE
         CALL    RendPwrPillBc
         POP     DE
         POP     HL
-RendPwrRowNext:
+_RendPwrRowNext:
         SLA     D
-        JR      RendPwrRowLoop
+        JR      _RendPwrRowLoop
 
 ; RendPwrPillBc —
 ; Render one power pill if it is in the viewport.
@@ -348,9 +338,8 @@ RendPwrRowNext:
 ; silently when off screen; otherwise maps to a
 ; FramebufferBack row and calls FbSetCell with
 ; PacColorPwrPill.
-;!      in        BC
-;!      clobbers  A,BC,DE,HL
-@RendPwrPillBc:
+.routine in BC clobbers A,BC,DE,HL
+RendPwrPillBc:
         LD      A,(ViewY)
         LD      E,A
         LD      A,C
@@ -382,9 +371,8 @@ RendPwrRowNext:
 ; only while the monster is in flee state and the power
 ; timer is still visibly active; otherwise attack
 ; colour is written with FbSetCell.
-;!      in        IX
-;!      clobbers  A,BC,DE,HL
-@RendEnemyBack:
+.routine in IX clobbers A,BC,DE,HL
+RendEnemyBack:
         LD      A,(IX + MonRespTimer)
         OR      A
         RET     NZ
@@ -417,25 +405,25 @@ RendPwrRowNext:
         PUSH    HL
         LD      A,(IX + MonsterState)
         CP      PacEnemyFlee
-        JR      NZ,RendEnAtkTmr
+        JR      NZ,_RendEnAtkTmr
         LD      HL,(PacPowerTimerLo)
         LD      A,H
         OR      L
-        JR      Z,RendEnAtkTmr
+        JR      Z,_RendEnAtkTmr
         LD      A,H
         OR      A
-        JR      NZ,RendEnFleeTmr
+        JR      NZ,_RendEnFleeTmr
         LD      A,L
         AND     PacPwrWarnMask
-        JR      Z,RendEnAtkTmr
-RendEnFleeTmr:
+        JR      Z,_RendEnAtkTmr
+_RendEnFleeTmr:
         POP     HL
-        JR      RendEnemyFlee
-RendEnAtkTmr:
+        JR      _RendEnemyFlee
+_RendEnAtkTmr:
         POP     HL
         LD      A,PacColorEnAtk
         JP      FbSetCell
-RendEnemyFlee:
+_RendEnemyFlee:
         LD      A,PacColorEnFlee
         JP      FbSetCell
 
@@ -443,9 +431,8 @@ RendEnemyFlee:
 ; Render active monsters that map to screen row A.
 ; Calls RendEnemyIfRow for Monster0 and Monster1;
 ; Monster2 is skipped before level 2.
-;!      in        A
-;!      clobbers  A,BC,E,HL,IX
-@RendMonsRow:
+.routine in A clobbers A,BC,E,HL,IX
+RendMonsRow:
         LD      C,A
         PUSH    BC
         LD      E,C
@@ -469,9 +456,8 @@ RendEnemyFlee:
 ; Render the monster record at IX only when its world
 ; Y maps to screen row E. Respawning or off-row
 ; monsters return without drawing.
-;!      in        IX,E
-;!      clobbers  A,BC,HL
-@RendEnemyIfRow:
+.routine in IX,E clobbers A,BC,HL
+RendEnemyIfRow:
         LD      A,(IX + MonRespTimer)
         OR      A
         RET     NZ
@@ -496,8 +482,8 @@ RendEnemyFlee:
 ; white (PacColorRound) when round is complete;
 ; red (PacColorEnAtk) when caught.
 ; Skips silently when the player is off-screen.
-;!      clobbers  A,BC,DE,HL
-@RendPlyBack:
+.routine clobbers A,BC,DE,HL
+RendPlyBack:
         LD      A,(PlayerY)
         LD      B,A
         LD      A,(ViewY)
@@ -526,17 +512,17 @@ RendEnemyFlee:
 
         LD      A,(PacPlayerCaught)
         OR      A
-        JR      NZ,RendPlyCaught
+        JR      NZ,_RendPlyCaught
 
         LD      A,(PacRoundDone)
         OR      A
-        JR      NZ,RendPlyWhite
+        JR      NZ,_RendPlyWhite
         LD      A,PacColorPlayer
         JP      FbSetCell
-RendPlyWhite:
+_RendPlyWhite:
         LD      A,PacColorRound
         JP      FbSetCell
-RendPlyCaught:
+_RendPlyCaught:
         LD      A,PacColorEnAtk
         JP      FbSetCell
 
@@ -544,9 +530,8 @@ RendPlyCaught:
 ; Render the player only when PlayerY maps to screen
 ; row A. Matching rows delegate to RendPlyBack;
 ; other rows return without drawing.
-;!      in        A
-;!      clobbers  A,BC,DE,HL
-@RendPlyRow:
+.routine in A clobbers A,BC,DE,HL
+RendPlyRow:
         LD      E,A
         LD      A,(PlayerY)
         LD      B,A

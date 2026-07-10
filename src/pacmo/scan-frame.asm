@@ -8,25 +8,24 @@
 ; left on for PacScanDwell DJNZ iterations.
 ; Sound and HUD services still run once per row
 ; through ScanTick. The matrix is blank on return.
-;!      out       carry
-;!      clobbers  A,BC,DE,HL
-@ScanFrame:
+.routine out carry clobbers A,BC,DE,HL
+ScanFrame:
         LD      B,RowCount
-ScanFrameLp:
+_ScanFrameLp:
         PUSH    BC
         CALL    ScanTick
         CALL    ScanDwell
         POP     BC
-        DJNZ    ScanFrameLp
+        DJNZ    _ScanFrameLp
         XOR     A
         OUT     (PortRow),A
         RET
 
 ; ScanDwell —
 ; Fixed visible-row dwell delay.
-;!      clobbers  B
+.routine clobbers B
 ScanDwell:
         LD      B,PacScanDwell
-ScanDwellLp:
-        DJNZ    ScanDwellLp
+_ScanDwellLp:
+        DJNZ    _ScanDwellLp
         RET

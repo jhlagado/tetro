@@ -7,14 +7,13 @@
 ; disables the active piece, and sets ClearPending
 ; and ClearTimer for the hold delay.
 ; On no clear: triggers lock sound, spawns next.
-;!      out       carry,zero
-;!      clobbers  A,BC,E,HL
-@LockActPiece:
+.routine out carry,zero clobbers A,BC,E,HL
+LockActPiece:
         CALL    CheckTopOut
-        JR      C,LockGameOver
+        JR      C,_LockGameOver
         CALL    MergeActBoard
         CALL    CheckFullRows
-        JR      NC,LockActNoClear
+        JR      NC,_LockActNoClear
         CALL    SndTrigClear
         XOR     A
         LD      (ActPieceEnabled),A
@@ -23,12 +22,12 @@
         LD      A,LineClearHold
         LD      (ClearTimer),A
         RET
-LockActNoClear:
+_LockActNoClear:
         CALL    SndTrigLock
         CALL    SpawnActPiece
         RET
 
-LockGameOver:
+_LockGameOver:
         CALL    MergeActBoard
         LD      A,4
         CALL    EnterGameOver
@@ -41,9 +40,8 @@ LockGameOver:
 ; GOverKeyGateLo for the restart-input delay.
 ; Plays the game-over sound, rebuilds the Framebuffer,
 ; then jumps to LcdShowGOver.
-;!      out       carry
-;!      clobbers  A,BC,DE,HL
-@EnterGameOver:
+.routine out carry clobbers A,BC,DE,HL
+EnterGameOver:
         PUSH    AF
         XOR     A
         LD      (ActPieceEnabled),A
@@ -62,8 +60,8 @@ LockGameOver:
 ; RngSeedInit), draws the first NextPiece, locks
 ; input, and starts the game via SpawnActPiece
 ; then jumps to RebuildFb.
-;!      clobbers  A,BC,DE,HL,IX,IY
-@SplashState:
+.routine clobbers A,BC,DE,HL,IX,IY
+SplashState:
         LD      C,ApiScanKeys
         RST     0x10
         RET     NC
@@ -71,9 +69,9 @@ LockGameOver:
         LD      (SplashTimer),A
         LD      A,(FramePhase)
         OR      A
-        JR      NZ,SplashSeedReady
+        JR      NZ,_SplashSeedReady
         LD      A,RngSeedInit
-SplashSeedReady:
+_SplashSeedReady:
         LD      (RngSeed),A
         CALL    RngNextPiece
         LD      (NextPieceIndex),A
@@ -89,9 +87,8 @@ SplashSeedReady:
 ; Advances once per frame. On ClearTimer expiry:
 ; collapses filled rows, awards score, clears
 ; ClearPending, then jumps to SpawnActPiece.
-;!      out       carry
-;!      clobbers  A,BC,DE,HL
-@LineClearState:
+.routine out carry clobbers A,BC,DE,HL
+LineClearState:
         LD      A,(ClearTimer)
         DEC     A
         LD      (ClearTimer),A
@@ -108,53 +105,51 @@ SplashSeedReady:
 ; Builds ClearMask: bit N set when row N is full.
 ; Carry set means at least one row is full; carry
 ; clear means no rows are full.
-;!      out       carry,zero
-;!      clobbers  A,BC,E,HL
-@CheckFullRows:
+.routine out carry,zero clobbers A,BC,E,HL
+CheckFullRows:
         LD      HL,BoardRows
         LD      B,RowCount
         LD      C,1
         XOR     A
         LD      E,A
-CheckRowsLoop:
+_CheckRowsLoop:
         LD      A,(HL)
         CP      0xFF
-        JR      NZ,CheckRowsNext
+        JR      NZ,_CheckRowsNext
         LD      A,E
         OR      C
         LD      E,A
-CheckRowsNext:
+_CheckRowsNext:
         INC     HL
         SLA     C
-        DJNZ    CheckRowsLoop
+        DJNZ    _CheckRowsLoop
         LD      A,E
         LD      (ClearMask),A
         OR      A
-        JR      Z,CheckRowsNone
+        JR      Z,_CheckRowsNone
         SCF
         RET
-CheckRowsNone:
+_CheckRowsNone:
         OR      A
         RET
 
 ; CountClearRows —
 ; Count the set bits in ClearMask.
 ; The count is returned in A (0..8).
-;!      out       A,C
-;!      clobbers  B
-@CountClearRows:
+.routine out A,C clobbers B
+CountClearRows:
         LD      A,(ClearMask)
         LD      C,A
         LD      B,0
-CountClearLoop:
+_CountClearLoop:
         LD      A,C
         OR      A
-        JR      Z,CountClearDone
+        JR      Z,_CountClearDone
         SRL     C
-        JR      NC,CountClearLoop
+        JR      NC,_CountClearLoop
         INC     B
-        JR      CountClearLoop
-CountClearDone:
+        JR      _CountClearLoop
+_CountClearDone:
         LD      A,B
         RET
 
@@ -165,9 +160,8 @@ CountClearDone:
 ; 100, 300, 500, or 800 for 1, 2, 3, or 4+ rows.
 ; Updates gravity after changing Score, then refreshes
 ; the score HUD.
-;!      out       BC,HL
-;!      clobbers  A,DE
-@ApplyClearScore:
+.routine out BC,HL clobbers A,DE
+ApplyClearScore:
         CALL    CountClearRows
         OR      A
         RET     Z
@@ -178,9 +172,9 @@ CountClearDone:
 
         LD      A,E                     ; A = clear count (1..RowCount)
         CP      4
-        JR      C,ApplyClearLookup    ; 4+ -> clamp to 4 (table entry for 'tetris')
+        JR      C,_ApplyClearLookup    ; 4+ -> clamp to 4 (table entry for 'tetris')
         LD      A,4
-ApplyClearLookup:
+_ApplyClearLookup:
         ADD     A,A                     ; *2 for DW stride
         LD      L,A
         LD      H,0
@@ -199,23 +193,22 @@ ApplyClearLookup:
 ; Increase gravity when Score crosses a threshold.
 ; Updates CurGravPeriod: GravityPeriod below the
 ; threshold, GravPeriodStep1 at or above it.
-;!      out       zero
-;!      clobbers  A,HL
-@UpdGravByScore:
+.routine out zero clobbers A,HL
+UpdGravByScore:
         LD      HL,(ScoreLo)
         LD      A,H
         CP      GravScore1Hi
-        JR      C,UpdateGpBase
-        JR      NZ,UpdateGpStep1
+        JR      C,_UpdateGpBase
+        JR      NZ,_UpdateGpStep1
         LD      A,L
         CP      GravScore1Lo
-        JR      C,UpdateGpBase
-UpdateGpStep1:
+        JR      C,_UpdateGpBase
+_UpdateGpStep1:
         LD      A,GravPeriodStep1
-        JR      UpdateGpStore
-UpdateGpBase:
+        JR      _UpdateGpStore
+_UpdateGpBase:
         LD      A,GravityPeriod
-UpdateGpStore:
+_UpdateGpStore:
         LD      (CurGravPeriod),A
         RET
 
@@ -225,12 +218,12 @@ UpdateGpStore:
 ; copied downward into the vacated slots.
 ; Top rows left vacant are zeroed in BoardRows
 ; and all three landed colour planes.
-;!      clobbers  A,B,DE,HL
-@CollapseRows:
+.routine clobbers A,B,DE,HL
+CollapseRows:
         LD      B,RowCount
         LD      D,RowCount - 1
         LD      E,RowCount - 1
-CollapseScanLp:
+_CollapseScanLp:
         LD      A,D
         LD      L,A
         LD      H,0
@@ -240,20 +233,20 @@ CollapseScanLp:
         LD      A,(ClearMask)
         AND     (HL)
         POP     BC
-        JR      NZ,CollapseSkipRow
+        JR      NZ,_CollapseSkipRow
         LD      A,D
         CP      E
-        JR      Z,CollapseRowDone
+        JR      Z,_CollapseRowDone
         PUSH    BC
         PUSH    DE
         CALL    CopyBoardRow
         POP     DE
         POP     BC
-CollapseRowDone:
+_CollapseRowDone:
         DEC     E
-CollapseSkipRow:
+_CollapseSkipRow:
         DEC     D
-        DJNZ    CollapseScanLp
+        DJNZ    _CollapseScanLp
 
         LD      A,E
         INC     A
@@ -261,12 +254,12 @@ CollapseSkipRow:
         LD      B,A
         XOR     A
         LD      D,A
-CollapseTopLoop:
+_CollapseTopLoop:
         PUSH    BC
         CALL    ClearBoardRow
         POP     BC
         INC     D
-        DJNZ    CollapseTopLoop
+        DJNZ    _CollapseTopLoop
         RET
 
 ; CopyBoardRow —
@@ -277,21 +270,20 @@ CollapseTopLoop:
 ; BoardBlue). Each array is RowCount
 ; bytes wide; the stride between arrays is
 ; RowCount bytes.
-;!      in        DE
-;!      clobbers  A
-@CopyBoardRow:
+.routine in DE clobbers A
+CopyBoardRow:
         PUSH    HL
         PUSH    BC
         LD      HL,BoardRows
         LD      C,4
-CopyBrNext:
+_CopyBrNext:
         PUSH    HL
         LD      A,L
         ADD     A,D
         LD      L,A
-        JR      NC,CopyBrSrcNc
+        JR      NC,_CopyBrSrcNc
         INC     H
-CopyBrSrcNc:
+_CopyBrSrcNc:
         LD      A,(HL)
         LD      B,A
         POP     HL
@@ -299,19 +291,19 @@ CopyBrSrcNc:
         LD      A,L
         ADD     A,E
         LD      L,A
-        JR      NC,CopyBrDstNc
+        JR      NC,_CopyBrDstNc
         INC     H
-CopyBrDstNc:
+_CopyBrDstNc:
         LD      (HL),B
         POP     HL
         LD      A,L
         ADD     A,RowCount
         LD      L,A
-        JR      NC,CopyBrAdvNc
+        JR      NC,_CopyBrAdvNc
         INC     H
-CopyBrAdvNc:
+_CopyBrAdvNc:
         DEC     C
-        JR      NZ,CopyBrNext
+        JR      NZ,_CopyBrNext
         POP     BC
         POP     HL
         RET
@@ -320,52 +312,49 @@ CopyBrAdvNc:
 ; Zero one row in BoardRows and all three colour
 ; planes. D contains the row index. Uses the same
 ; RowCount stride as CopyBoardRow.
-;!      in        D
-;!      out       HL,C
-;!      clobbers  A,B
-@ClearBoardRow:
+.routine in D out HL,C clobbers A,B
+ClearBoardRow:
         XOR     A
         LD      B,A
         LD      HL,BoardRows
         LD      C,4
-ClearBrNext:
+_ClearBrNext:
         PUSH    HL
         LD      A,L
         ADD     A,D
         LD      L,A
-        JR      NC,ClearBrNc
+        JR      NC,_ClearBrNc
         INC     H
-ClearBrNc:
+_ClearBrNc:
         LD      (HL),B
         POP     HL
         LD      A,L
         ADD     A,RowCount
         LD      L,A
-        JR      NC,ClearBrAdvNc
+        JR      NC,_ClearBrAdvNc
         INC     H
-ClearBrAdvNc:
+_ClearBrAdvNc:
         DEC     C
-        JR      NZ,ClearBrNext
+        JR      NZ,_ClearBrNext
         RET
 
 ; BoardEmptyScan —
 ; Set BoardEmpty=1 when all BoardRows bytes are
 ; zero; set BoardEmpty=0 otherwise.
-;!      out       carry,zero
-;!      clobbers  A,B,HL
-@BoardEmptyScan:
+.routine out carry,zero clobbers A,B,HL
+BoardEmptyScan:
         LD      HL,BoardRows
         LD      B,RowCount
-BoardEmptyLoop:
+_BoardEmptyLoop:
         LD      A,(HL)
         OR      A
-        JR      NZ,BoardNotEmpty
+        JR      NZ,_BoardNotEmpty
         INC     HL
-        DJNZ    BoardEmptyLoop
+        DJNZ    _BoardEmptyLoop
         LD      A,1
         LD      (BoardEmpty),A
         RET
-BoardNotEmpty:
+_BoardNotEmpty:
         XOR     A
         LD      (BoardEmpty),A
         RET
@@ -376,9 +365,8 @@ BoardNotEmpty:
 ; Only the planes enabled by CurPieceColor bits
 ; are touched; plane stride is RowCount bytes.
 ; Call after ORing C into BoardRows for this row.
-;!      in        L,C
-;!      out       A
-@MergeRgbRow:
+.routine in L,C out A
+MergeRgbRow:
         PUSH    BC
         PUSH    DE
         PUSH    HL
@@ -389,20 +377,20 @@ BoardNotEmpty:
         LD      DE,RowCount            ; DE = plane stride (8 bytes per plane)
         LD      A,(CurPieceColor)
         LD      B,3                     ; 3 planes: R, G, B
-MergeOrLoop:
+_MergeOrLoop:
         RRCA                            ; low bit (red/green/blue per iter) -> carry
-        JR      NC,MergeOrSkip
+        JR      NC,_MergeOrSkip
         PUSH    AF
         LD      A,(HL)
         OR      C
         LD      (HL),A
         POP     AF
-MergeOrSkip:
+_MergeOrSkip:
         DEC     B
-        JR      Z,MergeOrExit
+        JR      Z,_MergeOrExit
         ADD     HL,DE                   ; step HL +8 to next plane byte
-        JR      MergeOrLoop
-MergeOrExit:
+        JR      _MergeOrLoop
+_MergeOrExit:
         POP     HL
         POP     DE
         POP     BC
@@ -414,8 +402,8 @@ MergeOrExit:
 ; (shifted by PlayerX) into BoardRows, then calls
 ; MergeRgbRow to update the three colour planes.
 ; Clears BoardEmpty as a side effect.
-;!      clobbers  A
-@MergeActBoard:
+.routine clobbers A
+MergeActBoard:
         PUSH    BC
         PUSH    DE
         PUSH    HL
@@ -429,17 +417,17 @@ MergeOrExit:
         LD      DE,(CurPiecePtr)
         LD      B,4
 
-MergeBoardRow:
+_MergeBoardRow:
         LD      A,(DE)
         CALL    ShiftRowMask          ; returns A = shifted mask
         LD      C,A
         OR      A                       ; test A; C retains mask for later writes
-        JR      Z,MergeBoardNext
+        JR      Z,_MergeBoardNext
         BIT     7,L
-        JR      NZ,MergeBoardNext
+        JR      NZ,_MergeBoardNext
         LD      A,L
         CP      RowCount
-        JR      NC,MergeBoardNext
+        JR      NC,_MergeBoardNext
         PUSH    HL
         PUSH    DE
         LD      H,0
@@ -451,11 +439,11 @@ MergeBoardRow:
         POP     DE
         POP     HL
         CALL    MergeRgbRow
-MergeBoardNext:
+_MergeBoardNext:
         INC     DE
         INC     HL
-        DJNZ    MergeBoardRow
-MergeActExit:
+        DJNZ    _MergeBoardRow
+_MergeActExit:
         POP     HL
         POP     DE
         POP     BC

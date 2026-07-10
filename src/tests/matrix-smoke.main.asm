@@ -13,19 +13,20 @@
 DwellOuter      .equ    0x01
 DwellInner      .equ    0x20
 
-@Start:
+.routine
+Start:
         XOR     A
         OUT     (PortRow),A
         OUT     (PortRed),A
         OUT     (PortGreen),A
         OUT     (PortBlue),A
 
-ScanFrame:
+_ScanFrame:
         LD      HL,RowColours
         LD      D,ScanMaskStart
         LD      C,RowCount
 
-ScanRow:
+_ScanRow:
         XOR     A
         OUT     (PortRow),A
 
@@ -45,12 +46,12 @@ ScanRow:
         OUT     (PortRow),A
 
         LD      E,DwellOuter
-DwellOuterLoop:
+_DwellOuterLoop:
         LD      B,DwellInner
-DwellInnerLoop:
-        DJNZ    DwellInnerLoop
+_DwellInnerLoop:
+        DJNZ    _DwellInnerLoop
         DEC     E
-        JP      NZ,DwellOuterLoop
+        JP      NZ,_DwellOuterLoop
 
         XOR     A
         OUT     (PortRow),A
@@ -59,8 +60,8 @@ DwellInnerLoop:
         RLC     A
         LD      D,A
         DEC     C
-        JP      NZ,ScanRow
-        JP      ScanFrame
+        JP      NZ,_ScanRow
+        JP      _ScanFrame
 
 RowColours:
         .db     0xff,0x00,0x00    ; red

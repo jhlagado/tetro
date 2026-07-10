@@ -9,10 +9,8 @@
 ; the divider; smaller values mean a shorter
 ; half-period and higher pitch.
 ; Resets SpeakerPort to off before the new cue.
-;!      in        A,C
-;!      out       carry,zero
-;!      clobbers  A
-@SndStart:
+.routine in A,C out carry,zero clobbers A
+SndStart:
         LD      (SoundTimer),A
         LD      A,C
         LD      (SndDivReload),A
@@ -26,20 +24,19 @@
 ; Decrements SoundTimer; silences when it hits
 ; zero. While active, counts SndDivCount down
 ; and toggles SpeakerBit on each reload.
-;!      out       carry,zero
-;!      clobbers  A
-@SndService:
+.routine out carry,zero clobbers A
+SndService:
         LD      A,(SoundTimer)
         OR      A
         RET     Z
         DEC     A
         LD      (SoundTimer),A
-        JR      NZ,SndActive
+        JR      NZ,_SndActive
         XOR     A
         LD      (SpeakerPort),A
         LD      (SndDivCount),A
         RET
-SndActive:
+_SndActive:
         LD      A,(SndDivCount)
         DEC     A
         LD      (SndDivCount),A

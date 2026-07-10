@@ -19,19 +19,20 @@
 ; of that is ~89% and each row steps down ~11% from there.
 DwellTotal      .equ    0x24
 
-@Start:
+.routine
+Start:
         XOR     A
         OUT     (PortRow),A
         OUT     (PortRed),A
         OUT     (PortGreen),A
         OUT     (PortBlue),A
 
-ScanFrame:
+_ScanFrame:
         LD      HL,RowTable
         LD      D,ScanMaskStart
         LD      C,RowCount
 
-ScanRow:
+_ScanRow:
         XOR     A
         OUT     (PortRow),A
 
@@ -55,8 +56,8 @@ ScanRow:
         OUT     (PortRow),A
 
         LD      B,E
-LitLoop:
-        DJNZ    LitLoop
+_LitLoop:
+        DJNZ    _LitLoop
 
         XOR     A
         OUT     (PortRow),A
@@ -64,15 +65,15 @@ LitLoop:
         LD      A,DwellTotal
         SUB     E
         LD      B,A
-DarkLoop:
-        DJNZ    DarkLoop
+_DarkLoop:
+        DJNZ    _DarkLoop
 
         LD      A,D
         RLC     A
         LD      D,A
         DEC     C
-        JP      NZ,ScanRow
-        JP      ScanFrame
+        JP      NZ,_ScanRow
+        JP      _ScanFrame
 
 ; Per-row records: red, green, blue, lit dwell count.
 RowTable:

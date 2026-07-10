@@ -106,7 +106,8 @@ Movement repeats slowly while held; tapping moves faster than waiting for repeat
 
 ## Build
 
-Requires [AZM](https://github.com/jhlagado/AZM). Assemble from the repository root; `.include` paths are relative to each main source file.
+Requires [AZM 0.3.2 or later](https://github.com/jhlagado/AZM). Assemble from
+the repository root; `.include` paths are relative to each main source file.
 
 ```bash
 mkdir -p build

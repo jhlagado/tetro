@@ -4,8 +4,8 @@
 ; Used at init, restart, and game-over transitions.
 ; Clears back-buffer, renders board then piece,
 ; then copies to the live Framebuffer (JP).
-;!      clobbers  A,BC,DE,HL
-@RebuildFb:
+.routine clobbers A,BC,DE,HL
+RebuildFb:
         CALL    FbClearAll
         CALL    RendBoardBack
         CALL    RendActBack
@@ -15,15 +15,15 @@
 ; Zero BoardRows and all three colour planes.
 ; Sets BoardEmpty=1 after clearing.
 ; Clears RowCount*4 bytes starting at BoardRows.
-;!      clobbers  A,B,HL
-@ClearBoard:
+.routine clobbers A,B,HL
+ClearBoard:
         LD      HL,BoardRows
         LD      B,RowCount * 4
         XOR     A
-ClearBoardLoop:
+_ClearBoardLoop:
         LD      (HL),A
         INC     HL
-        DJNZ    ClearBoardLoop
+        DJNZ    _ClearBoardLoop
         LD      A,1
         LD      (BoardEmpty),A
         RET
@@ -36,20 +36,20 @@ ClearBoardLoop:
 ; red only (silhouette effect).
 ; Rows set in ClearMask flash white (all planes
 ; forced to 0xFF) during the line-clear hold.
-;!      clobbers  A
-@RendBoardBack:
+.routine clobbers A
+RendBoardBack:
         PUSH    BC
         PUSH    DE
         PUSH    HL
         LD      HL,FramebufferBack
         LD      B,RowCount
         LD      C,0
-RenderBoardRow:
+_RenderBoardRow:
         LD      E,C
         LD      D,0
         LD      A,(GameOver)
         OR      A
-        JR      NZ,RendBoardGOver
+        JR      NZ,_RendBoardGOver
 
         PUSH    HL
         LD      HL,BoardRed
@@ -75,9 +75,9 @@ RenderBoardRow:
         LD      (HL),A
         INC     HL
         INC     HL
-        JR      RendBoardFx
+        JR      _RendBoardFx
 
-RendBoardGOver:
+_RendBoardGOver:
         PUSH    HL
         LD      HL,BoardRows
         ADD     HL,DE
@@ -92,10 +92,10 @@ RendBoardGOver:
         INC     HL
         INC     HL
 
-RendBoardFx:
+_RendBoardFx:
         LD      A,(ClearPending)
         OR      A
-        JR      Z,RendBoardNext
+        JR      Z,_RendBoardNext
         PUSH    HL
         LD      H,0
         LD      L,C
@@ -104,7 +104,7 @@ RendBoardFx:
         LD      A,(ClearMask)
         AND     (HL)
         POP     HL
-        JR      Z,RendBoardNext
+        JR      Z,_RendBoardNext
         DEC     HL
         DEC     HL
         DEC     HL
@@ -117,10 +117,10 @@ RendBoardFx:
         LD      (HL),A
         INC     HL
         INC     HL
-RendBoardNext:
+_RendBoardNext:
         INC     C
-        DJNZ    RenderBoardRow
-RendBoardExit:
+        DJNZ    _RenderBoardRow
+_RendBoardExit:
         POP     HL
         POP     DE
         POP     BC
@@ -131,8 +131,8 @@ RendBoardExit:
 ; No-op when ActPieceEnabled is zero.
 ; Uses CurPiecePtr bitmap, PlayerX/Y position,
 ; and CurPieceColor for selecting colour planes.
-;!      clobbers  A
-@RendActBack:
+.routine clobbers A
+RendActBack:
         LD      A,(ActPieceEnabled)
         OR      A
         RET     Z
@@ -147,17 +147,17 @@ RendBoardExit:
         LD      DE,(CurPiecePtr)
         LD      B,4
 
-RenderShapeRow:
+_RenderShapeRow:
         LD      A,(DE)
         CALL    ShiftRowMask          ; returns A = shifted mask
         LD      C,A
         OR      A                       ; test A; C retains mask for FbOrRow
-        JR      Z,RendShapeNext
+        JR      Z,_RendShapeNext
         BIT     7,L
-        JR      NZ,RendShapeNext
+        JR      NZ,_RendShapeNext
         LD      A,L
         CP      RowCount
-        JR      NC,RendShapeNext
+        JR      NC,_RendShapeNext
         PUSH    HL
         PUSH    DE
         ADD     A,A
@@ -170,11 +170,11 @@ RenderShapeRow:
         CALL    FbOrRow
         POP     DE
         POP     HL
-RendShapeNext:
+_RendShapeNext:
         INC     DE
         INC     HL
-        DJNZ    RenderShapeRow
-RendActExit:
+        DJNZ    _RenderShapeRow
+_RendActExit:
         POP     HL
         POP     DE
         POP     BC
