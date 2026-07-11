@@ -7,7 +7,7 @@
 ; Show the Pacmo splash and control-hint screen.
 ; LcdScript's carry result is not a Pacmo status
 ; value.
-.routine out carry clobbers A,HL
+.routine out carry clobbers A,HL,zero,sign,parity,halfCarry
 LcdShowPacSplash:
         LD      HL,ScriptPacSplash
         JP      LcdScript
@@ -15,7 +15,7 @@ LcdShowPacSplash:
 ; LcdShowPacRun —
 ; Show the running HUD script, then refresh the
 ; dynamic LEVEL and LIVES rows.
-.routine clobbers A,DE,HL
+.routine clobbers A,DE,HL,F
 LcdShowPacRun:
         LD      HL,ScriptPacRun
         CALL    LcdScript
@@ -24,7 +24,7 @@ LcdShowPacRun:
 ; LcdShowPacPause —
 ; Show the paused HUD script, then refresh the
 ; dynamic LEVEL and LIVES rows.
-.routine clobbers A,DE,HL
+.routine clobbers A,DE,HL,F
 LcdShowPacPause:
         LD      HL,ScriptPacPause
         CALL    LcdScript
@@ -33,7 +33,7 @@ LcdShowPacPause:
 ; LcdShowPower —
 ; Show the power-mode HUD script while the power timer
 ; is active, then refresh LEVEL and LIVES rows.
-.routine clobbers A,DE,HL
+.routine clobbers A,DE,HL,F
 LcdShowPower:
         LD      HL,ScriptPacPower
         CALL    LcdScript
@@ -42,7 +42,7 @@ LcdShowPower:
 ; LcdShowEatEnemy —
 ; Show the monster-eaten scripted cue, then refresh
 ; LEVEL and LIVES rows.
-.routine clobbers A,DE,HL
+.routine clobbers A,DE,HL,F
 LcdShowEatEnemy:
         LD      HL,ScriptPacEaten
         CALL    LcdScript
@@ -51,7 +51,7 @@ LcdShowEatEnemy:
 ; LcdShowCaught —
 ; Show the life-loss script, then refresh only the
 ; LIVES row because the level did not change.
-.routine clobbers A,DE,HL
+.routine clobbers A,DE,HL,F
 LcdShowCaught:
         LD      HL,ScriptPacCaught
         CALL    LcdScript
@@ -61,7 +61,7 @@ LcdShowCaught:
 ; Show the Pacmo game-over screen.
 ; LcdScript's carry result is not a Pacmo status
 ; value.
-.routine out carry clobbers A,HL
+.routine out carry clobbers A,HL,zero,sign,parity,halfCarry
 LcdShowPacOver:
         LD      HL,ScriptPacOver
         JP      LcdScript
@@ -70,14 +70,14 @@ LcdShowPacOver:
 ; Show the round-complete / maze-clear screen.
 ; LcdScript's carry result is not a Pacmo status
 ; value.
-.routine out carry clobbers A,HL
+.routine out carry clobbers A,HL,zero,sign,parity,halfCarry
 LcdShowComplete:
         LD      HL,ScriptPacDone
         JP      LcdScript
 
 ; LcdRefStatus —
 ; Refresh LCD rows 2 and 3 from PacLevel and PacLives.
-.routine clobbers A,DE,HL
+.routine clobbers A,DE,HL,F
 LcdRefStatus:
         CALL    LcdRefLevel
         JP      LcdRefLives
@@ -86,7 +86,7 @@ LcdRefStatus:
 ; Write row 2 LEVEL banner plus PacLevel digit.
 ; PacLevel is masked to a nybble and looked up through
 ; PacLevelChars.
-.routine clobbers A,DE,HL
+.routine clobbers A,DE,HL,F
 LcdRefLevel:
         PUSH    BC
         LD      B,LcdRow2
@@ -103,7 +103,7 @@ LcdRefLevel:
 ; Write row 3 LIVES banner plus PacLives digit.
 ; PacLives is masked to a nybble and looked up through
 ; PacLevelChars.
-.routine clobbers A,DE,HL
+.routine clobbers A,DE,HL,F
 LcdRefLives:
         PUSH    BC
         LD      B,LcdRow3

@@ -14,7 +14,7 @@
 ; one fixed-dwell matrix frame and runs one blanked logic
 ; frame forever from MainLoop. The loop does not return
 ; a semantic status value.
-.routine out carry,zero clobbers A,BC,DE,HL,IX,IY
+.routine out carry,zero clobbers A,BC,DE,HL,IX,IY,sign,parity,halfCarry
 Start:
         CALL    InitState
 

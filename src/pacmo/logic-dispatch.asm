@@ -6,7 +6,7 @@
 ; and collision state; then the full Framebuffer is
 ; rebuilt for the next visible ScanFrame. The final
 ; flags are not a caller status convention.
-.routine out carry,zero clobbers A,BC,DE,HL,IX,IY
+.routine out carry,zero clobbers A,BC,DE,HL,IX,IY,sign,parity,halfCarry
 LogicTick:
         CALL    PacFrameDuties
         JP      RebuildFb
@@ -17,7 +17,7 @@ LogicTick:
 ; gate, power timer, and each active Monster.
 ; Then checks player collision against each active
 ; monster. Monster2 is skipped before level 2.
-.routine clobbers A,BC,DE,HL,IX,IY
+.routine clobbers BC,DE,HL,IX,IY,A,F
 PacFrameDuties:
         CALL    PollInput
         LD      A,(PacPaused)
@@ -51,7 +51,7 @@ _PacFrameCollDone:
 ; clears the back row, then rebuilds it from
 ; world, power pills, Monsters, and player.
 ; A is expected to be 0..7.
-.routine in A clobbers A,BC,DE,HL,IX
+.routine in A clobbers A,BC,DE,HL,IX,F
 PacRenderRowA:
         PUSH    AF
         ADD     A,A
@@ -79,7 +79,7 @@ PacRenderRowA:
 ; Active only when PacRoundDone is set.
 ; On expiry, advances to the next level. Otherwise it
 ; only decrements PacLvlDoneLo/Hi.
-.routine clobbers A,BC,DE,HL,IX
+.routine clobbers A,BC,DE,HL,IX,F
 TickLvlDoneGate:
         LD      A,(PacRoundDone)
         OR      A
@@ -96,7 +96,7 @@ TickLvlDoneGate:
 ; Decrement the 16-bit PacPowerTimer each frame.
 ; On expiry: sets all three Monster states to
 ; PacEnemyAtk and restores the running LCD.
-.routine clobbers A,DE,HL
+.routine clobbers HL,A,DE,F
 TickPowerTimer:
         LD      HL,(PacPowerTimerLo)
         LD      A,H
@@ -118,7 +118,7 @@ TickPowerTimer:
 ; Returns carry clear when PacLevel >= 2,
 ; carry set when PacLevel < 2. A contains PacLevel
 ; after the comparison.
-.routine out A,carry,zero
+.routine out A,carry,zero clobbers sign,parity,halfCarry
 PacIsLevel2Plus:
         LD      A,(PacLevel)
         CP      2
@@ -133,7 +133,7 @@ PacIsLevel2Plus:
 ; EnemyAttackStep; roam calls EnemyRoamStep. Carry is
 ; inherited from respawn/move paths and is not used by
 ; the frame dispatcher as a public result.
-.routine in IX out BC,A,H,carry,zero clobbers DE,L
+.routine in IX out BC,A,H,carry,zero clobbers sign,parity,halfCarry,DE,L
 TickEnemy:
         LD      A,(PacSplashActive)
         OR      A
@@ -165,10 +165,11 @@ TickEnemy:
 ; Falls through to EnemyRoamStep when both chase
 ; directions are blocked. Carry set means a step was
 ; committed by the chosen movement path.
-.routine in IX out BC,A,H,carry,zero clobbers DE,L
+.routine in IX out BC,A,zero,H,carry clobbers sign,parity,halfCarry,DE,L
 EnemyAttackStep:
         CALL    EnemyChaseDirs
         LD      A,(IX + MonsterDir)
+        .expectout A
         CALL    EnemyOpposite
         LD      L,A                     ; L = immediate reverse direction
         LD      A,D
@@ -189,7 +190,7 @@ EnemyAttackStep:
 ; Returns carry clear when A is zero, when A equals L,
 ; or when the resulting move is blocked; carry set
 ; means EnemyTryMove committed the step.
-.routine in A,L,IX out BC,A,carry,zero clobbers E
+.routine in A,L,IX out carry,BC,A,zero clobbers sign,parity,halfCarry,E,HL
 EnemyTryChase:
         OR      A
         RET     Z
@@ -207,11 +208,13 @@ _EnemyChaseBlock:
 ; as the secondary direction, ordered by the larger
 ; Manhattan distance axis. Either direction may be 0
 ; when already aligned on that axis.
-.routine in IX out DE,zero,HL clobbers A,BC
+.routine in IX out DE,zero,HL clobbers BC,carry,sign,parity,halfCarry,A
 EnemyChaseDirs:
+        .expectout A,B
         CALL    EnemyHorizChase
         LD      H,A                     ; H = horizontal distance
         LD      D,B                     ; D = horizontal reducing direction
+        .expectout A,B
         CALL    EnemyVertChase
         LD      L,A                     ; L = vertical distance
         LD      E,B                     ; E = vertical reducing direction
@@ -227,7 +230,7 @@ EnemyChaseDirs:
 ; Compare monster X from IX with PlayerX.
 ; Returns A as the absolute horizontal distance and B
 ; as the reducing direction, or B=0 when aligned.
-.routine in IX out A,B,carry,zero clobbers C
+.routine in IX out A,B,carry,zero clobbers C,sign,parity,halfCarry
 EnemyHorizChase:
         LD      A,(IX + MonsterX)
         LD      C,A
@@ -256,7 +259,7 @@ _EnemyHorizAlign:
 ; Compare monster Y from IX with PlayerY.
 ; Returns A as the absolute vertical distance and B
 ; as the reducing direction, or B=0 when aligned.
-.routine in IX out A,B,carry,zero clobbers C
+.routine in IX out A,B,carry,zero clobbers C,sign,parity,halfCarry
 EnemyVertChase:
         LD      A,(IX + MonsterY)
         LD      C,A
@@ -288,13 +291,14 @@ _EnemyVertAlign:
 ; Avoids the immediate reverse unless all other
 ; directions are blocked. Carry set means a move was
 ; committed.
-.routine in IX out BC,A,H,carry,zero clobbers DE
+.routine in IX out BC,A,zero,H,carry clobbers sign,parity,halfCarry,DE,L
 EnemyRoamStep:
         LD      A,(IX + MonsterX)
         LD      B,A
         LD      A,(IX + MonsterY)
         LD      C,A
         LD      A,(IX + MonsterDir)
+        .expectout A
         CALL    EnemyOpposite
         LD      D,A                     ; D = reverse direction fallback
         LD      A,B
@@ -336,7 +340,7 @@ _EnemyRoamReady:
 ; A contains a PacDir value. The opposite direction is
 ; returned in A: up/down or left/right. Flags are
 ; incidental.
-.routine in A out A,carry
+.routine in A out A,carry clobbers zero,sign,parity,halfCarry
 EnemyOpposite:
         CP      PacDirUp
         JR      Z,_EnemyOppDown
@@ -362,7 +366,7 @@ _EnemyOppRight:
 ; then commits MonsterX/Y and MonsterDir on success.
 ; Returns carry set for a committed move, carry clear
 ; when blocked, out of bounds, or passed no direction.
-.routine in IX,A out A,carry,zero,BC clobbers E
+.routine in IX,A out carry,zero,A,BC clobbers E,sign,parity,halfCarry,HL
 EnemyTryMove:
         LD      E,A
         LD      A,(IX + MonsterX)
@@ -426,7 +430,7 @@ _EnemyTryBlocked:
 ; When the countdown expires, selects a new spawn
 ; cell, restores attack state/direction/timer, refreshes
 ; the LCD, and returns carry clear.
-.routine in IX out B,carry,zero clobbers A
+.routine in IX out carry,B,zero clobbers sign,parity,halfCarry,A,C,DE,HL
 TickEnemyResp:
         LD      A,(IX + MonRespTimer)
         OR      A
@@ -468,7 +472,7 @@ _TickEnemyDone:
 ; favour the earlier table entry. Writes the selected
 ; cell back to MonsterX/Y; no value is returned to the
 ; caller.
-.routine in IX out HL,B clobbers A,C,DE
+.routine in IX out carry,HL,B clobbers A,C,DE,zero,sign,parity,halfCarry
 EnemySelectResp:
         LD      HL,PacEnemySpawns
         LD      B,0xFF                  ; B = best distance; 0xFF means no best yet
@@ -489,6 +493,7 @@ _EnemySelRespLp:
         POP     DE
         JR      C,_EnemyRespKeep
         PUSH    BC
+        .expectout A
         CALL    EnemyRespScore
         POP     BC
         LD      C,A                     ; C = candidate distance
@@ -520,11 +525,12 @@ _EnemyRespCommit:
 ; within 8 tiles of the player.
 ; Otherwise returns player distance +
 ; summed distance to other active monsters in A.
-.routine in HL,IX out A,carry,zero clobbers C
+.routine in HL,IX out A,carry,zero clobbers C,sign,parity,halfCarry
 EnemyRespScore:
         PUSH    DE
         CALL    EnemyIsInView
         JR      C,_EnemyRespZero
+        .expectout A
         CALL    EnemyDistPlayer
         CP      8
         JR      C,_EnemyRespZero
@@ -544,7 +550,7 @@ _EnemyRespZero:
 ; Test whether world cell L=x, H=y is visible in the
 ; current 8x8 viewport.
 ; Returns carry set when in view, clear otherwise.
-.routine in HL out A,carry,zero clobbers C
+.routine in HL out carry,zero,A clobbers C,sign,parity,halfCarry
 EnemyIsInView:
         LD      A,(ViewX)
         LD      C,A
@@ -573,7 +579,7 @@ _EnemyNotVisible:
 ; another active monster. IX identifies the monster to
 ; ignore. Respawning monsters do not count. Returns
 ; carry set when occupied.
-.routine in IX,HL out A,carry,zero clobbers DE
+.routine in IX,HL out A,zero,carry clobbers DE,sign,parity,halfCarry
 EnemyOccOther:
         LD      DE,Monster0
         CALL    EnemyOccByDe
@@ -591,7 +597,7 @@ EnemyOccOther:
 ; L=x, H=y. IX identifies the current monster to
 ; ignore. Returns carry set when DE is another active
 ; monster at that cell; otherwise carry clear.
-.routine in IX,DE,HL out A,carry,zero clobbers DE
+.routine in IX,DE,HL out A,carry,zero clobbers sign,parity,halfCarry,DE
 EnemyOccByDe:
         PUSH    HL
         PUSH    DE
@@ -626,7 +632,7 @@ EnemyOccByDe:
 
 ; EnemyOccNo -
 ; Shared clear-carry return used by the occupancy tests.
-.routine in A out carry,zero preserves A
+.routine in A out A,carry,zero clobbers sign,parity,halfCarry
 EnemyOccNo:
         OR      A
         RET
@@ -636,12 +642,13 @@ EnemyOccNo:
 ; other active monsters. IX identifies the monster to
 ; exclude. Respawning monsters and inactive Monster2
 ; are skipped. Returns the sum in A.
-.routine in IX,HL out A clobbers BC,DE
+.routine in IX,HL out A clobbers BC,DE,F
 EnemyDistOther:
         LD      B,0                     ; B = accumulated distance Score
         LD      DE,Monster0
         CALL    EnemyAddDistDe
         LD      DE,Monster1
+        .expectout B
         CALL    EnemyAddDistDe
         LD      A,B
         LD      C,A
@@ -650,6 +657,7 @@ EnemyDistOther:
         LD      A,B
         RET     C
         LD      DE,Monster2
+        .expectout B
         CALL    EnemyAddDistDe
         LD      A,B
         RET
@@ -659,7 +667,7 @@ EnemyDistOther:
 ; DE points to the candidate monster record, IX is the
 ; monster to exclude, and HL is the reference cell
 ; L=x, H=y. Respawning candidates are skipped.
-.routine in IX,DE,HL,B out B clobbers A,C,DE
+.routine in IX,DE,HL,B out B clobbers A,C,DE,F
 EnemyAddDistDe:
         PUSH    HL
         PUSH    DE
@@ -695,7 +703,7 @@ EnemyAddDistDe:
 ; EnemyDistPlayer —
 ; Return in A the Manhattan distance from cell
 ; L=x, H=y to the player.
-.routine in HL out A clobbers C
+.routine in HL out A clobbers C,F
 EnemyDistPlayer:
         PUSH    DE
         LD      A,(PlayerX)
@@ -709,7 +717,7 @@ EnemyDistPlayer:
 ; EnemyDistDe —
 ; Return in A the Manhattan distance from cell
 ; L=x, H=y to cell E=x, D=y.
-.routine in DE,HL out A clobbers C
+.routine in DE,HL out A clobbers C,F
 EnemyDistDe:
         LD      A,L
         LD      C,A
@@ -751,7 +759,7 @@ _EnemyDistSum:
 ; Reduces EnemyPeriodCur by PacEnemyPerStep down
 ; to PacEnemyPerMin, then restarts the level via
 ; InitLevelState and shows the running screen.
-.routine clobbers A,BC,DE,HL,IX
+.routine clobbers A,BC,DE,HL,IX,F
 PacAdvanceLevel:
         LD      HL,PacLevel
         INC     (HL)

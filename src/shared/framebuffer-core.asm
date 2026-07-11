@@ -3,7 +3,7 @@
 
 ; FbClearAll —
 ; Zero all bytes in FramebufferBack.
-.routine clobbers A,B,HL
+.routine clobbers A,B,HL,F
 FbClearAll:
         LD      HL,FramebufferBack
         LD      B,FramebufferBytes
@@ -18,7 +18,7 @@ _FbClrLoop:
 ; Clear one RGB row in FramebufferBack.
 ; A contains the row byte offset, normally 0, 4, 8,
 ; ... 28. The carry flag is incidental.
-.routine in A out carry,zero clobbers A,DE,HL
+.routine in A out carry,zero clobbers A,DE,HL,sign,parity,halfCarry
 FbClearRow:
         LD      E,A
         LD      D,0
@@ -37,7 +37,7 @@ FbClearRow:
 ; FbCopyAll —
 ; Copy FramebufferBack to the live Framebuffer.
 ; LDIR copies the full FramebufferBytes block.
-.routine clobbers BC,DE,HL
+.routine clobbers BC,DE,HL,parity,halfCarry
 FbCopyAll:
         LD      HL,FramebufferBack
         LD      DE,Framebuffer
@@ -49,7 +49,7 @@ FbCopyAll:
 ; Copy one RGB row from back to live Framebuffer.
 ; A contains the row byte offset, normally 0, 4, 8,
 ; ... 28.
-.routine in A clobbers A,DE,HL
+.routine in A clobbers A,DE,HL,F
 FbCopyRow:
         LD      E,A
         LD      D,0

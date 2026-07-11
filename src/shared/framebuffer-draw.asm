@@ -2,7 +2,7 @@
 ; Produce a column bitmask for matrix column A and
 ; return the mask in A.
 ; Column 0 is bit 7 (MSB); column 7 is bit 0.
-.routine in A out A clobbers BC
+.routine in A out A clobbers BC,F
 MxMask:
         LD      C,A
         OR      A
@@ -22,7 +22,7 @@ _MxMaskDone:
 ; column mask. Low bits of A select colour planes:
 ; selected planes OR in C; absent planes clear C with
 ; AND CPL(C).
-.routine in C,A,HL clobbers A,B,D,HL
+.routine in C,A,HL clobbers A,B,HL,D,F
 FbSetCell:
         LD      B,A
         LD      A,C
@@ -71,7 +71,7 @@ _FbBluSet:
 ; bit 1 = green, bit 2 = blue (RRCA each iter).
 ; HL points to the row's red plane byte. The final
 ; plane pointer is returned in HL.
-.routine in A,HL,C out HL,A
+.routine in A,HL,C out A,HL clobbers F
 FbOrRow:
         PUSH    BC
         LD      B,3                     ; 3 planes: R, G, B

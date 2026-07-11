@@ -39,7 +39,7 @@ LcdClear:
 ; Write a zero-terminated string to the LCD.
 ; HL points to the string. Writing starts at the
 ; current LCD cursor and stops after the NUL byte.
-.routine in HL out HL,carry clobbers A
+.routine in HL out HL,A,carry clobbers zero,sign,parity,halfCarry
 LcdString:
         LD      A,(HL)
         INC     HL
@@ -55,7 +55,7 @@ LcdString:
 ; terminated by DB 0.
 ; Clears the display first, then for each entry
 ; positions the cursor and writes the string.
-.routine in HL out carry clobbers A
+.routine in HL out A,carry clobbers zero,sign,parity,halfCarry
 LcdScript:
         PUSH    BC
         PUSH    DE
@@ -98,7 +98,7 @@ LcdPutc:
 ; Position cursor via DDRAM command in B then
 ; write the zero-terminated string from HL.
 ; The updated string pointer is returned in HL.
-.routine in B,HL out HL,carry clobbers A
+.routine in B,HL out HL,carry clobbers A,zero,sign,parity,halfCarry
 LcdRowStr:
         CALL    LcdCmd
         JP      LcdString
@@ -107,7 +107,7 @@ LcdRowStr:
 ; Write the byte at DE+A to the LCD cursor.
 ; No bounds check on A.
 ; A contains the table index; DE points to the table.
-.routine in A,DE clobbers A,HL
+.routine in A,DE clobbers A,HL,F
 LcdPutcTbl:
         LD      L,A
         LD      H,0

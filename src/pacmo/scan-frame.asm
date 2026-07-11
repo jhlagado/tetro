@@ -8,7 +8,7 @@
 ; left on for PacScanDwell DJNZ iterations.
 ; Sound and HUD services still run once per row
 ; through ScanTick. The matrix is blank on return.
-.routine out carry clobbers A,BC,DE,HL
+.routine out carry,zero clobbers A,BC,DE,HL,sign,parity,halfCarry
 ScanFrame:
         LD      B,RowCount
 _ScanFrameLp:

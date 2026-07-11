@@ -4,7 +4,7 @@
 ; Renders world, power pills, active Monsters
 ; (Monster2 skipped before level 2), and player into
 ; FramebufferBack, then copies it to Framebuffer.
-.routine clobbers A,BC,DE,HL,IX
+.routine clobbers A,BC,DE,HL,IX,F
 RebuildFb:
         CALL    FbClearAll
         CALL    RendWorldBack
@@ -25,7 +25,7 @@ _RebuildMonsDone:
 ; RendGOverBack —
 ; Fill FramebufferBack with PacColorGOver.
 ; Used as a dramatic full-matrix flash.
-.routine clobbers A,B,HL
+.routine clobbers A,B,HL,F
 RendGOverBack:
         LD      HL,FramebufferBack
         LD      B,RowCount
@@ -60,7 +60,7 @@ _RendGOverBluOff:
 ; RendLvlDoneBack —
 ; Fill FramebufferBack with PacColorRound.
 ; Used as the level-complete visual cue.
-.routine clobbers A,B,HL
+.routine clobbers A,B,HL,F
 RendLvlDoneBack:
         LD      HL,FramebufferBack
         LD      B,RowCount
@@ -96,7 +96,7 @@ _RendLvlBluOff:
 ; Render the full 8x8 viewport into back-buffer.
 ; Calls RendWorldRow with A=screen row for each row
 ; 0..7. Raw outputs are loop residue, not render state.
-.routine out HL,A,zero clobbers B,DE
+.routine out HL,A,zero clobbers B,DE,carry,sign,parity,halfCarry
 RendWorldBack:
         LD      B,0
 _RendWorldBackLp:
@@ -116,7 +116,7 @@ _RendWorldBackLp:
 ; viewport window via WindowByteBc.
 ; Uneaten open path = ~(wall | eaten); both wall
 ; and path are written via WrWorldColors.
-.routine in A out HL clobbers A,BC,DE
+.routine in A out HL clobbers A,BC,DE,F
 RendWorldRow:
         LD      C,A                     ; C = screen row
         ADD     A,A
@@ -142,6 +142,7 @@ RendWorldRow:
         LD      A,(HL)
         LD      C,A                     ; C = low byte of 15-bit row
         LD      A,(ViewX)
+        .expectout A
         CALL    WindowByteBc
         POP     DE
         PUSH    AF                      ; visible wall mask
@@ -154,6 +155,7 @@ RendWorldRow:
         LD      A,(HL)
         LD      C,A
         LD      A,(ViewX)
+        .expectout A
         CALL    WindowByteBc
         LD      B,A                     ; B = visible eaten mask
         POP     AF
@@ -171,7 +173,7 @@ RendWorldRow:
 ; by GetWallColor. D contains the uneaten-path mask,
 ; drawn in PacColorPath. The row aux-byte address is
 ; returned in HL.
-.routine in C,D,HL out HL clobbers A,B
+.routine in C,D,HL out HL clobbers A,B,F
 WrWorldColors:
         XOR     A
         LD      B,A
@@ -230,7 +232,7 @@ _WrWorldBluSet:
 ; Returns PacColorCaught when caught,
 ; PacColorDone when round is complete,
 ; PacColorWall otherwise, in A. Flags are incidental.
-.routine out A,carry
+.routine out A,carry clobbers zero,sign,parity,halfCarry
 GetWallColor:
         LD      A,(PacPlayerCaught)
         OR      A
@@ -273,7 +275,7 @@ _WindowByteDone:
 ; Iterates PacPowerPills; skips entries with the
 ; corresponding PacPwrPillsEat bit set. Raw HL/D
 ; outputs are table-walk residue.
-.routine out HL,D clobbers A,BC
+.routine out A,D,carry,HL clobbers zero,sign,parity,halfCarry,BC
 RendPwrPills:
         LD      HL,PacPowerPills
         LD      D,1
@@ -302,7 +304,7 @@ _RendPwrPillNext:
 ; Render uneaten power pills on screen row A.
 ; Used in the per-row cooperative render path; skips
 ; table entries whose world Y does not map to A.
-.routine in A out HL,D clobbers A,BC,E
+.routine in A out A,D,carry,HL clobbers E,zero,sign,parity,halfCarry,BC
 RendPwrPillRow:
         LD      E,A                     ; E = target screen row
         LD      HL,PacPowerPills
@@ -338,7 +340,7 @@ _RendPwrRowNext:
 ; silently when off screen; otherwise maps to a
 ; FramebufferBack row and calls FbSetCell with
 ; PacColorPwrPill.
-.routine in BC clobbers A,BC,DE,HL
+.routine in BC clobbers DE,HL,A,BC,F
 RendPwrPillBc:
         LD      A,(ViewY)
         LD      E,A
@@ -359,6 +361,7 @@ RendPwrPillBc:
         SUB     E                       ; A = screenX
         CP      RowCount
         RET     NC
+        .expectout A
         CALL    MxMask
         LD      C,A
 
@@ -371,7 +374,7 @@ RendPwrPillBc:
 ; only while the monster is in flee state and the power
 ; timer is still visibly active; otherwise attack
 ; colour is written with FbSetCell.
-.routine in IX clobbers A,BC,DE,HL
+.routine in IX clobbers BC,DE,HL,A,F
 RendEnemyBack:
         LD      A,(IX + MonRespTimer)
         OR      A
@@ -399,6 +402,7 @@ RendEnemyBack:
         SUB     C                       ; A = screenX
         CP      RowCount
         RET     NC
+        .expectout A
         CALL    MxMask
         LD      C,A
 
@@ -431,7 +435,7 @@ _RendEnemyFlee:
 ; Render active monsters that map to screen row A.
 ; Calls RendEnemyIfRow for Monster0 and Monster1;
 ; Monster2 is skipped before level 2.
-.routine in A clobbers A,BC,E,HL,IX
+.routine in A clobbers BC,E,HL,IX,A,F
 RendMonsRow:
         LD      C,A
         PUSH    BC
@@ -456,7 +460,7 @@ RendMonsRow:
 ; Render the monster record at IX only when its world
 ; Y maps to screen row E. Respawning or off-row
 ; monsters return without drawing.
-.routine in IX,E clobbers A,BC,HL
+.routine in IX,E clobbers BC,A,HL,F
 RendEnemyIfRow:
         LD      A,(IX + MonRespTimer)
         OR      A
@@ -482,7 +486,7 @@ RendEnemyIfRow:
 ; white (PacColorRound) when round is complete;
 ; red (PacColorEnAtk) when caught.
 ; Skips silently when the player is off-screen.
-.routine clobbers A,BC,DE,HL
+.routine clobbers BC,DE,HL,A,F
 RendPlyBack:
         LD      A,(PlayerY)
         LD      B,A
@@ -507,6 +511,7 @@ RendPlyBack:
         SUB     C                       ; A = screenX
         CP      RowCount
         RET     NC
+        .expectout A
         CALL    MxMask
         LD      C,A
 
@@ -530,7 +535,7 @@ _RendPlyCaught:
 ; Render the player only when PlayerY maps to screen
 ; row A. Matching rows delegate to RendPlyBack;
 ; other rows return without drawing.
-.routine in A clobbers A,BC,DE,HL
+.routine in A clobbers BC,DE,A,HL,F
 RendPlyRow:
         LD      E,A
         LD      A,(PlayerY)

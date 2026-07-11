@@ -18,7 +18,7 @@
 ; normal play, the scanned key is normalised into a
 ; PacDir value and either drives movement or resets
 ; key-repeat state. No stable status is returned.
-.routine out E,zero clobbers A,BC,D,HL,IX,IY
+.routine out E,zero clobbers A,BC,D,HL,IX,IY,carry,sign,parity,halfCarry
 PollInput:
         LD      A,(PacSplashActive)
         OR      A
@@ -55,7 +55,7 @@ _PollNoNewKey:
 ; A fresh key clears PacSplashActive and shows the
 ; running HUD; a held/no-key scan leaves the splash
 ; active and returns.
-.routine clobbers A,BC,DE,HL,IX,IY
+.routine clobbers A,BC,DE,HL,IX,IY,F
 PollSplashStart:
         LD      C,ApiScanKeys
         RST     0x10
@@ -70,7 +70,7 @@ PollSplashStart:
 ; Once the gate expires, a fresh key restarts the
 ; whole game when PacGameOver is set, or resumes the
 ; current game after a lost life.
-.routine out carry,A clobbers HL
+.routine out carry,A clobbers HL,zero,sign,parity,halfCarry,BC,DE,IX
 CaughtRestart:
         LD      HL,(PacGOverGateLo)
         LD      A,H
@@ -93,7 +93,7 @@ _CaughtRestartKey:
 ; Resets player and Monsters via InitPlyMons;
 ; preserves Score, PacLevel, eaten paths, and lives;
 ; then returns to the running HUD and rebuilds play.
-.routine clobbers A,BC,DE,HL,IX
+.routine clobbers A,BC,DE,HL,IX,F
 ResumeCaught:
         CALL    InitPlyMons
         XOR     A
@@ -106,7 +106,7 @@ ResumeCaught:
 ; Pause the game on a fresh pause-key press.
 ; Sets PacPaused, shows the pause screen, and clears
 ; key-repeat state before returning to the main loop.
-.routine clobbers A,DE,HL
+.routine clobbers A,DE,HL,F
 HandlePauseKey:
         LD      A,1
         LD      (PacPaused),A
@@ -119,7 +119,7 @@ HandlePauseKey:
 ; active; otherwise shows the running HUD. Clears
 ; key-repeat state. The final carry flag is inherited
 ; from the display path, not an unpause result.
-.routine out carry clobbers A,DE,HL
+.routine out carry clobbers A,DE,HL,zero,sign,parity,halfCarry
 HandleUnpause:
         XOR     A
         LD      (PacPaused),A
@@ -136,7 +136,7 @@ _UnpauseShowRun:
 
 ; HandleDirKey -
 ; Apply key repeat and dispatch one normalized direction in E.
-.routine in E out zero clobbers A,BC,DE,HL,IX
+.routine in E out zero clobbers A,sign,parity,halfCarry,BC,DE,HL,IX,carry
 HandleDirKey:
         LD      A,(LastKey)
         CP      E
@@ -172,7 +172,7 @@ _HeldSameKey:
 ; A contains the raw key code. Valid movement keys set
 ; carry and put the PacDir value in E; all other keys
 ; clear carry and leave no direction to consume.
-.routine in A out A,E,carry,zero
+.routine in A out carry,A,E,zero clobbers sign,parity,halfCarry
 NormInputDir:
         CP      KeyLeft
         JR      Z,_NormalizeLeft
@@ -227,7 +227,7 @@ ClearInputRpt:
 ; left on screen increases world X).
 ; Builds target B=x, C=y for TryMovePlyBc, or returns
 ; immediately at the world boundary.
-.routine out zero clobbers A,BC,DE,HL,IX
+.routine out zero clobbers carry,sign,parity,halfCarry,A,BC,DE,HL,IX
 MovePlayerLeft:
         LD      A,(PlayerX)
         CP      PacWorldMax
@@ -244,7 +244,7 @@ MovePlayerLeft:
 ; right on screen decreases world X).
 ; Builds target B=x, C=y for TryMovePlyBc, or returns
 ; immediately when PlayerX is 0.
-.routine out zero clobbers A,BC,DE,HL,IX
+.routine out zero clobbers sign,parity,halfCarry,A,BC,DE,HL,IX,carry
 MovePlyRight:
         LD      A,(PlayerX)
         OR      A
@@ -259,7 +259,7 @@ MovePlyRight:
 ; Step the player upward (decrement PlayerY).
 ; Builds target B=x, C=y for TryMovePlyBc, or returns
 ; immediately when PlayerY is 0.
-.routine out zero clobbers A,BC,DE,HL,IX
+.routine out zero clobbers sign,parity,halfCarry,A,BC,DE,HL,IX,carry
 MovePlayerUp:
         LD      A,(PlayerY)
         OR      A
@@ -274,7 +274,7 @@ MovePlayerUp:
 ; Step the player downward (increment PlayerY).
 ; Builds target B=x, C=y for TryMovePlyBc, or returns
 ; immediately at PacWorldMax.
-.routine out zero clobbers A,BC,DE,HL,IX
+.routine out zero clobbers carry,sign,parity,halfCarry,A,BC,DE,HL,IX
 MovePlayerDown:
         LD      A,(PlayerY)
         CP      PacWorldMax
@@ -293,7 +293,7 @@ MovePlayerDown:
 ; and monster collision, then adjusts the viewport.
 ; The returned zero flag is incidental to the final
 ; viewport path, not a move-success result.
-.routine in BC out zero clobbers A,BC,DE,HL,IX
+.routine in BC out zero clobbers DE,HL,carry,sign,parity,halfCarry,A,BC,IX
 TryMovePlyBc:
         CALL    IsWallAtBc
         RET     C
@@ -320,7 +320,7 @@ TryMovePlyBc:
 ; the monster is respawning, or the cells differ. On a
 ; matching cell, fleeing monsters are eaten for score;
 ; attacking monsters trigger EnterCaught.
-.routine in IX clobbers A,BC,DE,HL,IX
+.routine in IX clobbers BC,A,DE,HL,IX,F
 CheckPlyCaught:
         LD      A,(PacPlayerCaught)
         OR      A
@@ -349,7 +349,7 @@ CheckPlyCaught:
 ; PacGameOver and shows the game-over screen. With
 ; lives remaining, shows the caught screen. Both paths
 ; rebuild the Framebuffer in the caught colour.
-.routine clobbers A,BC,DE,HL,IX
+.routine clobbers A,BC,DE,HL,IX,F
 EnterCaught:
         LD      A,1
         LD      (PacPlayerCaught),A
@@ -379,7 +379,7 @@ _EnterFinalOver:
 ; enemy-eaten cue, shows the LCD cue, and awards
 ; PacScoreEnemy. The BC/HL outputs come from score
 ; formatting, not from monster logic.
-.routine in IX out BC,HL clobbers A,DE
+.routine in IX out BC,HL clobbers A,DE,F
 EatEnemy:
         LD      A,PacEnemyRespawn
         LD      (IX + MonsterState),A
@@ -397,7 +397,7 @@ EatEnemy:
 ; present and not already eaten. Sets the pill bit in
 ; PacPwrPillsEat, awards PacScorePower, starts the
 ; power timer and sound, and sets all monsters to flee.
-.routine in BC out HL,D clobbers A,E
+.routine in BC out HL,D clobbers A,E,F
 EatPwrPillBc:
         LD      HL,PacPowerPills
         LD      D,1
@@ -441,7 +441,7 @@ _EatPwrPillNext:
 ; B < 8 maps to the row high byte; B >= 8 maps to
 ; the low byte after subtracting 8. First visits add
 ; PacScorePath; repeat visits do nothing.
-.routine in BC out BC,D clobbers A,E,HL
+.routine in BC out BC,D clobbers E,HL,A,F
 MarkEatenBc:
         LD      A,C
         ADD     A,A
@@ -453,6 +453,7 @@ MarkEatenBc:
         LD      A,B
         CP      8
         JR      NC,_MarkEatenLow
+        .expectout A
         CALL    MxMask
         LD      E,A
         LD      A,(HL)
@@ -471,6 +472,7 @@ MarkEatenBc:
 _MarkEatenLow:
         SUB     8
         INC     HL
+        .expectout A
         CALL    MxMask
         LD      E,A
         LD      A,(HL)
@@ -491,7 +493,7 @@ _MarkEatenLow:
 ; Add the 8-bit score delta in A to 16-bit PacScore
 ; and refresh the score HUD. Score-formatting state is
 ; returned in BC/HL; it is not game output.
-.routine in A out BC,HL clobbers A,DE
+.routine in A out BC,HL clobbers A,DE,F
 AddScoreA:
         LD      E,A
         LD      D,0
@@ -510,7 +512,7 @@ AddScoreA:
 ; level-done timer and sound, and shows the complete
 ; LCD screen. Carry is a display-path residue, not the
 ; completion result; PacRoundDone is authoritative.
-.routine out carry clobbers A,BC,DE,HL
+.routine out carry clobbers zero,sign,parity,halfCarry,DE,HL,BC,A
 CheckRoundDone:
         LD      A,(PacRoundDone)
         OR      A
@@ -548,7 +550,7 @@ _CheckRoundRow:
 ; Shifts the 16-bit pair left B times so column
 ; B lands in bit 7 of D; tests that bit.
 ; Returns carry set for wall, clear for open.
-.routine in BC out A,E,carry,zero clobbers D,HL
+.routine in BC out E,carry,A,zero clobbers D,HL,sign,parity,halfCarry
 IsWallAtBc:
         LD      A,C
         ADD     A,A
@@ -583,17 +585,19 @@ _PacWallOpen:
 ; AdjustViewAxis so the player stays near screen
 ; columns/rows 3-4 within the world boundary. The
 ; final zero flag is not a viewport status result.
-.routine out zero clobbers A,BC
+.routine out zero clobbers A,BC,carry,sign,parity,halfCarry
 UpdViewPly:
         LD      A,(PlayerX)
         LD      B,A
         LD      A,(ViewX)
+        .expectout A
         CALL    AdjustViewAxis
         LD      (ViewX),A
 
         LD      A,(PlayerY)
         LD      B,A
         LD      A,(ViewY)
+        .expectout A
         CALL    AdjustViewAxis
         LD      (ViewY),A
         RET
@@ -604,7 +608,7 @@ UpdViewPly:
 ; player coordinate on that axis. The updated origin is
 ; returned in A. Shifts when B-A is outside the 3..4
 ; centre band and clamps to 0..PacViewMax.
-.routine in B,A out A,zero clobbers C
+.routine in B,A out A,zero clobbers C,carry,sign,parity,halfCarry
 AdjustViewAxis:
         LD      C,A
         LD      A,B
