@@ -4,7 +4,7 @@
 ; the splash screen, then rebuilds the Framebuffer.
 ; Use for first launch only; restart uses
 ; InitRestart.
-.routine clobbers A,BC,DE,HL
+.routine clobbers A,BC,DE,HL,F
 InitState:
         CALL    InitStateBase
         LD      A,1
@@ -18,7 +18,7 @@ InitState:
 ; first piece and shows the running HUD.
 ; Skips the splash screen; RNG state is preserved
 ; from when the seed was set at splash time.
-.routine clobbers A,BC,DE,HL
+.routine clobbers A,BC,DE,HL,F
 InitRestart:
         CALL    InitStateBase
         XOR     A
@@ -35,7 +35,7 @@ InitRestart:
 ; Sets movement and gravity periods, clears all
 ; game flags, resets score, initialises scan
 ; state, and clears the board and HUD buffer.
-.routine clobbers A,B,HL
+.routine clobbers A,B,HL,F
 InitStateBase:
         LD      A,MovePeriod
         LD      (MoveCooldown),A

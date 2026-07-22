@@ -12,8 +12,8 @@ TetKeyRightAlt  .equ 0x03
 TetKeyRotAlt    .equ 0x06
 ; Decremented once per full frame. Larger = slower
 ; fall.
-GravityPeriod   .equ     32
-GravPeriodStep1 .equ 28
+GravityPeriod   .equ     64
+GravPeriodStep1 .equ 56
 GravScore1Hi    .equ 0x07       ; 2000 decimal
 GravScore1Lo    .equ 0xD0
 LineClearHold   .equ    24

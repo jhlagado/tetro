@@ -6,7 +6,7 @@
 ; Carry set means collision or out-of-bounds; carry
 ; clear means the placement is legal.
 ; BC, DE, and HL are preserved.
-.routine in DE out carry,zero clobbers A
+.routine in DE out carry,zero clobbers A,sign,parity,halfCarry
 CheckCollAtDe:
         PUSH    BC
         PUSH    DE
@@ -82,7 +82,7 @@ _CollExitOk:
 ; row has bit 7 set in L (Y is negative, meaning
 ; the row is above the visible playfield), carry
 ; is set. Carry clear means the piece is in-bounds.
-.routine out carry,zero clobbers A
+.routine out carry,zero clobbers A,sign,parity,halfCarry
 CheckTopOut:
         PUSH    BC
         PUSH    DE

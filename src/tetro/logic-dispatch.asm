@@ -5,7 +5,7 @@
 ; blank between scanned frames. Rendering is rebuilt
 ; as a full back-buffer pass, then copied to the live
 ; Framebuffer before the next ScanFrame.
-.routine out carry,zero clobbers A,BC,DE,HL,IX,IY
+.routine out carry,zero clobbers A,BC,DE,HL,IX,IY,sign,parity,halfCarry
 LogicTick:
         CALL    SanitizeActPos
         LD      A,(GameOver)

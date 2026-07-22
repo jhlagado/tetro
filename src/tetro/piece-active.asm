@@ -2,7 +2,7 @@
 ; Test PendingX at current PlayerY via collision.
 ; PendingY contains the current PlayerY.
 ; On no collision, commits PendingX to PlayerX.
-.routine out zero clobbers A,DE
+.routine out zero clobbers A,DE,carry,sign,parity,halfCarry
 HorizProbeX:
         LD      A,(PlayerY)
         LD      (PendingY),A
@@ -18,7 +18,7 @@ _HorizCommitX:
 ; MoveRight —
 ; Attempt to shift the piece one column right.
 ; Increments PlayerX if the candidate is legal.
-.routine out zero clobbers A,DE
+.routine out zero clobbers A,DE,carry,sign,parity,halfCarry
 MoveRight:
         LD      A,(PlayerX)
         INC     A
@@ -29,7 +29,7 @@ MoveRight:
 ; Attempt to shift the piece one column left.
 ; Decrements PlayerX if the candidate is legal.
 ; PlayerX=0 leaves the position unchanged.
-.routine out zero clobbers A,DE
+.routine out zero clobbers sign,parity,halfCarry,A,DE,carry
 MoveLeft:
         LD      A,(PlayerX)
         OR      A
@@ -43,7 +43,7 @@ MoveLeft:
 ; Carry from CheckCollAtDe is returned unchanged:
 ; set means blocked, clear means legal.
 ; Does not commit PlayerY on its own.
-.routine out carry,zero clobbers A,DE
+.routine out carry,zero clobbers A,DE,sign,parity,halfCarry
 StepActDown:
         LD      A,(PlayerX)
         LD      (PendingX),A
@@ -59,7 +59,7 @@ StepActDown:
 ; Decrements the countdown; reloads from
 ; CurGravPeriod on expiry and calls StepActDown.
 ; Collision jumps to LockActPiece.
-.routine out carry,zero clobbers A,BC,DE,HL
+.routine out carry,zero clobbers A,sign,parity,halfCarry,BC,DE,HL
 ApplyGravity:
         LD      A,(GravityCooldown)
         DEC     A
@@ -83,7 +83,7 @@ _GravityCommit:
 ; LockActPiece.
 ; On success: commits PendingY and resets
 ; GravityCooldown to CurGravPeriod.
-.routine out carry,zero clobbers A,BC,DE,HL
+.routine out zero,carry clobbers A,BC,DE,HL,sign,parity,halfCarry
 SoftDrop:
         CALL    StepActDown
         JR      NC,_SoftDropCommit
@@ -103,7 +103,7 @@ _SoftDropCommit:
 ; columns 0..7, accounting for CurPieceRight.
 ; PlayerY is only clamped if it is non-negative;
 ; negative Y (above-field spawn rows) is kept.
-.routine out zero clobbers A,HL
+.routine out zero clobbers A,HL,carry,sign,parity,halfCarry
 SanitizeActPos:
         LD      A,(PlayerX)
         LD      HL,CurPieceRight
@@ -130,7 +130,7 @@ _SanitizeYDone:
 ; update CurPiecePtr, CurPieceRight,
 ; and CurPieceColor.
 ; Draws a new NextPieceIndex from the RNG.
-.routine out zero clobbers A,BC,DE,HL
+.routine out zero clobbers A,BC,DE,HL,carry,sign,parity,halfCarry
 SelectNextPiece:
         LD      A,(NextPieceIndex)
         LD      (CurPieceIndex),A
@@ -147,7 +147,7 @@ SelectNextPiece:
 ; Folds high bits into low bits then masks to 3;
 ; retries when the result >= PieceCount so the
 ; output is uniformly in range.
-.routine out A,zero clobbers B
+.routine out A,zero clobbers B,carry,sign,parity,halfCarry
 RngNextPiece:
         CALL    RngNext8
         LD      B,A
@@ -166,7 +166,7 @@ RngNextPiece:
 ; Polynomial: XOR 0xB8 when the shifted-out bit
 ; is 1. Seed 0 is replaced with RngSeedInit to
 ; prevent the zero lock-up state.
-.routine out A
+.routine out A clobbers F
 RngNext8:
         LD      A,(RngSeed)
         OR      A
@@ -186,7 +186,7 @@ _RngNext8Save:
 ; CurPieceRight (from PieceRightTbl), and
 ; CurPiecePtr (from PiecePtrTable).
 ; Table index: piece_index * 4 + rotation.
-.routine clobbers A,C,DE,HL
+.routine clobbers A,C,DE,HL,F
 LoadCurRot:
         ; COLOR lookup first; piece-indexed so DE
         ; stays free.
@@ -234,7 +234,7 @@ LoadCurRot:
 ; reloads the original piece state via LoadCurRot.
 ; On legal: plays rotate sound and resets
 ; GravityCooldown to CurGravPeriod.
-.routine out carry,zero clobbers A,C,DE,HL
+.routine out carry,zero clobbers A,C,DE,HL,sign,parity,halfCarry
 RotateTestDone:
         LD      A,(PlayerX)
         LD      D,A
@@ -255,7 +255,7 @@ _RotateAccept:
 ; Attempt clockwise rotation (increment mod 4).
 ; Saves current rotation as PendingRotation,
 ; applies the candidate, calls RotateTestDone.
-.routine out carry,zero clobbers A,C,DE,HL
+.routine out carry,zero clobbers A,C,DE,HL,sign,parity,halfCarry
 RotateCw:
         LD      A,(CurrentRotation)
         LD      (PendingRotation),A
@@ -269,7 +269,7 @@ RotateCw:
 ; Attempt counter-clockwise rotation (dec mod 4).
 ; Saves current rotation as PendingRotation,
 ; applies the candidate, calls RotateTestDone.
-.routine out carry,zero clobbers A,C,DE,HL
+.routine out carry,zero clobbers A,C,DE,HL,sign,parity,halfCarry
 RotateLeft:
         LD      A,(CurrentRotation)
         LD      (PendingRotation),A
@@ -287,7 +287,7 @@ RotateLeft:
 ; code 0 in A.
 ; On success: enables the piece and updates the
 ; LCD next-piece preview via LcdRefNextPrev.
-.routine out carry clobbers A,BC,DE,HL
+.routine out carry clobbers A,BC,DE,HL,zero,sign,parity,halfCarry
 SpawnActPiece:
         CALL    SelectNextPiece
         LD      A,3

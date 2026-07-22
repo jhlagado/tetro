@@ -37,7 +37,7 @@
         .include "../shared/constants.asm"
         .include "constants.asm"
 
-.routine out carry,zero clobbers A,BC,DE,HL,IX,IY
+.routine out carry,zero clobbers A,BC,DE,HL,IX,IY,sign,parity,halfCarry
 Start:
         CALL    InitState
 

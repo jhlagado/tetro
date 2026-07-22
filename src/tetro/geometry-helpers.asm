@@ -13,7 +13,7 @@ LoadDePending:
 ; positions, placing the piece at column PlayerX.
 ; The MSB-left convention means SRL moves bits
 ; toward lower-numbered matrix columns.
-.routine in A out A clobbers C
+.routine in A out A clobbers C,F
 ShiftRowMask:
         LD      C,A
         LD      A,(ShiftCount)

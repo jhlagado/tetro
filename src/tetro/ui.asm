@@ -1,7 +1,7 @@
 ; LcdShowGOver —
 ; Show the game-over LCD script.
 ; No NEXT preview row is appended.
-.routine out carry clobbers A,HL
+.routine out A,carry clobbers HL,zero,sign,parity,halfCarry
 LcdShowGOver:
         LD      HL,ScriptGameOver
         JP      LcdScript
@@ -9,7 +9,7 @@ LcdShowGOver:
 ; LcdShowPaused —
 ; Show the PAUSED HUD; falls into LcdShowHud
 ; which appends the NEXT preview on row 2.
-.routine out HL clobbers A
+.routine out HL clobbers A,F
 LcdShowPaused:
         LD      HL,ScriptPaused
         JR      LcdShowHud
@@ -17,7 +17,7 @@ LcdShowPaused:
 ; LcdShowSplash —
 ; Show the splash screen with control hints.
 ; LcdScript's carry result is not Tetro status.
-.routine out carry clobbers A,HL
+.routine out A,carry clobbers HL,zero,sign,parity,halfCarry
 LcdShowSplash:
         LD      HL,ScriptSplash
         JP      LcdScript
@@ -25,7 +25,7 @@ LcdShowSplash:
 ; LcdAppendPrev —
 ; Emit the NextPieceIndex letter glyph to the LCD.
 ; The LCD cursor is positioned after the NEXT: banner.
-.routine clobbers A,DE,HL
+.routine clobbers A,DE,HL,F
 LcdAppendPrev:
         LD      A,(NextPieceIndex)
         LD      DE,PieceNameTable
@@ -34,7 +34,7 @@ LcdAppendPrev:
 ; LcdRefNextPrev —
 ; Rewrite row 2 NEXT: label plus preview letter.
 ; Row 1 is left untouched.
-.routine clobbers A,DE
+.routine clobbers A,DE,F
 LcdRefNextPrev:
         PUSH    BC
         PUSH    HL
@@ -49,7 +49,7 @@ LcdRefNextPrev:
 ; LcdShowRunning —
 ; Show the running HUD, then tail-jump to LcdShowHud,
 ; which appends the NEXT preview.
-.routine out HL clobbers A
+.routine out HL clobbers A,F
 LcdShowRunning:
         LD      HL,ScriptRunning
         JR      LcdShowHud
@@ -57,7 +57,7 @@ LcdShowRunning:
 ; LcdShowHud —
 ; Shared tail: run LcdScript then append NEXT
 ; preview letter on row 2.
-.routine in HL out HL clobbers A
+.routine in HL out HL clobbers A,F
 LcdShowHud:
         PUSH    BC
         PUSH    DE

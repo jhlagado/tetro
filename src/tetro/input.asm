@@ -6,7 +6,7 @@
 ; Left, right, and drop repeat via HandleHeldDir.
 ; Skips movement when paused but still allows
 ; un-pause via HandleUnpause.
-.routine out carry,zero clobbers A,BC,DE,HL,IX,IY
+.routine out carry,zero clobbers A,BC,DE,HL,IX,IY,sign,parity,halfCarry
 PollInput:
         LD      C,ApiScanKeys
         RST     0x10
@@ -65,7 +65,7 @@ _HandleDirKey:
 ; Reset repeat state after a non-repeating event.
 ; Restores MoveCooldown to MovePeriod and clears
 ; both LastKey and DropLockout.
-.routine out carry,zero clobbers A
+.routine out carry,zero clobbers A,sign,parity,halfCarry
 ClearInputRpt:
         LD      A,MovePeriod
         LD      (MoveCooldown),A
@@ -80,7 +80,7 @@ ClearInputRpt:
 ; Counts down the 16-bit GOverKeyGateLo counter.
 ; Fires SndTrigReady exactly once when it reaches
 ; zero. The next invocation jumps to PollGOverRestart.
-.routine out carry,zero clobbers A,BC,DE,HL,IX,IY
+.routine out carry,zero clobbers A,BC,DE,HL,IX,IY,sign,parity,halfCarry
 WaitGOverGate:
         LD      HL,(GOverKeyGateLo)
         LD      A,H
@@ -100,7 +100,7 @@ WaitGOverGate:
 ; Poll for a key press after game-over.
 ; Carry set from scanKeys means a fresh key press;
 ; that path jumps to InitRestart.
-.routine clobbers A,BC,DE,HL,IX,IY
+.routine clobbers A,BC,DE,HL,IX,IY,F
 PollGOverRestart:
         LD      C,ApiScanKeys
         RST     0x10
@@ -110,7 +110,7 @@ PollGOverRestart:
 ; WaitKeyRelease —
 ; Clear InputLockout once no key is being held.
 ; Prevents accidental input at spawn and start.
-.routine out carry,zero clobbers A,BC,DE,HL,IX,IY
+.routine out carry,zero clobbers A,BC,DE,HL,IX,IY,sign,parity,halfCarry
 WaitKeyRelease:
         LD      C,ApiScanKeys
         RST     0x10
@@ -122,7 +122,7 @@ WaitKeyRelease:
 ; HandlePauseKey —
 ; Toggle pause state and update the LCD banner.
 ; ClearInputRpt resets key-repeat state afterward.
-.routine out HL,carry,zero clobbers A
+.routine out HL,carry,zero clobbers A,sign,parity,halfCarry
 HandlePauseKey:
         LD      A,(Paused)
         XOR     1
@@ -138,7 +138,7 @@ _PauseShowRun:
 ; HandleUnpause —
 ; Clear pause and restore the running LCD banner.
 ; ClearInputRpt resets key-repeat state afterward.
-.routine out HL,carry,zero clobbers A
+.routine out HL,carry,zero clobbers A,sign,parity,halfCarry
 HandleUnpause:
         XOR     A
         LD      (Paused),A
@@ -148,7 +148,7 @@ HandleUnpause:
 ; HandleRotPress —
 ; Dispatch clockwise rotation (CW).
 ; Calls RotateCw, then resets key-repeat state.
-.routine out carry,zero clobbers A,C,DE,HL
+.routine out carry,zero clobbers A,C,DE,HL,sign,parity,halfCarry
 HandleRotPress:
         CALL    RotateCw
         JP      ClearInputRpt
@@ -156,21 +156,21 @@ HandleRotPress:
 ; HandleCcwPress —
 ; Dispatch counter-clockwise rotation (CCW).
 ; Calls RotateLeft, then resets key-repeat state.
-.routine out carry,zero clobbers A,C,DE,HL
+.routine out carry,zero clobbers A,C,DE,HL,sign,parity,halfCarry
 HandleCcwPress:
         CALL    RotateLeft
         JP      ClearInputRpt
 
 ; HandleKeyRight —
 ; A contains KeyRight for HandleHeldDir.
-.routine out carry,zero clobbers A,BC,DE,HL
+.routine out carry,zero clobbers A,BC,DE,HL,sign,parity,halfCarry
 HandleKeyRight:
         LD      A,KeyRight
         JP      HandleHeldDir
 
 ; HandleKeyLeft —
 ; A contains KeyLeft for HandleHeldDir.
-.routine out carry,zero clobbers A,BC,DE,HL
+.routine out carry,zero clobbers A,BC,DE,HL,sign,parity,halfCarry
 HandleKeyLeft:
         LD      A,KeyLeft
         JP      HandleHeldDir
@@ -180,7 +180,7 @@ HandleKeyLeft:
 ; DropLockout prevents repeated locking on a held
 ; drop key; clears when ClearInputRpt is called.
 ; A contains KeyDrop for HandleHeldDir.
-.routine out carry,zero clobbers A,BC,DE,HL
+.routine out carry,zero clobbers sign,parity,halfCarry,A,BC,DE,HL
 HandleKeyDrop:
         LD      A,(DropLockout)
         OR      A
@@ -194,7 +194,7 @@ HandleKeyDrop:
 ; First press of a new key fires immediately then
 ; waits MovePeriod ticks before repeating.
 ; Drop uses DropPeriod; lateral uses MovePeriod.
-.routine in A out carry,zero clobbers A,BC,DE,HL
+.routine in A out carry,zero clobbers A,DE,sign,parity,halfCarry,BC,HL
 HandleHeldDir:
         LD      E,A
         LD      A,(LastKey)
